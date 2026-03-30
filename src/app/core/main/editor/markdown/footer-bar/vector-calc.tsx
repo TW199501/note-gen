@@ -4,6 +4,10 @@ import { Database, Sparkles } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { cn } from '@/lib/utils'
 import useVectorStore from '@/stores/vector'
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+
+dayjs.extend(relativeTime)
 
 interface VectorCalcProps {
   aiCompletionEnabled: boolean
@@ -18,18 +22,8 @@ export function VectorCalc({
   const [isHoveringVector, setIsHoveringVector] = useState(false)
 
   const formatLastProcessTime = (timestamp: number | null) => {
-    if (!timestamp) return '未处理'
-    const date = new Date(timestamp)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-    const diffHours = Math.floor(diffMs / 3600000)
-    const diffDays = Math.floor(diffMs / 86400000)
-
-    if (diffMins < 1) return '刚刚'
-    if (diffMins < 60) return `${diffMins} 分钟前`
-    if (diffHours < 24) return `${diffHours} 小时前`
-    return `${diffDays} 天前`
+    if (!timestamp) return ''
+    return dayjs(timestamp).fromNow()
   }
 
   const handleVectorProcess = useCallback(async () => {

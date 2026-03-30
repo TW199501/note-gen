@@ -39,7 +39,10 @@
     "info": "情報",
     "unsaved": "未保存",
     "saving": "保存中...",
-    "configureSync": "同期を構成"
+    "configureSync": "同期を構成",
+    "all": "すべて",
+    "today": "今日",
+    "yesterday": "昨日"
   },
   "settings": {
     "defaultModels": {
@@ -357,6 +360,11 @@
       },
       "showUndoRedo": "元に戻す/やり直しボタン",
       "showUndoRedoDesc": "エディターのタブバーに元に戻すボタンとやり直しボタンを表示します。",
+      "showEditorToolbar": "書式設定ツールバー",
+      "showEditorToolbarDesc": "エディターの上部に書式設定ツールバーを表示します。",
+      "browserSettings": "ブラウザ設定",
+      "browserHomepage": "ブラウザホームページ",
+      "browserHomepageDesc": "内蔵ブラウザのデフォルトホームページを設定します。",
       "completion": {
         "title": "自動補完",
         "model": {
@@ -1053,6 +1061,13 @@
           "desc": "会話を開始するためのクイックプロンプト候補を生成します"
         }
       },
+      "organize": {
+        "title": "整理モデル",
+        "model": {
+          "title": "ノート・ファイル整理モデル",
+          "desc": "AIによるノートやファイルの整理分類に使用。思考モードのないモデルの使用を推奨"
+        }
+      },
       "conversationTitle": {
         "title": "会话标题",
         "model": {
@@ -1174,7 +1189,27 @@
       "addModel": "モデルを追加",
       "newModel": "新しいモデル",
       "checkConnection": "接続をテスト",
-      "model": "モデル"
+      "model": "モデル",
+      "tabs": {
+        "provider": "モデルプロバイダー",
+        "assignment": "モデル設定"
+      },
+      "assignment": {
+        "chat": "💬 チャット",
+        "editor": "✏️ エディター",
+        "record": "📝 記録",
+        "rag": "📚 ナレッジベース",
+        "vision": "👁️ ビジョン",
+        "voice": "🔊 音声",
+        "organize": {
+          "title": "コンテンツ整理",
+          "desc": "ノート内容の再構成と整理に使用"
+        },
+        "audio": {
+          "title": "読み上げ",
+          "desc": "テキスト読み上げ機能に使用"
+        }
+      }
     },
     "ocr": {
       "title": "OCR",
@@ -1352,7 +1387,8 @@
       "confirm": "本当にデータをクリアしますか？",
       "records": "{count}件の記録が復元可能です",
       "empty": "空にする",
-      "close": "ゴミ箱を閉じる"
+      "close": "ゴミ箱を閉じる",
+      "restoreAll": "すべて復元"
     },
     "queue": {
       "ocr": "OCR 認識",
@@ -1363,7 +1399,8 @@
       "recording": "記録中...",
       "recorded": "記録済み",
       "record": "記録",
-      "detected": "検出済み"
+      "detected": "検出済み",
+      "saveImage": "画像を保存"
     },
     "mark": {
       "empty": "記録はまだありません",
@@ -1611,6 +1648,25 @@
       },
       "toolbar": {
         "search": "検索",
+        "filter": {
+          "title": "フィルター",
+          "description": "内容、時間、タイプで記録を即座にフィルタリングします。",
+          "search": "検索",
+          "searchPlaceholder": "記録の内容、説明、またはリンクを検索",
+          "type": "タイプ",
+          "time": "時間",
+          "tag": "タグ",
+          "allTags": "すべてのタグ",
+          "clear": "フィルターをクリア",
+          "selectAllTypes": "すべてのタイプを選択",
+          "clearTypes": "タイプの選択をクリア",
+          "timeOptions": {
+            "all": "すべての期間",
+            "today": "今日",
+            "last7Days": "過去7日間",
+            "last30Days": "過去30日間"
+          }
+        },
         "trash": "ゴミ箱",
         "restore": "復元",
         "delete": "削除",
@@ -1629,9 +1685,15 @@
         "selectAll": "すべて選択",
         "deselectAll": "すべて選択解除",
         "selectedCount": "{count}項目を選択中",
+        "visibleCount": "全 {count} 件のレコード",
         "moveSelectedTags": "選択した{count}項目を移動",
         "deleteSelected": "選択した{count}項目を削除",
         "deleteSelectedForever": "選択した{count}項目を完全削除",
+        "view": {
+          "list": "リスト表示",
+          "compact": "コンパクト表示",
+          "cards": "カード表示"
+        },
         "organizeNotes": "ノート整理",
         "organizeSuccess": "ノート整理成功：{title}",
         "organizeError": "ノート整理失敗",
@@ -1646,7 +1708,20 @@
         "closeTrash": "ゴミ箱を閉じる"
       },
       "list": {
-        "title": "記録"
+        "title": "記録",
+        "emptyFiltered": "条件に一致するレコードがありません",
+        "emptyFilteredHint": "検索語やフィルター条件を調整してみてください",
+        "filteredLabel": "{count} 件をフィルター済み",
+        "filtered": "フィルター済み",
+        "filteredByTag": "タグ",
+        "filteredByType": "{count} 種類",
+        "filteredSummary": "現在 {count} 件の結果を表示 · {filters}",
+        "searchChip": "検索: {value}",
+        "time": {
+          "today": "今日",
+          "last7Days": "過去7日間",
+          "last30Days": "過去30日間"
+        }
       },
       "note": {
         "organizeAs": "整理先",
@@ -1655,7 +1730,9 @@
         "confirm": "确认",
         "cancel": "取消",
         "removeThinking": "移除思考过程",
-        "stop": "停止"
+        "stop": "停止",
+        "noModel": "整理モデルが未設定です",
+        "noModelDesc": "設定 → チャット → 整理モデルからAIモデルを選択してください"
       }
     },
     "chat": {
@@ -1691,11 +1768,11 @@
         "noMatchingConversations": "一致する会話が見つかりませんでした",
         "noConversationHistory": "まだ会話履歴がありません",
         "quickPrompts": {
-          "title": "快速开始",
-          "writeNote": "帮我写一篇笔记",
-          "summarize": "帮我总结这段内容",
-          "brainstorm": "帮我头脑风暴一些想法",
-          "explain": "帮我解释这个概念"
+          "title": "クイックスタート",
+          "writeNote": "ノートを書くのを手伝って",
+          "summarize": "この内容を要約して",
+          "brainstorm": "アイデアを出し合って",
+          "explain": "この概念を説明して"
         }
       },
       "newChat": "新しいタグで対話を開始",
@@ -1788,7 +1865,59 @@
             "cancel": "キャンセル",
             "confirm": "確認",
             "confirmed": "確認済み",
-            "cancelled": "キャンセル済み"
+            "cancelled": "キャンセル済み",
+            "fallback": {
+              "title": "操作を実行します",
+              "description": "この操作の対象と内容を確認してください。"
+            },
+            "params": {
+              "filePath": "ファイルパス",
+              "content": "ファイル内容",
+              "sourcePath": "ソースパス",
+              "targetPath": "ターゲットパス",
+              "files": "ファイルリスト",
+              "newName": "新しい名前",
+              "scriptName": "スクリプト名",
+              "command": "コマンド"
+            },
+            "tools": {
+              "create_file": {
+                "title": "ファイル作成",
+                "description": "ワークスペースに新しいファイルを作成します。"
+              },
+              "create_files_batch": {
+                "title": "一括ファイル作成",
+                "description": "ワークスペースに複数のファイルを一度に作成します。"
+              },
+              "rename_file": {
+                "title": "ファイル名変更",
+                "description": "選択したファイルの名前を変更します。"
+              },
+              "move_file": {
+                "title": "ファイル移動",
+                "description": "ファイルを新しい場所に移動します。"
+              },
+              "copy_file": {
+                "title": "ファイルコピー",
+                "description": "ターゲットの場所にファイルのコピーを作成します。"
+              },
+              "replace_editor_content": {
+                "title": "エディター内容の置換",
+                "description": "現在のエディターの内容を新しい内容に置き換えます。"
+              },
+              "insert_at_cursor": {
+                "title": "カーソル位置に挿入",
+                "description": "現在のカーソル位置にコンテンツを挿入します。"
+              },
+              "delete_markdown_file": {
+                "title": "ファイル削除",
+                "description": "選択したファイルを完全に削除します。"
+              },
+              "execute_skill_script": {
+                "title": "スクリプト実行",
+                "description": "Skill が提供するスクリプトまたはコマンドを実行します。"
+              }
+            }
           }
         },
         "imageSelector": {
@@ -1808,8 +1937,12 @@
           "noFiles": "ファイルが見つかりません",
           "loading": "読み込み中..."
         },
-        "stopped": "对话已终止",
-        "newChat": "开始新对话"
+        "clearContext": {
+          "tooltip": "コンテキストをクリア",
+          "message": "コンテキストがクリアされました。以降の会話はこのメッセージ以降の内容のみが含まれます。"
+        },
+        "stopped": "会話が停止されました",
+        "newChat": "新しい会話を開始"
       },
       "header": {
         "configApiKey": "API KEY の設定",
@@ -1843,7 +1976,8 @@
       },
       "ragSources": {
         "label": "ナレッジベースで {count} 件のメモを検索",
-        "openFile": "ファイルを開く"
+        "openFile": "ファイルを開く",
+        "quoteContent": "引用内容"
       },
       "preview": {
         "close": "閉じる",
@@ -1889,9 +2023,16 @@
         "recorded": "記録済み",
         "record": "記録"
       },
-      "condensing": "正在压缩上下文...",
+      "condensing": "コンテキストを圧縮中...",
       "condensed": {
-        "message": "已压缩 {count} 条历史消息"
+        "message": "{count} 件の履歴メッセージを圧縮しました"
+      },
+      "thinking": "考え中...",
+      "agent": {
+        "fileGenerated": "ファイルの生成に成功しました：",
+        "stepFailed": "後続の検証または追加ステップが失敗しました：{message}",
+        "completedSteps": "{count} ステップ完了",
+        "thinking": "思考"
       }
     },
     "tag": {
@@ -1909,6 +2050,42 @@
       "desc": "システム設定ページに移動して、Github同期を設定してください。",
       "goToSettings": "設定へ移動",
       "howToUse": "同期機能の使い方は？"
+    }
+  },
+  "browser": {
+    "title": "ブラウザ",
+    "urlPlaceholder": "URLを入力...",
+    "back": "戻る",
+    "forward": "進む",
+    "reload": "再読み込み",
+    "home": "ホーム",
+    "extractText": "テキスト抽出",
+    "screenshot": "スクリーンショットをAIへ",
+    "loading": "読み込み中...",
+    "vlmRequired": "スクリーンショットにはビジョンモデルの設定が必要です",
+    "clearData": "ブラウザデータを消去",
+    "clearDataConfirm": "ブラウザのキャッシュ、Cookie、履歴がすべて消去されます。続行しますか？",
+    "bookmark": {
+      "add": "ブックマーク追加",
+      "remove": "ブックマーク削除",
+      "title": "ブックマーク",
+      "empty": "ブックマークがありません"
+    },
+    "contextMenu": {
+      "quoteToChat": "チャットに引用",
+      "screenshotToAI": "スクリーンショットをAIへ",
+      "addBookmark": "ブックマークに追加",
+      "translate": "選択テキストを翻訳"
+    },
+    "history": {
+      "title": "履歴",
+      "search": "履歴を検索",
+      "clear": "履歴を消去",
+      "clearConfirm": "すべての閲覧履歴を消去しますか？",
+      "empty": "閲覧履歴はありません",
+      "today": "今日",
+      "yesterday": "昨日",
+      "earlier": "それ以前"
     }
   },
   "navigation": {
@@ -1933,7 +2110,9 @@
     "showRightSidebar": "右サイドバーを表示",
     "searchPlaceholder": "ノートまたは記録を検索...",
     "showCenterPanel": "显示编辑器",
-    "hideCenterPanel": "隐藏编辑器"
+    "hideCenterPanel": "隐藏编辑器",
+    "notesMode": "ノートモード",
+    "browserMode": "ブラウザモード"
   },
   "activity": {
     "title": "アクティビティカレンダー",
@@ -2283,7 +2462,31 @@
         "importing": "インポート中...",
         "importSuccess": "インポート成功",
         "importSuccessDesc": "{count} 個のファイルをインポートしました",
-        "importError": "インポート失敗"
+        "importError": "インポート失敗",
+        "organizeFiles": "AI 分類整理"
+      },
+      "organize": {
+        "title": "AI ノート分類整理",
+        "desc": "ルートディレクトリの {count} 個の未分類ノートをスキャンし、AIが分類を提案します。",
+        "noFiles": "ルートディレクトリに未分類のノートファイルがありません",
+        "analyzing": "AIがファイル内容を分析中...",
+        "reviewDesc": "AIが {count} 個のファイルを以下のように分類することを提案します。確認してください：",
+        "applying": "ファイルを移動中...",
+        "startAnalyze": "分析開始",
+        "reAnalyze": "再分析",
+        "apply": "適用 ({count})",
+        "cancel": "キャンセル",
+        "selectAll": "すべて選択",
+        "deselectAll": "すべて選択解除",
+        "selected": "{count}/{total} 選択中",
+        "applySuccess": "{count} 個のファイルを整理しました",
+        "applyError": "ファイルの移動中にエラーが発生しました",
+        "analyzeError": "AI分析に失敗しました。モデル設定を確認してください",
+        "noModel": "整理モデルが未設定です",
+        "noModelDesc": "設定 → チャット → 整理モデルからAIモデルを選択してください",
+        "renameCount": "{count} 個のファイルの名前変更を提案",
+        "enableRename": "名前変更を有効にする",
+        "disableRename": "元の名前を保持"
       },
       "sync": {
         "syncingRemote": "リモートファイルをプル中...",
@@ -2373,6 +2576,22 @@
         "empty": "クリップボードが空です",
         "confirmOverwrite": "ファイルが既に存在します。覆盖吗？",
         "notSupported": "この操作はサポートされていません"
+      },
+      "mobile": {
+        "cancel": "キャンセル",
+        "create": "作成",
+        "save": "保存",
+        "emptyDir": "このディレクトリは空です",
+        "root": "ルートディレクトリ",
+        "openFiles": "ファイルを開く",
+        "remote": "リモートファイル",
+        "remoteFileNotPulled": "クラウドのみ · タップしてプル",
+        "remoteFolderOnly": "クラウドのみのディレクトリ",
+        "file": "ファイル",
+        "folder": "フォルダ",
+        "folderChildren": "{files} 個のファイル · {folders} 個のフォルダ",
+        "filePlaceholder": "例.md",
+        "folderPlaceholder": "サンプルフォルダ"
       },
       "deleteConfirm": "このファイルを削除してもよろしいですか？"
     },
@@ -2540,6 +2759,14 @@
         "streak": "連続日数",
         "streakHint": "連続して活動した日数"
       },
+      "status": {
+        "title": "現在の設定",
+        "sync": "バックアップ方式",
+        "model": "デフォルトモデル",
+        "configured": "接続済み",
+        "unconfigured": "未設定",
+        "modelFallback": "デフォルトモデル未設定"
+      },
       "settings": {
         "title": "設定",
         "description": "ここから各機能の設定画面へ直接移動できます。"
@@ -2621,6 +2848,7 @@
   },
   "editor": {
     "placeholder": "「/」を入力してメニューを開くか、直接書き始める...",
+    "aiNoSelection": "処理できるテキストがありません。範囲を選択するか、段落内にカーソルを置いてください",
     "outline": {
       "title": "アウトライン",
       "open": "アウトラインを開く",
@@ -2639,13 +2867,55 @@
     "quoteDisplay": {
       "fromFile": "{fileName}から引用",
       "line": "{fileName}の{line}行目から引用",
-      "lines": "{fileName}の{start}-{end}行目から引用"
+      "lines": "{fileName}の{start}-{end}行目から引用",
+      "collapse": "折りたたむ",
+      "expand": "展開"
+    },
+    "toolbar": {
+      "undo": "元に戻す",
+      "redo": "やり直し",
+      "heading1": "見出し 1",
+      "heading2": "見出し 2",
+      "heading3": "見出し 3",
+      "bold": "太字",
+      "italic": "斜体",
+      "strike": "取り消し線",
+      "underline": "下線",
+      "inlineCode": "インラインコード",
+      "highlight": "ハイライト",
+      "blockquote": "引用",
+      "bulletList": "箇条書き",
+      "orderedList": "番号付きリスト",
+      "taskList": "タスクリスト",
+      "codeBlock": "コードブロック",
+      "alignLeft": "左揃え",
+      "alignCenter": "中央揃え",
+      "alignRight": "右揃え",
+      "horizontalRule": "水平線",
+      "table": "テーブル",
+      "image": "画像",
+      "link": "リンク",
+      "ai": "AI",
+      "moreInsert": "その他挿入",
+      "inlineMath": "インライン数式",
+      "blockMath": "ブロック数式",
+      "mermaid": "Mermaid 図表",
+      "mermaidFlowchart": "フローチャート",
+      "mermaidSequence": "シーケンス図",
+      "mermaidGantt": "ガントチャート",
+      "mermaidClass": "クラス図",
+      "mermaidState": "状態遷移図",
+      "mermaidPie": "円グラフ",
+      "mermaidER": "ER 図",
+      "mermaidJourney": "ユーザージャーニー",
+      "searchReplace": "検索と置換"
     },
     "bubbleMenu": {
       "ai": "AI",
       "polish": "添削",
       "concise": "簡潔に",
       "expand": "拡張",
+      "organize": "整理",
       "translate": "翻訳",
       "translateSubtitle": "翻訳先",
       "quoteToChat": "チャットに引用",

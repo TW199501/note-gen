@@ -13,6 +13,7 @@ mod device;
 mod skills;
 mod tray;
 mod ai;
+mod browser;
 
 use screenshot::{cleanup_temp_screenshot_dir, screenshot};
 use fuzzy_search::{fuzzy_search, fuzzy_search_parallel};
@@ -23,6 +24,12 @@ use mcp::{start_mcp_stdio_server, stop_mcp_server, send_mcp_message, McpServerMa
 use mcp_runtime::{cancel_mcp_runtime_install, inspect_mcp_runtime, install_mcp_runtime, RuntimeInstallManager};
 use device::get_device_id;
 use ai::{ai_binary_request, ai_chat_completion_stream, ai_json_request, ai_multipart_request, cancel_ai_request, AiRequestManager};
+use browser::{
+    browser_create, browser_navigate, browser_go_back, browser_go_forward,
+    browser_reload, browser_show, browser_hide, browser_resize,
+    browser_extract_text, browser_capture, browser_get_url, browser_get_title,
+    browser_get_selected_text, browser_clear_data, BrowserState,
+};
 
 fn main() {
     tauri::Builder::default()
@@ -36,6 +43,7 @@ fn main() {
         .manage(McpServerManager::new())
         .manage(RuntimeInstallManager::new())
         .manage(AiRequestManager::new())
+        .manage(BrowserState::new())
 
         // 系统级插件
         .plugin(tauri_plugin_process::init())
@@ -75,6 +83,20 @@ fn main() {
             ai_multipart_request,
             ai_chat_completion_stream,
             cancel_ai_request,
+            browser_create,
+            browser_navigate,
+            browser_go_back,
+            browser_go_forward,
+            browser_reload,
+            browser_show,
+            browser_hide,
+            browser_resize,
+            browser_extract_text,
+            browser_capture,
+            browser_get_url,
+            browser_get_title,
+            browser_get_selected_text,
+            browser_clear_data,
         ])
 
         // 应用设置 - 在所有插件和命令注册后

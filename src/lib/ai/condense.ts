@@ -81,18 +81,18 @@ export async function condenseChats(chatsAfterClear: Chat[]): Promise<Array<{ ch
   const storeKey = hasCondenseModel ? 'condenseModel' : 'primaryModel'
 
   // 构建提示词
-  const prompt = `请将以下对话内容压缩为简洁的摘要，用于节省 token 使用量。
+  const prompt = `Compress the following conversation into a concise summary to save token usage.
 
-压缩原则：
-1. 保留代码块、数据、结论、TODO 等关键信息
-2. 简化过程描述和中间思考
-3. 使用清晰的段落或要点组织内容
-4. 控制在 ${settings.condenseMaxLength} 字以内
+Rules:
+1. Preserve code blocks, data, conclusions, TODOs, and other key information
+2. Simplify process descriptions and intermediate reasoning
+3. Organize content using clear paragraphs or bullet points
+4. Keep within ${settings.condenseMaxLength} characters
 
-原始内容：
+Original content:
 {content}
 
-请输出摘要：`
+Summary:`
 
   const results: Array<{ chatId: number, summary: string | null }> = []
 
@@ -117,7 +117,7 @@ export async function condenseChats(chatsAfterClear: Chat[]): Promise<Array<{ ch
         results.push({ chatId: chat.id, summary: null })
       }
     } catch (error) {
-      console.error('[Condense] 消息', chat.id, '摘要生成出错:', error)
+      console.error('[Condense] Failed to generate summary for chat', chat.id, error)
       results.push({ chatId: chat.id, summary: null })
     }
   }

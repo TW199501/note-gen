@@ -1,11 +1,8 @@
-import { getAISettings, prepareMessages, createOpenAIClient, handleAIError, validateAIService } from './utils';
+import { getAISettings, prepareMessages, createOpenAIClient, createChatCompletion, handleAIError, validateAIService } from './utils';
 import { createAiStreamContentProcessor } from './sanitize';
 
 /**
  * 翻译文本
- * @param text 要翻译的文本
- * @param targetLanguage 目标语言
- * @returns 翻译后的文本
  */
 export async function fetchAiTranslate(text: string, targetLanguage: string): Promise<string> {
   try {
@@ -16,22 +13,12 @@ export async function fetchAiTranslate(text: string, targetLanguage: string): Pr
     if (await validateAIService(aiConfig?.baseURL) === null) {
       return ''
     }
-    
+
     // 构建翻译提示词
     const translationPrompt = `Translate the following text to ${targetLanguage}. Maintain the original formatting, markdown syntax, and structure:`
-    
-    // 准备消息
     const { messages } = await prepareMessages(`${translationPrompt}\n\n${text}`)
-    const openai = await createOpenAIClient(aiConfig)
-    
-    const completion = await openai.chat.completions.create({
-      model: aiConfig?.model || '',
-      messages: messages,
-      temperature: aiConfig?.temperature || 1,
-      top_p: aiConfig?.topP || 1,
-    })
-    
-    return completion.choices[0]?.message?.content || ''
+
+    return await createChatCompletion(aiConfig, messages)
   } catch (error) {
     return handleAIError(error) || ''
   }

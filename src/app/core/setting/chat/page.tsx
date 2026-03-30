@@ -4,7 +4,6 @@ import { useTranslations } from 'next-intl'
 import { SettingType } from '../components/setting-base'
 import { MessageSquare } from 'lucide-react'
 import { CondenseSettings } from './condense-settings'
-import { DefaultModelsSettings } from '../components/default-models-settings'
 import { ToolbarSettings } from './toolbar-settings'
 
 export default function ChatSettingsPage() {
@@ -18,7 +17,6 @@ export default function ChatSettingsPage() {
       icon={<MessageSquare className="size-4 lg:size-6" />}
     >
       <div className="space-y-4">
-        <DefaultModelsSettings type="chat" />
         <ToolbarSettings />
         <CondenseSettings />
       </div>

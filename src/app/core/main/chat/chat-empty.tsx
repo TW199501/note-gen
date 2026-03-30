@@ -8,23 +8,18 @@ import { Button } from '@/components/ui/button'
 import emitter from '@/lib/emitter'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
-import 'dayjs/locale/zh-cn'
-import 'dayjs/locale/en'
-import useSettingStore from '@/stores/setting'
 import { QuickPrompt } from '@/lib/ai/placeholder'
 
 // 初始化 dayjs 插件
 dayjs.extend(relativeTime)
 
-// 格式化相对时间
-function formatRelativeTime(timestamp: number, locale: string): string {
-  const dayjsLocale = locale === 'en' ? 'en' : 'zh-cn'
-  return dayjs(timestamp).locale(dayjsLocale).fromNow()
+function formatRelativeTime(timestamp: number): string {
+  return dayjs(timestamp).fromNow()
 }
 
 export default function ChatEmpty() {
   const t = useTranslations('record.chat.empty')
-  const { language } = useSettingStore()
+
 
   const {
     conversations,
@@ -35,11 +30,10 @@ export default function ChatEmpty() {
 
   const [aiPrompts, setAiPrompts] = useState<QuickPrompt[]>([])
 
-  // 快速 prompt 模板 - 默认模板
   const defaultQuickPrompts = useMemo(() => [
-    { id: 1, icon: <FileEdit className="w-4 h-4" />, text: t('quickPrompts.writeNote') || '帮我写一篇笔记' },
-    { id: 2, icon: <FileText className="w-4 h-4" />, text: t('quickPrompts.summarize') || '帮我总结这段内容' },
-    { id: 3, icon: <Lightbulb className="w-4 h-4" />, text: t('quickPrompts.brainstorm') || '帮我头脑风暴一些想法' },
+    { id: 1, icon: <FileEdit className="w-4 h-4" />, text: t('quickPrompts.writeNote') },
+    { id: 2, icon: <FileText className="w-4 h-4" />, text: t('quickPrompts.summarize') },
+    { id: 3, icon: <Lightbulb className="w-4 h-4" />, text: t('quickPrompts.brainstorm') },
   ], [t])
 
   // 监听来自 chat-input 的 AI 提示词生成事件
@@ -133,7 +127,7 @@ export default function ChatEmpty() {
 
         {/* Quick Prompts */}
         <div className="space-y-2">
-          <p className="text-xs text-muted-foreground px-1">{t('quickPrompts.title') || '快速开始'}</p>
+          <p className="text-xs text-muted-foreground px-1">{t('quickPrompts.title')}</p>
           {quickPrompts.map((prompt) => (
             <div
               key={prompt.id}
@@ -172,7 +166,7 @@ export default function ChatEmpty() {
                   <div className="shrink-0 ml-auto flex items-center justify-end relative">
                     {/* 时间戳 - 悬停时隐藏 */}
                     <span className="absolute right-0 text-xs text-muted-foreground opacity-100 group-hover:opacity-0 transition-opacity duration-200 ease-out whitespace-nowrap">
-                      {formatRelativeTime(conv.updatedAt, language)}
+                      {formatRelativeTime(conv.updatedAt)}
                     </span>
                     {/* 删除按钮 - 悬停时显示 */}
                     <Button

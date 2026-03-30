@@ -22,12 +22,14 @@ import { SettingType, FormItem } from "../components/setting-base";
 import { AiConfig, ModelConfig, builtinProviderTemplates } from "../config";
 import useSettingStore from "@/stores/setting";
 import { noteGenModelKeys } from "@/app/model-config";
-import { BotMessageSquare, Copy, Eye, EyeOff, LoaderCircle, Plus, Trash2, X } from "lucide-react";
+import { BotMessageSquare, Copy, Eye, EyeOff, LoaderCircle, Plus, Server, Settings2, Trash2, X } from "lucide-react";
 import { OpenBroswer } from "@/components/open-broswer";
 import DefaultModelsSection from "./default-models";
 import ModelCard from "./model-card";
 import CreateConfig from "./create";
 import { getCachedProviderTemplates, getProviderTemplateMatch, loadProviderTemplates } from "@/lib/ai/provider-templates-runtime";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ModelAssignment } from "./model-assignment";
 
 
 export default function AiPage() {
@@ -280,11 +282,24 @@ export default function AiPage() {
 
   return (
     <SettingType id="ai" icon={<BotMessageSquare />} title={t('title')} desc={t('desc')}>
+      <Tabs defaultValue="provider" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="provider" className="flex items-center gap-1.5">
+            <Server className="size-4" />
+            {t('tabs.provider')}
+          </TabsTrigger>
+          <TabsTrigger value="assignment" className="flex items-center gap-1.5">
+            <Settings2 className="size-4" />
+            {t('tabs.assignment')}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="provider">
       {/* 当没有用户自定义模型时显示默认模型区域 */}
       {userCustomModels.length === 0 && <DefaultModelsSection />}
-      
-      <CreateConfig 
-        hasCustomModels={userCustomModels.length > 0} 
+
+      <CreateConfig
+        hasCustomModels={userCustomModels.length > 0}
         onConfigCreated={(configId) => {
           setSelectedAiConfig(configId)
         }}
@@ -496,6 +511,12 @@ export default function AiPage() {
           )}
         </div>
       )}
+        </TabsContent>
+
+        <TabsContent value="assignment">
+          <ModelAssignment />
+        </TabsContent>
+      </Tabs>
     </SettingType>
   )
 }

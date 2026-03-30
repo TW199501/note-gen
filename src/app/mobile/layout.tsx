@@ -8,7 +8,10 @@ import { applyThemeColors } from "@/lib/theme-utils"
 import { initAllDatabases } from "@/db"
 import dayjs from "dayjs"
 import zh from "dayjs/locale/zh-cn";
+import zhTW from "dayjs/locale/zh-tw";
 import en from "dayjs/locale/en";
+import ja from "dayjs/locale/ja";
+import ptBR from "dayjs/locale/pt-br";
 import { useI18n } from "@/hooks/useI18n"
 import useVectorStore from "@/stores/vector"
 import { AppFootbar } from "@/components/app-footbar"
@@ -56,10 +59,20 @@ export default function RootLayout({
       case 'zh':
         dayjs.locale(zh);
         break;
+      case 'zh-TW':
+        dayjs.locale(zhTW);
+        break;
       case 'en':
         dayjs.locale(en);
         break;
+      case 'ja':
+        dayjs.locale(ja);
+        break;
+      case 'pt-BR':
+        dayjs.locale(ptBR);
+        break;
       default:
+        dayjs.locale(zh);
         break;
     }
   }, [currentLocale])

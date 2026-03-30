@@ -6,6 +6,8 @@ import { EditorLayout } from './editor/editor-layout'
 import Chat from './chat'
 import dynamic from 'next/dynamic'
 import { useSidebarStore } from "@/stores/sidebar"
+import useBrowserStore from "@/stores/browser"
+import { BrowserPanel } from "./browser"
 import { useEffect, useState, useRef } from 'react'
 import { Store } from '@tauri-apps/plugin-store'
 import { ImperativePanelHandle } from 'react-resizable-panels'
@@ -56,13 +58,23 @@ function getDefaultLayout(layoutKey: string) {
 }
 
 function ResizableWrapper() {
-  const { 
-    leftSidebarVisible, 
-    centerPanelVisible, 
-    rightSidebarVisible, 
+  const {
+    leftSidebarVisible,
+    centerPanelVisible,
+    rightSidebarVisible,
     initSidebarState
   } = useSidebarStore()
-  
+  const { workspaceMode } = useBrowserStore()
+
+  // 切换模式时控制 WebView 显示/隐藏
+  useEffect(() => {
+    if (workspaceMode === 'notes') {
+      invoke('browser_hide').catch(() => {})
+    } else {
+      invoke('browser_show').catch(() => {})
+    }
+  }, [workspaceMode])
+
   const leftPanelRef = useRef<ImperativePanelHandle>(null)
   const centerPanelRef = useRef<ImperativePanelHandle>(null)
   const rightPanelRef = useRef<ImperativePanelHandle>(null)
@@ -223,10 +235,26 @@ function ResizableWrapper() {
     return panels
   }
 
+  // Browser mode: simpler 2-panel layout with BrowserPanel + Chat
+  if (workspaceMode === 'browser') {
+    return (
+      <ResizablePanelGroup direction="horizontal" className="h-full">
+        <ResizablePanel defaultSize={70} minSize={40} maxSize={80}>
+          <BrowserPanel />
+        </ResizablePanel>
+        <ResizableHandle />
+        <ResizablePanel defaultSize={30} minSize={20}>
+          <Chat />
+        </ResizablePanel>
+      </ResizablePanelGroup>
+    )
+  }
+
+  // Notes mode: existing 3-panel layout
   return (
-    <ResizablePanelGroup 
-      direction="horizontal" 
-      onLayout={onLayout} 
+    <ResizablePanelGroup
+      direction="horizontal"
+      onLayout={onLayout}
       className="h-full"
     >
       {renderLayout()}

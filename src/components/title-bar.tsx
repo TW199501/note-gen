@@ -4,15 +4,17 @@ import { useEffect, useState } from 'react'
 import { platform } from '@tauri-apps/plugin-os'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { isMobileDevice } from '@/lib/check'
-import { Search, Settings, Minus, Square, X, PanelLeft, PanelRight, SquarePen, Cog, CalendarDays } from 'lucide-react'
+import { Search, Settings, Minus, Square, X, PanelLeft, PanelRight, SquarePen, Cog, CalendarDays, Globe, NotebookPen } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useSidebarStore } from '@/stores/sidebar'
+import useBrowserStore from '@/stores/browser'
 import { PinToggle } from './pin-toggle'
 import { SyncToggle } from './title-bar-toolbars/sync-toggle'
 import AppStatus from './app-status'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import useSettingStore from '@/stores/setting'
 import useArticleStore from '@/stores/article'
 import useUpdateStore from '@/stores/update'
@@ -54,7 +56,8 @@ export function TitleBar({ onSearchClick, onActivityClick, activityOpen = false 
   const pathname = usePathname()
   const router = useRouter()
   const { leftSidebarVisible, centerPanelVisible, rightSidebarVisible, toggleLeftSidebar, toggleCenterPanel, toggleRightSidebar } = useSidebarStore()
-  
+  const { workspaceMode, setWorkspaceMode } = useBrowserStore()
+
   // 检查关闭面板后是否会导致"仅左"状态或无面板状态
   const wouldCauseLeftOnly = (currentVisible: boolean, panel: 'left' | 'center' | 'right') => {
     // 如果面板本来就不可见，不会导致问题（打开面板总是允许的）
@@ -186,8 +189,8 @@ export function TitleBar({ onSearchClick, onActivityClick, activityOpen = false 
         }}
         data-tauri-drag-region
       >
-        {/* 左侧记录工具栏按钮 */}
-        <div id="onboarding-target-record-toolbar" className="flex items-center gap-0.5 px-2 shrink-0" data-tauri-drag-region="false">
+        {/* 左侧记录工具栏按钮 - 仅笔记模式显示 */}
+        {workspaceMode === 'notes' && <div id="onboarding-target-record-toolbar" className="flex items-center gap-0.5 px-2 shrink-0" data-tauri-drag-region="false">
           <TooltipProvider>
             <DndContext
               sensors={sensors}
@@ -239,7 +242,7 @@ export function TitleBar({ onSearchClick, onActivityClick, activityOpen = false 
               </SortableContext>
             </DndContext>
           </TooltipProvider>
-        </div>
+        </div>}
 
         {/* 中间搜索输入框 */}
         <div className="flex-1 flex items-center justify-center px-4 min-w-[200px] max-w-[600px] mx-auto" data-tauri-drag-region>
@@ -257,68 +260,139 @@ export function TitleBar({ onSearchClick, onActivityClick, activityOpen = false 
 
         {/* 右侧按钮 */}
         <div className="flex items-center gap-0.5 px-2 shrink-0" data-tauri-drag-region="false">
-          {/* 左侧边栏切换按钮 */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={`h-8 w-8 ${wouldCauseLeftOnly(leftSidebarVisible, 'left') ? 'cursor-not-allowed opacity-50' : ''}`}
-                onClick={() => {
-                  if (!wouldCauseLeftOnly(leftSidebarVisible, 'left')) {
-                    toggleLeftSidebar()
-                  }
-                }}
-              >
-                <PanelLeft className={`h-4 w-4 ${!leftSidebarVisible ? 'opacity-30' : ''}`} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              <p>{leftSidebarVisible ? t('navigation.hideLeftSidebar') : t('navigation.showLeftSidebar')}</p>
-            </TooltipContent>
-          </Tooltip>
+          {/* Mode toggle - only on main page */}
+          {pathname === '/core/main' && (
+            <>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      'h-8 w-8',
+                      workspaceMode === 'notes'
+                        ? 'bg-primary/10 text-primary hover:bg-primary/20'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                    onClick={() => setWorkspaceMode('notes')}
+                  >
+                    <NotebookPen className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>{t('navigation.notesMode')}</p>
+                </TooltipContent>
+              </Tooltip>
 
-          {/* 中间面板切换按钮 */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={`h-8 w-8 ${wouldCauseLeftOnly(centerPanelVisible, 'center') ? 'cursor-not-allowed opacity-50' : ''}`}
-                onClick={() => {
-                  if (!wouldCauseLeftOnly(centerPanelVisible, 'center')) {
-                    toggleCenterPanel()
-                  }
-                }}
-              >
-                <SquarePen className={`h-4 w-4 ${!centerPanelVisible ? 'opacity-30' : ''}`} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              <p>{centerPanelVisible ? t('navigation.hideCenterPanel') : t('navigation.showCenterPanel')}</p>
-            </TooltipContent>
-          </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      'h-8 w-8',
+                      workspaceMode === 'browser'
+                        ? 'bg-primary/10 text-primary hover:bg-primary/20'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                    onClick={() => setWorkspaceMode('browser')}
+                  >
+                    <Globe className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>{t('navigation.browserMode')}</p>
+                </TooltipContent>
+              </Tooltip>
 
-          {/* 右侧边栏切换按钮 */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={`h-8 w-8 ${wouldCauseLeftOnly(rightSidebarVisible, 'right') ? 'cursor-not-allowed opacity-50' : ''}`}
-                onClick={() => {
-                  if (!wouldCauseLeftOnly(rightSidebarVisible, 'right')) {
-                    toggleRightSidebar()
-                  }
-                }}
-              >
-                <PanelRight className={`h-4 w-4 ${!rightSidebarVisible ? 'opacity-30' : ''}`} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              <p>{rightSidebarVisible ? t('navigation.hideRightSidebar') : t('navigation.showRightSidebar')}</p>
-            </TooltipContent>
-          </Tooltip>
+              <div className="w-px h-4 bg-border mx-1" />
+            </>
+          )}
+
+          {workspaceMode === 'notes' && (
+            <>
+              {/* 左侧边栏切换按钮 */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      'h-8 w-8',
+                      leftSidebarVisible
+                        ? 'bg-primary/10 text-primary hover:bg-primary/20'
+                        : 'text-muted-foreground hover:text-foreground',
+                      wouldCauseLeftOnly(leftSidebarVisible, 'left') && 'cursor-not-allowed opacity-50'
+                    )}
+                    onClick={() => {
+                      if (!wouldCauseLeftOnly(leftSidebarVisible, 'left')) {
+                        toggleLeftSidebar()
+                      }
+                    }}
+                  >
+                    <PanelLeft className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>{leftSidebarVisible ? t('navigation.hideLeftSidebar') : t('navigation.showLeftSidebar')}</p>
+                </TooltipContent>
+              </Tooltip>
+
+              {/* 中间面板切换按钮 */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      'h-8 w-8',
+                      centerPanelVisible
+                        ? 'bg-primary/10 text-primary hover:bg-primary/20'
+                        : 'text-muted-foreground hover:text-foreground',
+                      wouldCauseLeftOnly(centerPanelVisible, 'center') && 'cursor-not-allowed opacity-50'
+                    )}
+                    onClick={() => {
+                      if (!wouldCauseLeftOnly(centerPanelVisible, 'center')) {
+                        toggleCenterPanel()
+                      }
+                    }}
+                  >
+                    <SquarePen className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>{centerPanelVisible ? t('navigation.hideCenterPanel') : t('navigation.showCenterPanel')}</p>
+                </TooltipContent>
+              </Tooltip>
+
+              {/* 右侧边栏切换按钮 */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      'h-8 w-8',
+                      rightSidebarVisible
+                        ? 'bg-primary/10 text-primary hover:bg-primary/20'
+                        : 'text-muted-foreground hover:text-foreground',
+                      wouldCauseLeftOnly(rightSidebarVisible, 'right') && 'cursor-not-allowed opacity-50'
+                    )}
+                    onClick={() => {
+                      if (!wouldCauseLeftOnly(rightSidebarVisible, 'right')) {
+                        toggleRightSidebar()
+                      }
+                    }}
+                  >
+                    <PanelRight className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>{rightSidebarVisible ? t('navigation.hideRightSidebar') : t('navigation.showRightSidebar')}</p>
+                </TooltipContent>
+              </Tooltip>
+            </>
+          )}
           
           <Tooltip>
             <TooltipTrigger asChild>

@@ -22,6 +22,7 @@ import { Calendar, User, GitMerge, ArrowDownToLine, ArrowUpFromLine, X } from 'l
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/zh-cn'
+import 'dayjs/locale/zh-tw'
 import 'dayjs/locale/en'
 import 'dayjs/locale/ja'
 import 'dayjs/locale/pt-br'
@@ -86,6 +87,7 @@ export function SyncConfirmDialog() {
   const getLocale = () => {
     switch (currentLocale) {
       case 'zh': return 'zh-cn'
+      case 'zh-TW': return 'zh-tw'
       case 'ja': return 'ja'
       case 'pt-BR': return 'pt-br'
       default: return 'en'

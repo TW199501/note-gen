@@ -113,10 +113,10 @@ export async function checkRerankModelAvailable(): Promise<boolean> {
     if (!baseURL || !model) return false;
     
     // 测试重排序模型
-    const testQuery = '测试查询';
+    const testQuery = 'test query';
     const testDocuments = [
-      '这是一个测试文档', 
-      '这是另一个测试文档'
+      'This is a test document',
+      'This is another test document'
     ];
     
     // 发送测试请求
@@ -136,7 +136,7 @@ export async function checkRerankModelAvailable(): Promise<boolean> {
     });
     return !!(data && data.results);
   } catch (error) {
-    console.error('重排序模型检查失败:', error);
+    console.error('[Rerank] Model check failed:', error);
     return false;
   }
 }
@@ -152,13 +152,13 @@ export async function fetchEmbedding(text: string): Promise<number[] | null> {
       // 获取嵌入模型信息
       const modelInfo = await getEmbeddingModelInfo();
       if (!modelInfo) {
-        throw new Error('未配置嵌入模型或模型配置不正确');
+        throw new Error('Embedding model not configured or configuration is incorrect');
       }
       
       const { baseURL, apiKey, model } = modelInfo;
 
       if (!baseURL || !model) {
-        throw new Error('嵌入模型配置不完整');
+        throw new Error('Embedding model configuration is incomplete');
       }
       
       // 发送嵌入请求
@@ -177,7 +177,7 @@ export async function fetchEmbedding(text: string): Promise<number[] | null> {
         }
       });
       if (!data || !data.data || !data.data[0] || !data.data[0].embedding) {
-        throw new Error('嵌入结果格式不正确');
+        throw new Error('Embedding result format is incorrect');
       }
       
       return data.data[0].embedding;
@@ -234,7 +234,7 @@ export async function rerankDocuments(
     });
 
     if (!data || !data.results) {
-      throw new Error('重排序结果格式不正确');
+      throw new Error('Rerank result format is incorrect');
     }
 
     // 计算最高 rerank 分数，用于判断是否使用 rerank 结果
@@ -257,7 +257,7 @@ export async function rerankDocuments(
 
     return rerankResults.sort((a: {similarity: number}, b: {similarity: number}) => b.similarity - a.similarity);
   } catch (error) {
-    console.error('[Rerank] 重排序失败:', error);
+    console.error('[Rerank] Reranking failed:', error);
     return documents;
   }
 }

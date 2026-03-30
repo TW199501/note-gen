@@ -16,20 +16,15 @@ import {
 import { useTranslations } from 'next-intl'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
-import 'dayjs/locale/zh-cn'
-import 'dayjs/locale/en'
-import useSettingStore from '@/stores/setting'
 
 dayjs.extend(relativeTime)
 
-function formatRelativeTime(timestamp: number, locale: string): string {
-  const dayjsLocale = locale === 'en' ? 'en' : 'zh-cn'
-  return dayjs(timestamp).locale(dayjsLocale).fromNow()
+function formatRelativeTime(timestamp: number): string {
+  return dayjs(timestamp).fromNow()
 }
 
 export function ChatHeader() {
   const { startNewConversation, conversations, currentConversationId, switchConversation, deleteConversation, loading } = useChatStore()
-  const { language } = useSettingStore()
   const t = useTranslations()
   const tEmpty = useTranslations('record.chat.empty')
 
@@ -114,7 +109,7 @@ export function ChatHeader() {
                         </div>
                         <div className="shrink-0 ml-auto flex items-center gap-2">
                           <span className="text-xs text-muted-foreground">
-                            {formatRelativeTime(conv.updatedAt, language)}
+                            {formatRelativeTime(conv.updatedAt)}
                           </span>
                           <button
                             onClick={(e) => {

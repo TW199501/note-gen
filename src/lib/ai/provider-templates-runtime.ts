@@ -222,22 +222,27 @@ async function fetchRemoteProviderTemplates(versionCode?: number | null): Promis
 export async function loadProviderTemplates(builtinTemplates: AiConfig[]): Promise<AiConfig[]> {
   const store = await Store.load('store.json')
   const cached = await store.get<ProviderTemplateCache>(PROVIDER_TEMPLATE_CACHE_KEY)
+  const builtin = mapBuiltinTemplates(builtinTemplates)
 
+  let remote: AiConfig[] = []
   try {
     const latest = await fetchRemoteProviderTemplates(cached?.versionCode)
     if (latest) {
       await store.set(PROVIDER_TEMPLATE_CACHE_KEY, latest)
-      return mapRemoteTemplates(latest.content)
+      remote = mapRemoteTemplates(latest.content)
     }
   } catch (error) {
     console.error('[provider-templates] failed to fetch remote templates', error)
   }
 
-  if (cached?.content?.providers?.length) {
-    return mapRemoteTemplates(cached.content)
+  if (remote.length === 0 && cached?.content?.providers?.length) {
+    remote = mapRemoteTemplates(cached.content)
   }
 
-  return mapBuiltinTemplates(builtinTemplates)
+  // Merge: remote templates first, then builtin templates not already present
+  const remoteKeys = new Set(remote.map((t) => t.key))
+  const merged = [...remote, ...builtin.filter((t) => !remoteKeys.has(t.key))]
+  return merged
 }
 
 export function getProviderTemplateMatch(currentConfig: AiConfig | undefined, templates: AiConfig[]) {

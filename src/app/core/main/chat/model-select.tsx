@@ -1,8 +1,9 @@
 import * as React from "react"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { ModelConfig } from "../../setting/config"
 import { Store } from "@tauri-apps/plugin-store"
 import useSettingStore from "@/stores/setting"
+import useBrowserStore from "@/stores/browser"
 import { BotMessageSquare, BotOff } from "lucide-react"
 import {
   Popover,
@@ -43,23 +44,34 @@ export function ModelSelect() {
     await store.save()
   }
 
+  const { pushOverlay, popOverlay } = useBrowserStore()
+
   function handleSetOpen(isOpen: boolean) {
     setOpen(isOpen)
+    if (isOpen) {
+      pushOverlay()
+    } else {
+      popOverlay()
+    }
   }
 
-  // 监听 aiModelList 变化，处理新的模型配置结构
+  const noteGenConfigKeys = useMemo(() => new Set(['note-gen-free', 'note-gen-limited']), [])
+
   useEffect(() => {
     if (aiModelList && aiModelList.length > 0) {
       const models: GroupedModel[] = []
+
+      const hasUserModels = aiModelList.some(
+        config => config.baseURL && !noteGenConfigKeys.has(config.key)
+      )
       
       aiModelList.forEach(config => {
-        // 检查配置是否有效
         if (!config.baseURL) return
+
+        if (hasUserModels && noteGenConfigKeys.has(config.key)) return
         
-        // 处理新的 models 数组结构
         if (config.models && config.models.length > 0) {
           config.models.forEach(model => {
-            // 只显示 chat 类型的模型
             if (model.modelType === 'chat' && model.model) {
               models.push({
                 configKey: config.key,
@@ -69,7 +81,6 @@ export function ModelSelect() {
             }
           })
         } else {
-          // 向后兼容：处理旧的单模型结构
           if ((config.modelType === 'chat' || !config.modelType) && config.model) {
             models.push({
               configKey: config.key,
@@ -90,7 +101,7 @@ export function ModelSelect() {
       
       setGroupedModels(models)
     }
-  }, [aiModelList])
+  }, [aiModelList, noteGenConfigKeys])
 
   // 按配置分组模型
   const groupedByConfig = groupedModels.reduce((acc, item) => {

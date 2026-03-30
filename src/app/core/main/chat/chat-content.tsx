@@ -25,6 +25,7 @@ const BOTTOM_THRESHOLD = 24
 const USER_SCROLL_GRACE_MS = 300
 
 const ChatContent = React.memo(function ChatContent() {
+  const t = useTranslations('record.chat')
   const { chats, init, agentState, loading } = useChatStore()
   const { currentTagId } = useTagStore()
   const [isOnBottom, setIsOnBottom] = useState(true)
@@ -235,7 +236,7 @@ const ChatContent = React.memo(function ChatContent() {
         <div className="flex w-full min-w-0 -mt-6">
           <div className='text-sm leading-6 flex-1 flex items-center gap-2 text-muted-foreground'>
             <Loader2 className="size-4 animate-spin" />
-            <span>正在思考...</span>
+            <span>{t('thinking')}</span>
           </div>
         </div>
       )}

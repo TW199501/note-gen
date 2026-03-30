@@ -6,7 +6,10 @@ import { useEffect, useState } from "react";
 import { initAllDatabases } from "@/db"
 import dayjs from "dayjs"
 import zh from "dayjs/locale/zh-cn";
+import zhTW from "dayjs/locale/zh-tw";
 import en from "dayjs/locale/en";
+import ja from "dayjs/locale/ja";
+import ptBR from "dayjs/locale/pt-br";
 import { useI18n } from "@/hooks/useI18n"
 import useVectorStore from "@/stores/vector"
 import useImageStore from "@/stores/imageHosting"
@@ -26,6 +29,7 @@ import { SyncConfirmDialog } from "@/components/sync-confirm-dialog"
 import { applyThemeColors } from "@/lib/theme-utils"
 import emitter from "@/lib/emitter"
 import { isEditableKeyboardTarget } from "@/lib/is-editable-keyboard-target"
+import { invoke } from "@tauri-apps/api/core"
 
 export default function RootLayout({
   children,
@@ -109,13 +113,30 @@ export default function RootLayout({
       case 'zh':
         dayjs.locale(zh);
         break;
+      case 'zh-TW':
+        dayjs.locale(zhTW);
+        break;
       case 'en':
         dayjs.locale(en);
         break;
+      case 'ja':
+        dayjs.locale(ja);
+        break;
+      case 'pt-BR':
+        dayjs.locale(ptBR);
+        break;
       default:
+        dayjs.locale(zh);
         break;
     }
   }, [currentLocale])
+
+  // 离开主页时隐藏浏览器 WebView
+  useEffect(() => {
+    if (pathname !== '/core/main') {
+      invoke('browser_hide').catch(() => {})
+    }
+  }, [pathname])
 
   // 禁用浏览器后退快捷键（Backspace）和添加搜索快捷键（Cmd/Ctrl+F）
   useEffect(() => {

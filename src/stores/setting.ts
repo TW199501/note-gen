@@ -90,6 +90,9 @@ interface SettingState {
   inspirationModel: string
   setInspirationModel: (inspirationModel: string) => Promise<void>
 
+  organizeModel: string
+  setOrganizeModel: (organizeModel: string) => Promise<void>
+
   templateList: GenTemplate[]
   setTemplateList: (templateList: GenTemplate[]) => Promise<void>
 
@@ -249,6 +252,14 @@ interface SettingState {
   showEditorUndoRedo: boolean
   setShowEditorUndoRedo: (show: boolean) => Promise<void>
 
+  // 编辑器顶部工具栏显示设置
+  showEditorToolbar: boolean
+  setShowEditorToolbar: (show: boolean) => Promise<void>
+
+  // 浏览器首页设置
+  browserHomepage: string
+  setBrowserHomepage: (url: string) => Promise<void>
+
   // 摘要设置
   enableCondense: boolean
   setEnableCondense: (enabled: boolean) => Promise<void>
@@ -280,6 +291,12 @@ const useSettingStore = create<SettingState>((set, get) => ({
     const savedUseImageRepo = await store.get<boolean>('useImageRepo')
     if (savedUseImageRepo !== undefined && savedUseImageRepo !== null) {
       set({ useImageRepo: savedUseImageRepo })
+    }
+
+    // 初始化浏览器首页
+    const savedBrowserHomepage = await store.get<string>('browserHomepage')
+    if (savedBrowserHomepage) {
+      set({ browserHomepage: savedBrowserHomepage })
     }
 
     // 初始化默认的NoteGen模型配置
@@ -680,6 +697,13 @@ const useSettingStore = create<SettingState>((set, get) => ({
     const store = await Store.load('store.json');
     await store.set('inspirationModel', inspirationModel)
     set({ inspirationModel })
+  },
+
+  organizeModel: '',
+  setOrganizeModel: async (organizeModel) => {
+    const store = await Store.load('store.json');
+    await store.set('organizeModel', organizeModel)
+    set({ organizeModel })
   },
 
   templateList: [
@@ -1231,6 +1255,24 @@ const useSettingStore = create<SettingState>((set, get) => ({
     set({ showEditorUndoRedo: show })
     const store = await Store.load('store.json');
     await store.set('showEditorUndoRedo', show)
+    await store.save()
+  },
+
+  // 编辑器顶部工具栏显示设置 - 默认开启
+  showEditorToolbar: true,
+  setShowEditorToolbar: async (show: boolean) => {
+    set({ showEditorToolbar: show })
+    const store = await Store.load('store.json')
+    await store.set('showEditorToolbar', show)
+    await store.save()
+  },
+
+  // 浏览器首页设置
+  browserHomepage: 'https://www.google.com',
+  setBrowserHomepage: async (browserHomepage: string) => {
+    set({ browserHomepage })
+    const store = await Store.load('store.json')
+    await store.set('browserHomepage', browserHomepage)
     await store.save()
   },
 }))

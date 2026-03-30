@@ -4,6 +4,7 @@ mod device;
 mod backup;
 mod skills;
 mod ai;
+mod browser;
 
 use mcp::{start_mcp_stdio_server, stop_mcp_server, send_mcp_message, McpServerManager};
 use mcp_runtime::{cancel_mcp_runtime_install, inspect_mcp_runtime, install_mcp_runtime, RuntimeInstallManager};
@@ -11,6 +12,12 @@ use device::get_device_id;
 use backup::{export_app_data, import_app_data, import_app_data_from_file};
 use skills::import_skill_zip;
 use ai::{ai_binary_request, ai_chat_completion_stream, ai_json_request, ai_multipart_request, cancel_ai_request, AiRequestManager};
+use browser::{
+    browser_create, browser_navigate, browser_go_back, browser_go_forward,
+    browser_reload, browser_show, browser_hide, browser_resize,
+    browser_extract_text, browser_capture, browser_get_url, browser_get_title,
+    browser_get_selected_text, browser_inject_context_menu, browser_clear_data, BrowserState,
+};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -25,6 +32,7 @@ pub fn run() {
         .manage(McpServerManager::new())
         .manage(RuntimeInstallManager::new())
         .manage(AiRequestManager::new())
+        .manage(BrowserState::new())
         .invoke_handler(tauri::generate_handler![
             start_mcp_stdio_server,
             stop_mcp_server,
@@ -42,6 +50,21 @@ pub fn run() {
             ai_multipart_request,
             ai_chat_completion_stream,
             cancel_ai_request,
+            browser_create,
+            browser_navigate,
+            browser_go_back,
+            browser_go_forward,
+            browser_reload,
+            browser_show,
+            browser_hide,
+            browser_resize,
+            browser_extract_text,
+            browser_capture,
+            browser_get_url,
+            browser_get_title,
+            browser_get_selected_text,
+            browser_inject_context_menu,
+            browser_clear_data,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -173,6 +173,55 @@ const builtinProviderTemplates: AiConfig[] = [
     baseURL: 'http://localhost:1234/v1',
     icon: 'https://s2.loli.net/2025/06/25/IifFV4HTQ9dpGZE.png',
   },
+  {
+    key: 'claude',
+    title: 'Claude',
+    baseURL: 'https://api.anthropic.com/v1',
+    icon: 'https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/dark/claude-color.png',
+    apiKeyUrl: 'https://console.anthropic.com/settings/keys'
+  },
+  {
+    key: 'deepseek',
+    title: 'DeepSeek',
+    baseURL: 'https://api.deepseek.com',
+    icon: 'https://s2.loli.net/2025/06/25/n39WmsCDbVLQzjr.png',
+    apiKeyUrl: 'https://platform.deepseek.com/api_keys'
+  },
+  {
+    key: 'openrouter',
+    title: 'OpenRouter',
+    baseURL: 'https://openrouter.ai/api/v1',
+    icon: 'https://s2.loli.net/2025/06/25/CTjSDHLl4XdvxM5.png',
+    apiKeyUrl: 'https://openrouter.ai/api-keys'
+  },
+  {
+    key: 'qiniu',
+    title: '七牛云',
+    baseURL: 'https://openai.qiniu.com/v1',
+    icon: 'https://s2.loli.net/2025/09/15/ALjNPveWrtmsfOY.png',
+    apiKeyUrl: 'https://s.qiniu.com/Znm6je'
+  },
+  {
+    key: '302',
+    title: '302.AI',
+    baseURL: 'https://api.302.ai/v1',
+    icon: 'https://s2.loli.net/2025/06/26/4CJOQ2U9ibvoGpR.png',
+    apiKeyUrl: 'https://share.302.ai/jfFrIP'
+  },
+  {
+    key: 'shengsuanyun',
+    title: '胜算云',
+    baseURL: 'https://router.shengsuanyun.com/api/v1',
+    icon: 'https://s2.loli.net/2025/09/15/4qjswKyaRfZ8OxW.png',
+    apiKeyUrl: 'https://www.shengsuanyun.com/?from=CH_KAFLGC9O'
+  },
+  {
+    key: 'gitee',
+    title: 'Gitee AI',
+    baseURL: 'https://ai.gitee.com/v1',
+    icon: 'https://s2.loli.net/2025/09/15/ih7aTnGPvELFsVc.png',
+    apiKeyUrl: 'https://ai.gitee.com/'
+  },
 ]
 
 const baseAiConfig = builtinProviderTemplates

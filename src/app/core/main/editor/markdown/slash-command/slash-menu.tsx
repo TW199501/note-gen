@@ -82,7 +82,7 @@ export const SlashMenu = forwardRef<SlashMenuRef, SlashMenuProps>(({ editor, que
     imageUpload: {
       success: t('imageUpload.success'),
       saveSuccess: t('imageUpload.saveSuccess'),
-      savePath: t('imageUpload.savePath'),
+      savePath: t('imageUpload.savePath', { path: '__PATH__' }),
       failed: t('imageUpload.failed'),
     },
   }), [t])

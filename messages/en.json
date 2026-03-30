@@ -415,6 +415,11 @@
       },
       "showUndoRedo": "Undo/Redo buttons",
       "showUndoRedoDesc": "Show undo and redo buttons in the editor tab bar.",
+      "showEditorToolbar": "Formatting Toolbar",
+      "showEditorToolbarDesc": "Show the formatting toolbar at the top of the editor.",
+      "browserSettings": "Browser Settings",
+      "browserHomepage": "Browser Homepage",
+      "browserHomepageDesc": "Set the default homepage for the built-in browser.",
       "completion": {
         "title": "Auto Completion",
         "model": {
@@ -1174,6 +1179,13 @@
           "title": "Quick Prompt Generator",
           "desc": "Generate quick prompt suggestions to help users start conversations"
         }
+      },
+      "organize": {
+        "title": "Organize Model",
+        "model": {
+          "title": "Note & File Organize Model",
+          "desc": "AI model for organizing notes and files. Recommended: use a model without thinking mode for faster results"
+        }
       }
     },
     "ai": {
@@ -1266,7 +1278,27 @@
       "addModel": "Add Model",
       "newModel": "New Model",
       "checkConnection": "Test Connection",
-      "model": "Model"
+      "model": "Model",
+      "tabs": {
+        "provider": "Model Providers",
+        "assignment": "Model Assignment"
+      },
+      "assignment": {
+        "chat": "💬 Chat",
+        "editor": "✏️ Editor",
+        "record": "📝 Record",
+        "rag": "📚 Knowledge Base",
+        "vision": "👁️ Vision",
+        "voice": "🔊 Voice",
+        "organize": {
+          "title": "Content Organize",
+          "desc": "Used to reorganize and restructure note content"
+        },
+        "audio": {
+          "title": "Read Aloud",
+          "desc": "Used for text-to-speech read aloud"
+        }
+      }
     },
     "ocr": {
       "title": "OCR",
@@ -1349,7 +1381,8 @@
       "recording": "Recording...",
       "recorded": "Recorded",
       "record": "Record",
-      "detected": "Detected"
+      "detected": "Detected",
+      "saveImage": "Save image"
     },
     "mark": {
       "empty": "No records yet",
@@ -1689,13 +1722,22 @@
         "confirm": "确认",
         "cancel": "取消",
         "removeThinking": "移除思考过程",
-        "stop": "Stop"
+        "stop": "Stop",
+        "noModel": "Organize model not configured",
+        "noModelDesc": "Go to Settings → Chat → Organize Model to select an AI model"
       }
     },
     "chat": {
       "condensing": "Condensing context...",
       "condensed": {
         "message": "Condensed {count} historical messages"
+      },
+      "thinking": "Thinking...",
+      "agent": {
+        "fileGenerated": "Successfully generated files:",
+        "stepFailed": "Subsequent validation or additional steps failed: {message}",
+        "completedSteps": "Completed {count} steps",
+        "thinking": "Thinking"
       },
       "empty": {
         "features": [
@@ -1729,11 +1771,11 @@
         "noMatchingConversations": "No matching conversations found",
         "noConversationHistory": "No conversation history yet",
         "quickPrompts": {
-          "title": "快速开始",
-          "writeNote": "帮我写一篇笔记",
-          "summarize": "帮我总结这段内容",
-          "brainstorm": "帮我头脑风暴一些想法",
-          "explain": "帮我解释这个概念"
+          "title": "Quick Start",
+          "writeNote": "Help me write a note",
+          "summarize": "Help me summarize this",
+          "brainstorm": "Help me brainstorm ideas",
+          "explain": "Help me explain this concept"
         }
       },
       "newChat": "New Chat with New Tag",
@@ -1927,6 +1969,10 @@
           "searchPlaceholder": "Search files...",
           "noFiles": "No files found",
           "loading": "Loading..."
+        },
+        "clearContext": {
+          "tooltip": "Clear Context",
+          "message": "Context cleared. Subsequent conversations will only carry content after this message."
         }
       },
       "header": {
@@ -1961,7 +2007,8 @@
       },
       "ragSources": {
         "label": "Found {count} notes in knowledge base",
-        "openFile": "Open file"
+        "openFile": "Open file",
+        "quoteContent": "Quote content"
       },
       "preview": {
         "close": "Close",
@@ -2009,6 +2056,42 @@
       "howToUse": "How to use sync feature?"
     }
   },
+  "browser": {
+    "title": "Browser",
+    "urlPlaceholder": "Enter URL...",
+    "back": "Back",
+    "forward": "Forward",
+    "reload": "Reload",
+    "home": "Home",
+    "extractText": "Extract Text",
+    "screenshot": "Screenshot to AI",
+    "loading": "Loading...",
+    "vlmRequired": "Vision model required for screenshots",
+    "clearData": "Clear browser data",
+    "clearDataConfirm": "This will clear all browser cache, cookies and history. Continue?",
+    "bookmark": {
+      "add": "Add Bookmark",
+      "remove": "Remove Bookmark",
+      "title": "Bookmarks",
+      "empty": "No bookmarks yet"
+    },
+    "contextMenu": {
+      "quoteToChat": "Quote to Chat",
+      "screenshotToAI": "Screenshot to AI",
+      "addBookmark": "Add to Bookmarks",
+      "translate": "Translate Selection"
+    },
+    "history": {
+      "title": "History",
+      "search": "Search history",
+      "clear": "Clear History",
+      "clearConfirm": "Clear all browsing history?",
+      "empty": "No browsing history",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "earlier": "Earlier"
+    }
+  },
   "navigation": {
     "chat": "Chat",
     "record": "Record",
@@ -2031,7 +2114,9 @@
     "hideCenterPanel": "Hide Editor",
     "showRightSidebar": "Show Right Sidebar",
     "hideRightSidebar": "Hide Right Sidebar",
-    "searchPlaceholder": "Search notes or records..."
+    "searchPlaceholder": "Search notes or records...",
+    "notesMode": "Notes Mode",
+    "browserMode": "Browser Mode"
   },
   "activity": {
     "title": "Activity Calendar",
@@ -2238,7 +2323,31 @@
         "importing": "Importing...",
         "importSuccess": "Import Successful",
         "importSuccessDesc": "Successfully imported {count} files",
-        "importError": "Import Failed"
+        "importError": "Import Failed",
+        "organizeFiles": "AI Organize"
+      },
+      "organize": {
+        "title": "AI Organize Notes",
+        "desc": "Scan {count} uncategorized note files in the root directory and let AI suggest classifications.",
+        "noFiles": "No uncategorized note files in root directory",
+        "analyzing": "AI is analyzing file contents...",
+        "reviewDesc": "AI suggests classifying {count} files as follows. Please review:",
+        "applying": "Moving files...",
+        "startAnalyze": "Start Analysis",
+        "reAnalyze": "Re-analyze",
+        "apply": "Apply ({count})",
+        "cancel": "Cancel",
+        "selectAll": "Select All",
+        "deselectAll": "Deselect All",
+        "selected": "{count}/{total} selected",
+        "applySuccess": "Successfully organized {count} files",
+        "applyError": "Error moving files",
+        "analyzeError": "AI analysis failed, please check model settings",
+        "noModel": "Organize model not configured",
+        "noModelDesc": "Go to Settings → Chat → Organize Model to select an AI model",
+        "renameCount": "{count} files suggested for renaming",
+        "enableRename": "Enable rename",
+        "disableRename": "Keep original name"
       },
       "sync": {
         "syncingRemote": "Pulling remote file...",
@@ -2660,6 +2769,7 @@
   },
   "editor": {
     "placeholder": "Type / to open menu, or start writing...",
+    "aiNoSelection": "No text to process — select some text or place the cursor in a paragraph",
     "outline": {
       "title": "Outline",
       "open": "Open Outline",
@@ -2678,13 +2788,55 @@
     "quoteDisplay": {
       "fromFile": "Quoted from {fileName}",
       "line": "Quoted from {fileName} line {line}",
-      "lines": "Quoted from {fileName} lines {start}-{end}"
+      "lines": "Quoted from {fileName} lines {start}-{end}",
+      "collapse": "Collapse",
+      "expand": "Expand"
+    },
+    "toolbar": {
+      "undo": "Undo",
+      "redo": "Redo",
+      "heading1": "Heading 1",
+      "heading2": "Heading 2",
+      "heading3": "Heading 3",
+      "bold": "Bold",
+      "italic": "Italic",
+      "strike": "Strikethrough",
+      "underline": "Underline",
+      "inlineCode": "Inline Code",
+      "highlight": "Highlight",
+      "blockquote": "Quote",
+      "bulletList": "Bullet List",
+      "orderedList": "Numbered List",
+      "taskList": "Task List",
+      "codeBlock": "Code Block",
+      "alignLeft": "Align Left",
+      "alignCenter": "Align Center",
+      "alignRight": "Align Right",
+      "horizontalRule": "Horizontal Rule",
+      "table": "Table",
+      "image": "Image",
+      "link": "Link",
+      "ai": "AI",
+      "moreInsert": "More Insert",
+      "inlineMath": "Inline Math",
+      "blockMath": "Block Math",
+      "mermaid": "Mermaid Diagram",
+      "mermaidFlowchart": "Flowchart",
+      "mermaidSequence": "Sequence Diagram",
+      "mermaidGantt": "Gantt Chart",
+      "mermaidClass": "Class Diagram",
+      "mermaidState": "State Diagram",
+      "mermaidPie": "Pie Chart",
+      "mermaidER": "ER Diagram",
+      "mermaidJourney": "User Journey",
+      "searchReplace": "Search & Replace"
     },
     "bubbleMenu": {
       "ai": "AI",
       "polish": "Polish",
       "concise": "Concise",
       "expand": "Expand",
+      "organize": "Organize",
       "translate": "Translate",
       "translateSubtitle": "Translate to",
       "quoteToChat": "Quote to Chat",

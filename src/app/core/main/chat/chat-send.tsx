@@ -118,10 +118,10 @@ export const ChatSend = forwardRef<{ sendChat: () => void }, ChatSendProps>(({ i
     const failureMessage = failedToolCall?.result?.error || result
 
     return [
-      `已成功生成文件：`,
+      t('record.chat.agent.fileGenerated'),
       uniqueOutputFiles.map((file) => `- ${file}`).join('\n'),
       '',
-      `后续校验或附加步骤失败：${failureMessage}`,
+      t('record.chat.agent.stepFailed', { message: failureMessage }),
     ].join('\n')
   }
 
@@ -270,8 +270,8 @@ export const ChatSend = forwardRef<{ sendChat: () => void }, ChatSendProps>(({ i
           const stepCount = agentState.completedSteps?.length || 0
           if (stepCount > 0) {
             // 有已完成的步骤，显示这些步骤的内容
-            finalContent = `${t('record.chat.input.stopped')}\n\n已完成 ${stepCount} 个步骤：\n${agentState.completedSteps!.map((step, i) =>
-              `${i + 1}. ${step.action?.tool || '思考'}`
+            finalContent = `${t('record.chat.input.stopped')}\n\n${t('record.chat.agent.completedSteps', { count: stepCount })}：\n${agentState.completedSteps!.map((step, i) =>
+              `${i + 1}. ${step.action?.tool || t('record.chat.agent.thinking')}`
             ).join('\n')}`
           } else {
             // 没有已完成步骤，显示简单的终止信息

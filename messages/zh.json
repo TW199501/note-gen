@@ -413,6 +413,11 @@
       },
       "showUndoRedo": "撤销/重做按钮",
       "showUndoRedoDesc": "在编辑器标签栏显示撤销和重做按钮。",
+      "showEditorToolbar": "格式化工具栏",
+      "showEditorToolbarDesc": "在编辑器顶部显示格式化工具栏。",
+      "browserSettings": "浏览器设置",
+      "browserHomepage": "浏览器首页",
+      "browserHomepageDesc": "设置内置浏览器的默认首页。",
       "completion": {
         "title": "快速补全",
         "model": {
@@ -1148,6 +1153,13 @@
           "title": "灵感生成模型",
           "desc": "用于生成快速提示词建议，帮助用户快速开始对话"
         }
+      },
+      "organize": {
+        "title": "整理模型",
+        "model": {
+          "title": "笔记与文件整理模型",
+          "desc": "用于 AI 整理笔记和文件分类。建议使用无思考模式的模型以获得更快速度"
+        }
       }
     },
     "ai": {
@@ -1216,6 +1228,26 @@
       "newModel": "新模型",
       "checkConnection": "检测连接",
       "model": "模型",
+      "tabs": {
+        "provider": "模型供应商",
+        "assignment": "模型配置"
+      },
+      "assignment": {
+        "chat": "💬 对话",
+        "editor": "✏️ 编辑器",
+        "record": "📝 记录",
+        "rag": "📚 知识库",
+        "vision": "👁️ 视觉",
+        "voice": "🔊 语音",
+        "organize": {
+          "title": "内容整理",
+          "desc": "用于整理和重新组织笔记内容"
+        },
+        "audio": {
+          "title": "朗读",
+          "desc": "用于文字朗读功能"
+        }
+      },
       "defaultModels": {
         "title": "默认免费模型",
         "desc": "NoteGen 为用户提供免费的 AI 模型服务，由硅基流动提供支持，无需配置即可使用基础功能。",
@@ -1337,7 +1369,8 @@
       "recording": "记录中...",
       "recorded": "已记录",
       "record": "记录",
-      "detected": "检测到"
+      "detected": "检测到",
+      "saveImage": "保存图片"
     },
     "mark": {
       "empty": "暂无记录",
@@ -1364,7 +1397,9 @@
         "confirm": "确认",
         "cancel": "取消",
         "removeThinking": "移除思考过程",
-        "stop": "停止"
+        "stop": "停止",
+        "noModel": "未设置整理模型",
+        "noModelDesc": "请到设置 → 聊天 → 整理模型，选择一个 AI 模型"
       },
       "uploadSuccess": "记录上传成功",
       "downloadSuccess": "记录下载成功",
@@ -1658,6 +1693,13 @@
       "condensed": {
         "message": "已压缩 {count} 条历史消息"
       },
+      "thinking": "正在思考...",
+      "agent": {
+        "fileGenerated": "已成功生成文件：",
+        "stepFailed": "后续校验或附加步骤失败：{message}",
+        "completedSteps": "已完成 {count} 个步骤",
+        "thinking": "思考"
+      },
       "empty": {
         "title": "开始与 AI 对话",
         "subtitle": "使用 Chat 或 Agent 模式与 AI 互动",
@@ -1842,6 +1884,10 @@
           "searchPlaceholder": "搜索文件...",
           "noFiles": "未找到文件",
           "loading": "加载中..."
+        },
+        "clearContext": {
+          "tooltip": "清除上下文",
+          "message": "上下文已清除，之后的对话将只携带此消息之后的内容。"
         }
       },
       "header": {
@@ -1876,7 +1922,8 @@
       },
       "ragSources": {
         "label": "知识库检索到 {count} 篇笔记",
-        "openFile": "打开文件"
+        "openFile": "打开文件",
+        "quoteContent": "引用内容"
       },
       "preview": {
         "close": "关闭",
@@ -1952,6 +1999,42 @@
       "howToUse": "如何使用同步功能？"
     }
   },
+  "browser": {
+    "title": "浏览器",
+    "urlPlaceholder": "输入网址...",
+    "back": "后退",
+    "forward": "前进",
+    "reload": "刷新",
+    "home": "首页",
+    "extractText": "提取文字",
+    "screenshot": "截图给 AI",
+    "loading": "加载中...",
+    "vlmRequired": "需要配置视觉模型才能使用截图功能",
+    "clearData": "清除浏览器数据",
+    "clearDataConfirm": "这将清除所有浏览器缓存、Cookie 和历史记录。确定继续吗？",
+    "bookmark": {
+      "add": "添加书签",
+      "remove": "移除书签",
+      "title": "书签",
+      "empty": "暂无书签"
+    },
+    "contextMenu": {
+      "quoteToChat": "引用到对话",
+      "screenshotToAI": "截图给 AI",
+      "addBookmark": "添加到书签",
+      "translate": "翻译选中文字"
+    },
+    "history": {
+      "title": "历史记录",
+      "search": "搜索历史记录",
+      "clear": "清除历史记录",
+      "clearConfirm": "确定清除所有浏览历史记录？",
+      "empty": "暂无浏览历史",
+      "today": "今天",
+      "yesterday": "昨天",
+      "earlier": "更早"
+    }
+  },
   "navigation": {
     "chat": "对话",
     "record": "记录",
@@ -1974,7 +2057,9 @@
     "hideCenterPanel": "隐藏编辑器",
     "showRightSidebar": "显示右侧边栏",
     "hideRightSidebar": "隐藏右侧边栏",
-    "searchPlaceholder": "搜索笔记或记录..."
+    "searchPlaceholder": "搜索笔记或记录...",
+    "notesMode": "笔记模式",
+    "browserMode": "浏览器模式"
   },
   "activity": {
     "title": "活跃度日历",
@@ -2180,7 +2265,31 @@
         "importing": "正在导入...",
         "importSuccess": "导入成功",
         "importSuccessDesc": "成功导入 {count} 个文件",
-        "importError": "导入失败"
+        "importError": "导入失败",
+        "organizeFiles": "AI 整理"
+      },
+      "organize": {
+        "title": "AI 整理笔记",
+        "desc": "扫描根目录中 {count} 个未分类笔记文件，让 AI 建议分类。",
+        "noFiles": "根目录下没有未分类的笔记文件",
+        "analyzing": "AI 正在分析文件内容...",
+        "reviewDesc": "AI 建议将 {count} 个文件分类如下，请检查：",
+        "applying": "正在移动文件...",
+        "startAnalyze": "开始分析",
+        "reAnalyze": "重新分析",
+        "apply": "应用 ({count})",
+        "cancel": "取消",
+        "selectAll": "全选",
+        "deselectAll": "取消全选",
+        "selected": "已选 {count}/{total}",
+        "applySuccess": "成功整理 {count} 个文件",
+        "applyError": "移动文件出错",
+        "analyzeError": "AI 分析失败，请检查模型设置",
+        "noModel": "未设置整理模型",
+        "noModelDesc": "请到设置 → 聊天 → 整理模型，选择一个 AI 模型",
+        "renameCount": "建议重命名 {count} 个文件",
+        "enableRename": "启用重命名",
+        "disableRename": "保留原文件名"
       },
       "sync": {
         "syncingRemote": "正在拉取远程文件",
@@ -2534,6 +2643,7 @@
   },
   "editor": {
     "placeholder": "输入 / 唤起菜单，或直接开始写作...",
+    "aiNoSelection": "没有可处理的文字，请圈选内容或将光标放在段落中",
     "outline": {
       "title": "大纲",
       "open": "打开大纲",
@@ -2552,13 +2662,55 @@
     "quoteDisplay": {
       "fromFile": "引用自 {fileName}",
       "line": "引用自 {fileName} 第 {line} 行",
-      "lines": "引用自 {fileName} 第 {start}-{end} 行"
+      "lines": "引用自 {fileName} 第 {start}-{end} 行",
+      "collapse": "收起",
+      "expand": "展开"
+    },
+    "toolbar": {
+      "undo": "撤销",
+      "redo": "重做",
+      "heading1": "标题 1",
+      "heading2": "标题 2",
+      "heading3": "标题 3",
+      "bold": "粗体",
+      "italic": "斜体",
+      "strike": "删除线",
+      "underline": "下划线",
+      "inlineCode": "行内代码",
+      "highlight": "高亮",
+      "blockquote": "引用",
+      "bulletList": "无序列表",
+      "orderedList": "有序列表",
+      "taskList": "任务列表",
+      "codeBlock": "代码块",
+      "alignLeft": "左对齐",
+      "alignCenter": "居中对齐",
+      "alignRight": "右对齐",
+      "horizontalRule": "分割线",
+      "table": "表格",
+      "image": "图片",
+      "link": "链接",
+      "ai": "AI",
+      "moreInsert": "更多插入",
+      "inlineMath": "行内公式",
+      "blockMath": "块级公式",
+      "mermaid": "Mermaid 图表",
+      "mermaidFlowchart": "流程图",
+      "mermaidSequence": "时序图",
+      "mermaidGantt": "甘特图",
+      "mermaidClass": "类图",
+      "mermaidState": "状态图",
+      "mermaidPie": "饼图",
+      "mermaidER": "ER 图",
+      "mermaidJourney": "用户旅程",
+      "searchReplace": "查找替换"
     },
     "bubbleMenu": {
       "ai": "AI",
       "polish": "润色",
       "concise": "精简",
       "expand": "扩展",
+      "organize": "整理",
       "translate": "翻译",
       "translateSubtitle": "翻译为",
       "quoteToChat": "引用到对话",
@@ -2703,7 +2855,7 @@
       "imageUpload": {
         "success": "上传成功",
         "saveSuccess": "保存成功",
-        "savePath": "保存路径: __PATH__",
+        "savePath": "保存路径: {path}",
         "failed": "插入图片失败"
       }
     }

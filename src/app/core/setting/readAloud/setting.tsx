@@ -1,6 +1,5 @@
 import { Item, ItemGroup, ItemMedia, ItemContent, ItemTitle, ItemDescription, ItemActions } from '@/components/ui/item';
 import { useTranslations } from 'next-intl';
-import { ModelSelect } from "../components/model-select";
 import { Gauge, Volume2 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { useState, useEffect } from "react";
@@ -112,16 +111,6 @@ export function Setting() {
         </ItemActions>
       </Item>
 
-      <Item variant="outline">
-        <ItemMedia variant="icon"><Volume2 className="size-4" /></ItemMedia>
-        <ItemContent>
-          <ItemTitle>{t('options.audioModel.title')}</ItemTitle>
-          <ItemDescription>{t('options.audioModel.desc')}</ItemDescription>
-        </ItemContent>
-        <ItemActions>
-          <ModelSelect modelKey="audio" />
-        </ItemActions>
-      </Item>
       {audioModel && (
         <Item variant="outline">
           <ItemMedia variant="icon"><Gauge className="size-4" /></ItemMedia>

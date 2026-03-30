@@ -157,6 +157,16 @@ export async function initChatsDb() {
   } catch {
     // 如果列已存在，忽略错误
   }
+
+  // 性能索引
+  await db.execute(`
+    create index if not exists idx_chats_conversation_created
+    on chats(conversationId, createdAt)
+  `)
+  await db.execute(`
+    create index if not exists idx_chats_tag_created
+    on chats(tagId, createdAt)
+  `)
 }
 
 // 插入一条 chat
@@ -273,7 +283,9 @@ export async function deleteChat(id: number) {
 }
 
 export async function updateChats(chats: Chat[]) {
+  if (chats.length === 0) return
   const db = await getDb()
+  await db.execute('BEGIN TRANSACTION')
   try {
     for (const chat of chats) {
       await db.execute(
@@ -281,21 +293,23 @@ export async function updateChats(chats: Chat[]) {
         [chat.tagId, chat.conversationId, chat.content, chat.role, chat.type, chat.image, chat.images, chat.inserted ? 1 : 0, chat.ragSources, chat.ragSourceDetails, chat.agentHistory, chat.thinking, chat.quoteData, chat.condensedContent, chat.condensedAt, chat.id]
       )
     }
+    await db.execute('COMMIT')
   } catch (error) {
+    await db.execute('ROLLBACK')
     console.error('Error updating chats:', error);
     throw error;
   }
 }
 
 export async function deleteChats(ids: number[]) {
+  if (ids.length === 0) return
   const db = await getDb()
+  const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ')
   try {
-    for (const id of ids) {
-      await db.execute(
-        "delete from chats where id = $1",
-        [id]
-      )
-    }
+    await db.execute(
+      `delete from chats where id in (${placeholders})`,
+      ids
+    )
   } catch (error) {
     console.error('Error deleting chats:', error);
     throw error;

@@ -197,7 +197,7 @@ export function AgentPanelWithRag({
                           <div className="flex items-center justify-between gap-2 py-1">
                             <div className="flex items-center gap-2">
                               <Database className="size-3.5 text-blue-500 shrink-0" />
-                              <span className="font-medium text-xs">引用内容</span>
+                              <span className="font-medium text-xs">{t("record.chat.ragSources.quoteContent")}</span>
                             </div>
                             {detail?.filepath && (
                               <button
@@ -206,7 +206,7 @@ export function AgentPanelWithRag({
                                 title={t("record.chat.ragSources.openFile", { defaultValue: "Open file" })}
                               >
                                 <ExternalLink className="size-3" />
-                                <span>打开文件</span>
+                                <span>{t("record.chat.ragSources.openFile")}</span>
                               </button>
                             )}
                           </div>

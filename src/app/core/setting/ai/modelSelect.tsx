@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import useSettingStore from "@/stores/setting";
 import { Input } from "@/components/ui/input";
-import { createOpenAIClient } from "@/lib/ai/utils";
+import { createOpenAIClient, isAnthropicProvider } from "@/lib/ai/utils";
 import type OpenAI from "openai";
 import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -74,18 +74,29 @@ export default function ModelSelect(
     try {
       setLoading(true)
       if (requestId !== currentRequestIdRef.current) return null;
-      
+
+      // Anthropic 没有 models.list API，返回预设模型列表
+      if (isAnthropicProvider(model)) {
+        const claudeModels: OpenAI.Models.Model[] = [
+          { id: 'claude-sonnet-4-20250514', object: 'model', created: 0, owned_by: 'anthropic' },
+          { id: 'claude-opus-4-20250514', object: 'model', created: 0, owned_by: 'anthropic' },
+          { id: 'claude-haiku-4-20250506', object: 'model', created: 0, owned_by: 'anthropic' },
+        ]
+        return claudeModels
+      }
+
       const openai = await createOpenAIClient(model)
-      
+
       if (requestId !== currentRequestIdRef.current) return null;
-      
+
       const models = await openai.models.list()
-      
+
       if (requestId !== currentRequestIdRef.current) return null;
-      
+
       const uniqueModels = models.data.filter((model: OpenAI.Models.Model, index: number) => models.data.findIndex((m: OpenAI.Models.Model) => m.id === model.id) === index)
       return uniqueModels
-    } catch {
+    } catch (error) {
+      console.error('[ModelSelect] Failed to fetch models:', error)
       return []
     } finally {
       if (requestId === currentRequestIdRef.current) {

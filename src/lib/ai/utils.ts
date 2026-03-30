@@ -1,6 +1,7 @@
 import { toast } from "@/hooks/use-toast";
 import { Store } from "@tauri-apps/plugin-store";
 import type OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import { AiConfig } from "@/app/core/setting/config";
 import { readFile } from "@tauri-apps/plugin-fs";
 import { createTauriOpenAIClient, type OpenAICompatibleClient } from "./tauri-client";
@@ -83,8 +84,8 @@ export async function getAISettings(modelType?: string): Promise<AiConfig | unde
 export async function validateAIService(baseURL: string | undefined): Promise<string | null> {
   if (!baseURL) {
     toast({
-      title: 'AI 错误',
-      description: '请先设置 AI 地址',
+      title: 'AI Error',
+      description: 'Please configure the AI base URL first',
       variant: 'destructive',
     })
     return null
@@ -147,21 +148,47 @@ export async function convertImageToBase64(imageUrl: string): Promise<string | n
  * 处理AI请求错误
  */
 export function handleAIError(error: any, showToast = true): string | null {
-  const errorMessage = error instanceof Error ? error.message : '未知错误'
-  // 检查是否是取消请求的错误，如果是则静默处理
-  if (error.message === 'Request was aborted.') {
-    // 静默处理取消请求，不显示任何消息
+  if (error?.message === 'Request was aborted.' || error?.name === 'AbortError') {
     return null
   }
-  
+
+  const status = error?.status || error?.statusCode || error?.response?.status
+  let description: string
+
+  switch (status) {
+    case 401:
+      description = 'Invalid or expired API Key (401 Unauthorized)'
+      break
+    case 403:
+      description = 'API access denied (403 Forbidden)'
+      break
+    case 429:
+      description = 'Too many requests, please try again later (429 Rate Limit)'
+      break
+    case 500:
+    case 502:
+    case 503:
+      description = `AI service temporarily unavailable (${status})`
+      break
+    default:
+      if (error?.code === 'ETIMEDOUT' || error?.code === 'ECONNABORTED' || error?.message?.includes('timeout')) {
+        description = 'AI service connection timed out, please check network or API URL'
+      } else if (error?.code === 'ECONNREFUSED' || error?.message?.includes('ECONNREFUSED')) {
+        description = 'AI service connection refused, please check API URL'
+      } else {
+        description = error instanceof Error ? error.message : 'Unknown error'
+      }
+  }
+
   if (showToast) {
     toast({
-      description: errorMessage || 'AI错误',
+      title: status ? `AI Error (${status})` : 'AI Error',
+      description,
       variant: 'destructive',
     })
   }
-  
-  return `请求失败: ${errorMessage}`
+
+  return `Request failed: ${description}`
 }
 
 /**
@@ -178,6 +205,24 @@ export async function prepareMessages(
 }> {
   // 获取prompt内容
   let promptContent = await getPromptContent()
+
+  // 注入用户语言偏好
+  try {
+    const appLanguage = typeof window !== 'undefined' ? localStorage.getItem('app-language') || 'zh' : 'zh'
+    const langMap: Record<string, string> = {
+      'zh': '简体中文',
+      'zh-TW': '繁體中文',
+      'en': 'English',
+      'ja': '日本語',
+      'pt-BR': 'Português (Brasil)',
+    }
+    const userLanguage = langMap[appLanguage] || appLanguage
+    if (userLanguage !== '简体中文') {
+      const langInstruction = `Please respond in ${userLanguage}.`
+      promptContent = promptContent ? `${langInstruction}\n\n${promptContent}` : langInstruction
+    }
+  } catch {}
+
 
   // 加载记忆上下文
   try {
@@ -257,6 +302,177 @@ export async function prepareMessages(
   })
 
   return { messages, geminiText }
+}
+
+/**
+ * 判断是否为 Anthropic Claude 服务
+ */
+export function isAnthropicProvider(config?: AiConfig): boolean {
+  if (!config?.baseURL) return false
+  return config.baseURL.includes('api.anthropic.com')
+}
+
+/**
+ * 从 OpenAI 格式消息中提取 system 和 user/assistant 消息（Anthropic 格式）
+ */
+export function extractSystemForAnthropic(
+  messages: OpenAI.Chat.ChatCompletionMessageParam[]
+): { system: string; messages: Anthropic.MessageParam[] } {
+  let system = ''
+  const filtered: Anthropic.MessageParam[] = []
+
+  for (const msg of messages) {
+    if (msg.role === 'system') {
+      const content = typeof msg.content === 'string' ? msg.content : ''
+      system += (system ? '\n\n' : '') + content
+    } else if (msg.role === 'user' || msg.role === 'assistant') {
+      // 转换多模态内容格式
+      let content: Anthropic.MessageParam['content']
+      if (Array.isArray(msg.content)) {
+        content = (msg.content as any[]).map((part: any) => {
+          if (part.type === 'text') {
+            return { type: 'text' as const, text: part.text }
+          }
+          if (part.type === 'image_url' && part.image_url?.url) {
+            const url = part.image_url.url as string
+            if (url.startsWith('data:')) {
+              const match = url.match(/^data:(image\/\w+);base64,(.+)/)
+              if (match) {
+                return {
+                  type: 'image' as const,
+                  source: {
+                    type: 'base64' as const,
+                    media_type: match[1] as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+                    data: match[2],
+                  }
+                }
+              }
+            }
+            return { type: 'text' as const, text: `[image: ${url}]` }
+          }
+          return { type: 'text' as const, text: JSON.stringify(part) }
+        })
+      } else {
+        content = typeof msg.content === 'string' ? msg.content : ''
+      }
+      filtered.push({ role: msg.role, content })
+    }
+  }
+
+  // Anthropic 要求第一条消息必须是 user
+  if (filtered.length > 0 && filtered[0].role !== 'user') {
+    filtered.unshift({ role: 'user', content: '...' })
+  }
+
+  return { system, messages: filtered }
+}
+
+/**
+ * 创建 Anthropic 客户端
+ */
+export async function createAnthropicClient(aiConfig?: AiConfig) {
+  const store = await Store.load('store.json')
+  let apiKey = aiConfig?.apiKey
+  if (!apiKey) {
+    apiKey = await store.get<string>('apiKey') || ''
+  }
+
+  return new Anthropic({
+    apiKey: apiKey || '',
+    dangerouslyAllowBrowser: true,
+    timeout: 300_000,
+    maxRetries: 0,
+    defaultHeaders: aiConfig?.customHeaders || {},
+  })
+}
+
+/**
+ * 统一的非流式 AI 调用（支持 OpenAI 和 Anthropic）
+ */
+export async function createChatCompletion(
+  aiConfig: AiConfig | undefined,
+  messages: OpenAI.Chat.ChatCompletionMessageParam[],
+  options?: { temperature?: number; topP?: number; maxTokens?: number; signal?: AbortSignal }
+): Promise<string> {
+  if (isAnthropicProvider(aiConfig)) {
+    const anthropic = await createAnthropicClient(aiConfig)
+    const { system, messages: anthropicMessages } = extractSystemForAnthropic(messages)
+
+    const completion = await anthropic.messages.create({
+      model: aiConfig?.model || '',
+      max_tokens: options?.maxTokens || 8192,
+      ...(system ? { system } : {}),
+      messages: anthropicMessages,
+      temperature: options?.temperature ?? aiConfig?.temperature ?? 1,
+      top_p: options?.topP ?? aiConfig?.topP ?? 1,
+    }, { signal: options?.signal as any })
+
+    const textBlock = completion.content.find(b => b.type === 'text')
+    return textBlock?.text || ''
+  }
+
+  const openai = await createOpenAIClient(aiConfig)
+  const completion = await openai.chat.completions.create({
+    model: aiConfig?.model || '',
+    messages,
+    temperature: options?.temperature ?? aiConfig?.temperature ?? 1,
+    top_p: options?.topP ?? aiConfig?.topP ?? 1,
+    ...(options?.maxTokens ? { max_tokens: options.maxTokens } : {}),
+  }, { signal: options?.signal })
+
+  return completion.choices[0]?.message?.content || ''
+}
+
+/**
+ * 统一的流式 AI 调用（支持 OpenAI 和 Anthropic）
+ */
+export async function createChatCompletionStream(
+  aiConfig: AiConfig | undefined,
+  messages: OpenAI.Chat.ChatCompletionMessageParam[],
+  onChunk: (chunk: string, isFirst: boolean) => void,
+  options?: { temperature?: number; topP?: number; maxTokens?: number; signal?: AbortSignal }
+): Promise<void> {
+  if (isAnthropicProvider(aiConfig)) {
+    const anthropic = await createAnthropicClient(aiConfig)
+    const { system, messages: anthropicMessages } = extractSystemForAnthropic(messages)
+
+    const stream = anthropic.messages.stream({
+      model: aiConfig?.model || '',
+      max_tokens: options?.maxTokens || 8192,
+      ...(system ? { system } : {}),
+      messages: anthropicMessages,
+      temperature: options?.temperature ?? aiConfig?.temperature ?? 1,
+      top_p: options?.topP ?? aiConfig?.topP ?? 1,
+    }, { signal: options?.signal as any })
+
+    let isFirst = true
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+        onChunk(event.delta.text, isFirst)
+        isFirst = false
+      }
+    }
+    return
+  }
+
+  const openai = await createOpenAIClient(aiConfig)
+  const stream = await openai.chat.completions.create({
+    model: aiConfig?.model || '',
+    messages,
+    temperature: options?.temperature ?? aiConfig?.temperature ?? 1,
+    top_p: options?.topP ?? aiConfig?.topP ?? 1,
+    ...(options?.maxTokens ? { max_tokens: options.maxTokens } : {}),
+    stream: true,
+  }, { signal: options?.signal })
+
+  let isFirst = true
+  for await (const chunk of stream) {
+    const content = chunk.choices[0]?.delta?.content
+    if (content) {
+      onChunk(content, isFirst)
+      isFirst = false
+    }
+  }
 }
 
 /**

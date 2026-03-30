@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { getAISettings, validateAIService, prepareMessages, createOpenAIClient, handleAIError, convertImageToBase64 } from './utils';
+import { getAISettings, validateAIService, prepareMessages, createOpenAIClient, handleAIError, convertImageToBase64, isAnthropicProvider, createAnthropicClient, extractSystemForAnthropic, createChatCompletion } from './utils';
 
 /**
  * 非流式方式获取AI结果
@@ -13,26 +13,18 @@ export async function fetchAi(
   messages?: OpenAI.Chat.ChatCompletionMessageParam[]
 ): Promise<string> {
   try {
-    // 获取AI设置
     const aiConfig = await getAISettings(modelType)
 
     // 验证AI服务
     if (await validateAIService(aiConfig?.baseURL) === null) return ''
 
-    // 准备消息
     const prepared = await prepareMessages(text, messages)
     const finalMessages = prepared.messages
 
-    const openai = await createOpenAIClient(aiConfig)
-
-    const completion = await openai.chat.completions.create({
-      model: aiConfig?.model || '',
-      messages: finalMessages,
+    return await createChatCompletion(aiConfig, finalMessages, {
       temperature: aiConfig?.temperature || 1,
-      top_p: aiConfig?.topP || 1,
+      topP: aiConfig?.topP || 1,
     })
-
-    return completion.choices[0].message.content || ''
   } catch (error) {
     return handleAIError(error) || ''
   }
@@ -59,13 +51,13 @@ export async function fetchAiStream(
   chatId?: number,
   imageUrls?: string[],
   onThinkingUpdate?: (thinking: string) => void,
-  messages?: OpenAI.Chat.ChatCompletionMessageParam[]
+  messages?: OpenAI.Chat.ChatCompletionMessageParam[],
+  modelType?: string
 ): Promise<string> {
   try {
 
-
     // 获取AI设置
-    const aiConfig = await getAISettings()
+    const aiConfig = await getAISettings(modelType)
 
     // 验证AI服务
     const validatedBaseURL = await validateAIService(aiConfig?.baseURL)
@@ -122,6 +114,179 @@ export async function fetchAiStream(
       }
     }
 
+    // Anthropic Claude 流式处理
+    if (isAnthropicProvider(aiConfig)) {
+      const anthropic = await createAnthropicClient(aiConfig)
+      const { system, messages: anthropicMessages } = extractSystemForAnthropic(preparedMessages)
+
+      const requestParams: any = {
+        model: aiConfig?.model || '',
+        max_tokens: 8192,
+        ...(system ? { system } : {}),
+        messages: anthropicMessages,
+        temperature: aiConfig?.temperature ?? 1,
+        top_p: aiConfig?.topP ?? 1,
+        stream: true,
+      }
+
+      // MCP 工具转换为 Anthropic 格式
+      if (mcpTools && mcpTools.length > 0) {
+        requestParams.tools = mcpTools.map((tool: any) => ({
+          name: tool.function.name,
+          description: tool.function.description || '',
+          input_schema: tool.function.parameters || { type: 'object', properties: {} },
+        }))
+      }
+
+      const stream = anthropic.messages.stream(requestParams, { signal: abortSignal as any })
+
+      let thinking = ''
+      let fullContent = ''
+      const toolUseBlocks: any[] = []
+
+      for await (const event of stream) {
+        if (abortSignal?.aborted) break
+
+        if (event.type === 'content_block_delta') {
+          if (event.delta.type === 'thinking_delta') {
+            thinking += (event.delta as any).thinking
+            if (onThinkingUpdate) onThinkingUpdate(thinking)
+          } else if (event.delta.type === 'text_delta') {
+            fullContent += event.delta.text
+            onUpdate(fullContent)
+          } else if (event.delta.type === 'input_json_delta') {
+            // 工具调用参数累积
+            const lastTool = toolUseBlocks[toolUseBlocks.length - 1]
+            if (lastTool) lastTool._rawArgs += (event.delta as any).partial_json || ''
+          }
+        } else if (event.type === 'content_block_start' && (event.content_block as any).type === 'tool_use') {
+          toolUseBlocks.push({
+            id: (event.content_block as any).id,
+            name: (event.content_block as any).name,
+            _rawArgs: '',
+          })
+        }
+      }
+
+      // 处理 Anthropic 工具调用
+      if (toolUseBlocks.length > 0) {
+        const { callTool } = await import('../mcp/tools')
+
+        const conversationMessages = [...anthropicMessages]
+        let currentToolUses = toolUseBlocks
+        const maxIterations = 10
+        let iteration = 0
+
+        while (currentToolUses.length > 0 && iteration < maxIterations) {
+          iteration++
+          onUpdate('')
+
+          // 构建 assistant 回复（包含 tool_use blocks）
+          const assistantContent: any[] = []
+          if (fullContent) assistantContent.push({ type: 'text', text: fullContent })
+          for (const tu of currentToolUses) {
+            let input = {}
+            try { input = JSON.parse(tu._rawArgs || '{}') } catch {}
+            assistantContent.push({ type: 'tool_use', id: tu.id, name: tu.name, input })
+          }
+          conversationMessages.push({ role: 'assistant', content: assistantContent })
+
+          // 执行工具并构建 tool_result
+          const toolResultContent: any[] = []
+          for (const tu of currentToolUses) {
+            let mcpToolCallId: string | undefined
+            try {
+              const [serverId, ...toolNameParts] = tu.name.split('__')
+              const toolName = toolNameParts.join('__')
+              let args = {}
+              try { args = JSON.parse(tu._rawArgs || '{}') } catch {}
+
+              if (chatId) {
+                const { useMcpStore } = await import('@/stores/mcp')
+                const { default: useChatStore } = await import('@/stores/chat')
+                const mcpStore = useMcpStore.getState()
+                const chatStore = useChatStore.getState()
+                const server = mcpStore.servers.find(s => s.id === serverId)
+                mcpToolCallId = `${tu.id}-${Date.now()}`
+                chatStore.addMcpToolCall({
+                  id: mcpToolCallId, chatId, toolName, serverId,
+                  serverName: server?.name || serverId,
+                  params: args, result: '', status: 'calling', timestamp: Date.now()
+                })
+              }
+
+              const result = await callTool(serverId, toolName, args)
+              const resultText = result.content.filter((c: any) => c.type === 'text').map((c: any) => c.text).join('\n')
+
+              if (chatId && mcpToolCallId) {
+                const { default: useChatStore } = await import('@/stores/chat')
+                useChatStore.getState().updateMcpToolCall(mcpToolCallId, { result: resultText || 'Success', status: 'success' })
+              }
+              toolResultContent.push({ type: 'tool_result', tool_use_id: tu.id, content: resultText || 'Success' })
+            } catch (error) {
+              const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+              if (chatId && mcpToolCallId) {
+                const { default: useChatStore } = await import('@/stores/chat')
+                useChatStore.getState().updateMcpToolCall(mcpToolCallId, { result: `Error: ${errorMsg}`, status: 'error' })
+              }
+              toolResultContent.push({ type: 'tool_result', tool_use_id: tu.id, content: `Error: ${errorMsg}`, is_error: true })
+            }
+          }
+
+          conversationMessages.push({ role: 'user', content: toolResultContent })
+
+          // 继续对话
+          currentToolUses = []
+          fullContent = ''
+          thinking = ''
+
+          const nextStream = anthropic.messages.stream({
+            model: aiConfig?.model || '',
+            max_tokens: 8192,
+            ...(system ? { system } : {}),
+            messages: conversationMessages,
+            temperature: aiConfig?.temperature ?? 1,
+            top_p: aiConfig?.topP ?? 1,
+            ...(mcpTools && mcpTools.length > 0 ? {
+              tools: mcpTools.map((tool: any) => ({
+                name: tool.function.name,
+                description: tool.function.description || '',
+                input_schema: tool.function.parameters || { type: 'object', properties: {} },
+              }))
+            } : {}),
+          }, { signal: abortSignal as any })
+
+          for await (const event of nextStream) {
+            if (abortSignal?.aborted) break
+            if (event.type === 'content_block_delta') {
+              if (event.delta.type === 'thinking_delta') {
+                thinking += (event.delta as any).thinking
+                if (onThinkingUpdate) onThinkingUpdate(thinking)
+              } else if (event.delta.type === 'text_delta') {
+                fullContent += event.delta.text
+                onUpdate(fullContent)
+              } else if (event.delta.type === 'input_json_delta') {
+                const lastTool = currentToolUses[currentToolUses.length - 1]
+                if (lastTool) lastTool._rawArgs += (event.delta as any).partial_json || ''
+              }
+            } else if (event.type === 'content_block_start' && (event.content_block as any).type === 'tool_use') {
+              currentToolUses.push({ id: (event.content_block as any).id, name: (event.content_block as any).name, _rawArgs: '' })
+            }
+          }
+
+          if (currentToolUses.length === 0) break
+        }
+
+        if (iteration >= maxIterations) {
+          const maxIterationsText = t ? t('record.mark.mark.chat.mcp.maxIterationsReached') : 'Max tool call iterations reached'
+          onUpdate(fullContent + '\n\n' + maxIterationsText)
+        }
+      }
+
+      return fullContent
+    }
+
+    // OpenAI 流式处理
     const openai = await createOpenAIClient(aiConfig)
 
     // 构建请求参数
@@ -147,26 +312,26 @@ export async function fetchAiStream(
     let fullContent = ''
     const toolCalls: any[] = []
     let hasToolCalls = false
-    
+
     for await (const chunk of stream) {
       if (abortSignal?.aborted) {
         break;
       }
-      
+
       const delta = chunk.choices[0]?.delta
       const thinkingContent = (delta as any)?.reasoning_content || ''
       const content = delta?.content || ''
-      
+
       if (thinkingContent) {
         // 处理思考内容
       }
-      
+
       // 处理工具调用
       if (delta?.tool_calls) {
         hasToolCalls = true
         for (const toolCall of delta.tool_calls) {
           const index = toolCall.index || 0
-          
+
           // 初始化工具调用对象
           if (!toolCalls[index]) {
             toolCalls[index] = {
@@ -178,12 +343,12 @@ export async function fetchAiStream(
               }
             }
           }
-          
+
           // 累积工具调用参数
           if (toolCall.function?.arguments) {
             toolCalls[index].function.arguments += toolCall.function.arguments
           }
-          
+
           // 更新其他字段
           if (toolCall.id) {
             toolCalls[index].id = toolCall.id
@@ -193,12 +358,12 @@ export async function fetchAiStream(
           }
         }
       }
-      
+
       // 如果有工具调用，不显示中间内容，直接跳过
       if (hasToolCalls) {
         continue
       }
-      
+
       // 处理思考内容（通过独立回调）
       if (thinkingContent) {
         thinking += thinkingContent
@@ -206,7 +371,7 @@ export async function fetchAiStream(
           onThinkingUpdate(thinking)
         }
       }
-      
+
       // 处理普通内容
       if (content) {
         fullContent += content
@@ -299,7 +464,7 @@ export async function fetchAiStream(
             })
             
           } catch (error) {
-            console.error('工具调用失败:', error)
+            console.error('[MCP] Tool call failed:', error)
             
             // 更新 MCP 工具调用状态为错误
             if (chatId && mcpToolCallId) {
@@ -412,16 +577,17 @@ export async function fetchAiStream(
       }
       
       if (iteration >= maxIterations) {
-        console.warn('达到最大工具调用次数限制')
-        const maxIterationsText = t ? t('record.mark.mark.chat.mcp.maxIterationsReached') : '⚠️ 达到最大工具调用次数限制'
+        console.warn('[MCP] Max tool call iterations reached')
+        const maxIterationsText = t ? t('record.mark.mark.chat.mcp.maxIterationsReached') : 'Max tool call iterations reached'
         onUpdate(fullContent + '\n\n' + maxIterationsText)
       }
     }
     
     return fullContent
-  } catch (error) {
+  } catch (error: any) {
     console.error('[fetchAiStream] Error:', error)
-    return handleAIError(error) || ''
+    handleAIError(error)
+    throw error
   }
 }
 
@@ -441,7 +607,29 @@ export async function fetchAiStreamToken(text: string, onUpdate: (content: strin
     
     // 准备消息
     const { messages } = await prepareMessages(text)
-  
+
+    if (isAnthropicProvider(aiConfig)) {
+      const anthropic = await createAnthropicClient(aiConfig)
+      const { system, messages: anthropicMessages } = extractSystemForAnthropic(messages)
+
+      const stream = anthropic.messages.stream({
+        model: aiConfig?.model || '',
+        max_tokens: 8192,
+        ...(system ? { system } : {}),
+        messages: anthropicMessages,
+        temperature: aiConfig?.temperature ?? 1,
+        top_p: aiConfig?.topP ?? 1,
+      }, { signal: abortSignal as any })
+
+      for await (const event of stream) {
+        if (abortSignal?.aborted) break
+        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+          onUpdate(event.delta.text)
+        }
+      }
+      return ''
+    }
+
     const openai = await createOpenAIClient(aiConfig)
 
     const stream = await openai.chat.completions.create({
@@ -453,18 +641,18 @@ export async function fetchAiStreamToken(text: string, onUpdate: (content: strin
     }, {
       signal: abortSignal
     })
-    
+
     for await (const chunk of stream) {
       if (abortSignal?.aborted) {
         break;
       }
-      
+
       const content = chunk.choices[0]?.delta?.content || ''
       if (content) {
         onUpdate(content)
       }
     }
-    
+
     return ''
   } catch (error) {
     return handleAIError(error) || ''

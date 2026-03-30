@@ -302,19 +302,6 @@ export function EmptyState({
         </div>
 
         {/* Tips */}
-        <div className="text-center space-y-2 pt-4">
-          <p className="text-xs text-muted-foreground">
-            查看使用文档：
-            <a 
-              href="https://notegen.top/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-primary hover:underline ml-1"
-            >
-              https://notegen.top/
-            </a>
-          </p>
-        </div>
       </div>
     </div>
   )

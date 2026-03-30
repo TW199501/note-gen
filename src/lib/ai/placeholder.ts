@@ -55,7 +55,12 @@ export async function fetchAiPlaceholder(text: string): Promise<string | false> 
       return false
     }
 
-    // 构建 placeholder 提示词
+    const appLang = typeof window !== 'undefined' ? localStorage.getItem('app-language') || 'zh' : 'zh'
+    const langMap: Record<string, string> = {
+      'zh': '简体中文', 'zh-TW': '繁體中文', 'en': 'English', 'ja': '日本語', 'pt-BR': 'Português',
+    }
+    const userLang = langMap[appLang] || appLang
+
     const placeholderPrompt = `
       You are a note-taking software with an intelligent assistant. You can refer to the recorded content to take notes.
       IMPORTANT: Do not exceed 10 characters. Keep it extremely short.
@@ -63,6 +68,7 @@ export async function fetchAiPlaceholder(text: string): Promise<string | false> 
       Do not generate any special characters or punctuation.
       Leave it as plain text and no format is required.
       CRITICAL: Each response must be different and varied. Generate diverse suggestions each time, do not repeat previous patterns.
+      IMPORTANT: You MUST respond in ${userLang}.
       Generate a very short question based on the following content:
       ${text}`
 
@@ -105,14 +111,19 @@ export async function fetchAiQuickPrompts(text: string): Promise<QuickPrompt[]> 
       return []
     }
 
-    // 构建生成4条提示词的 prompt
+    const appLang = typeof window !== 'undefined' ? localStorage.getItem('app-language') || 'zh' : 'zh'
+    const langMap: Record<string, string> = {
+      'zh': '简体中文', 'zh-TW': '繁體中文', 'en': 'English', 'ja': '日本語', 'pt-BR': 'Português',
+    }
+    const userLang = langMap[appLang] || appLang
+
     const prompt = `
 You are a note-taking software assistant. Generate 4 different quick prompt suggestions.
 
 Requirements:
 1. Each prompt: short, actionable, under 15 characters
 2. All 4 prompts must be different
-3. Use Chinese unless content is clearly English
+3. IMPORTANT: You MUST respond in ${userLang}
 4. NO special characters or punctuation
 5. Respond with ONLY a valid JSON array
 
@@ -207,10 +218,17 @@ export async function fetchAiSinglePrompt(text: string): Promise<string> {
       return ''
     }
 
+    const appLang = typeof window !== 'undefined' ? localStorage.getItem('app-language') || 'zh' : 'zh'
+    const langMap: Record<string, string> = {
+      'zh': '简体中文', 'zh-TW': '繁體中文', 'en': 'English', 'ja': '日本語', 'pt-BR': 'Português',
+    }
+    const userLang = langMap[appLang] || appLang
+
     const prompt = `
 Generate ONE very short and actionable prompt suggestion (under 15 characters) based on the following content.
 Return ONLY the prompt text, nothing else.
 Do not include any special characters or punctuation.
+IMPORTANT: You MUST respond in ${userLang}.
 
 Content: ${text || 'No content provided'}`
 

@@ -219,9 +219,11 @@ export function MdEditor({ tabContentsRef, filePath }: MdEditorProps) {
       // Mark as initialized so that subsequent saves are allowed
       contentInitializedRef.current = true
 
-      // Fix cursor jump: Only trigger remote content update if this is a remote pull
-      // This prevents unnecessary setContent during local saves
-      if (justPulledFile) {
+      // 遠端拉取：以 Markdown 重新灌入編輯器（避免只更新 state 而 ProseMirror 仍為舊 DOC）
+      // 「整理筆記」等串流寫入：currentArticle 会变但未必触发 init；须同样 setContent(..., contentType: 'markdown')
+      // 否则 ## 會以純文字顯示，即見即所得失效
+      const { aiGeneratingFilePath } = useArticleStore.getState()
+      if (justPulledFile || aiGeneratingFilePath === filePath) {
         emitter.emit('editor-content-from-remote', { content: currentArticle })
       }
     } else if (currentArticle === '' && isThisFile && initialContent === '') {

@@ -6,6 +6,10 @@ import { Badge, BadgeProps } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useSyncManager } from '@/hooks/use-sync-manager'
 import { cn } from '@/lib/utils'
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+
+dayjs.extend(relativeTime)
 
 export type SyncStatusType = 'synced' | 'local_newer' | 'remote_newer' | 'conflict' | 'unknown' | 'syncing' | 'offline'
 
@@ -80,16 +84,8 @@ export function SyncStatusBadge({ path, showLabel = false, className, badgeProps
   const Icon = config.icon
 
   const formatLastSyncTime = () => {
-    if (!lastSyncTime) return '暂无同步记录'
-    const date = new Date(lastSyncTime)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-
-    if (diffMins < 1) return '刚刚同步'
-    if (diffMins < 60) return `${diffMins} 分钟前`
-    if (diffMins < 1440) return `${Math.floor(diffMins / 60)} 小时前`
-    return date.toLocaleDateString('zh-CN')
+    if (!lastSyncTime) return ''
+    return dayjs(lastSyncTime).fromNow()
   }
 
   return (

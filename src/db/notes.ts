@@ -27,6 +27,12 @@ export async function initNotesDb() {
       createdAt integer not null
     )
   `)
+
+  // 性能索引
+  await db.execute(`
+    create index if not exists idx_notes_tag_created
+    on notes(tagId, createdAt desc)
+  `)
 }
 
 export async function insertNote(note: Partial<Note>) {

@@ -19,6 +19,7 @@ export function PromptSelect() {
     initPromptData()
   }, [])
 
+
   // 选择 Prompt
   async function promptSelectChangeHandler(id: string) {
     const selectedPrompt = promptList.find(item => item.id === id)

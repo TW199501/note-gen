@@ -14,12 +14,12 @@ export function speakWithSystemVoice(
   onEnd?: () => void
 ): void {
   if (!text.trim()) {
-    throw new Error('文本内容为空')
+    throw new Error('Text content is empty')
   }
 
   // 检查浏览器是否支持语音合成
   if (!('speechSynthesis' in window)) {
-    throw new Error('当前浏览器不支持语音合成功能')
+    throw new Error('Speech synthesis is not supported in this browser')
   }
 
   // 停止当前的语音合成
@@ -84,7 +84,7 @@ export async function fetchAudioSpeech(text: string, customVoice?: string, custo
   const { aiModelList, audioModel } = useSettingStore.getState()
   
   if (!audioModel) {
-    throw new Error('未配置音频模型')
+    throw new Error('Audio model not configured')
   }
 
   // 查找音频模型配置
@@ -120,11 +120,11 @@ export async function fetchAudioSpeech(text: string, customVoice?: string, custo
   }
   
   if (!audioConfig) {
-    throw new Error('未找到音频模型配置')
+    throw new Error('Audio model configuration not found')
   }
 
   if (!audioConfig.baseURL || !audioConfig.apiKey) {
-    throw new Error('音频模型配置不完整')
+    throw new Error('Audio model configuration is incomplete')
   }
 
   // 使用自定义voice或配置的voice，默认为alloy
@@ -151,7 +151,7 @@ export async function fetchAudioSpeech(text: string, customVoice?: string, custo
       body: requestBody,
     })
   } catch (error) {
-    console.error('音频生成错误:', error)
+    console.error('[Audio] Speech generation failed:', error)
     throw error
   }
 }
@@ -187,7 +187,7 @@ class AudioController {
           audioBuffer.slice(0), // 创建副本避免detached buffer问题
           (decodedData) => {
             if (!this.audioContext) {
-              reject(new Error('音频上下文已被销毁'))
+              reject(new Error('Audio context has been destroyed'))
               return
             }
 
@@ -271,13 +271,13 @@ export async function textToSpeechAndPlay(
   onPlayingChange?: (playing: boolean) => void
 ): Promise<void> {
   if (!text.trim()) {
-    throw new Error('文本内容为空')
+    throw new Error('Text content is empty')
   }
 
   const resolution = resolveCurrentSpeechEngine('tts')
 
   if (!resolution.available) {
-    throw new Error('当前朗读模式不可用，请检查本地语音支持或模型配置')
+    throw new Error('Current speech mode is unavailable, please check local voice support or model configuration')
   }
 
   if (resolution.engine === 'local') {
@@ -329,7 +329,7 @@ export async function textToSpeechAndPlay(
     currentAudioController = new AudioController(onPlayingChange)
     await currentAudioController.playAudioBuffer(audioBuffer)
   } catch (error) {
-    console.error('朗读失败:', error)
+    console.error('[Audio] Text-to-speech failed:', error)
     onPlayingChange?.(false)
     throw error
   }
@@ -388,7 +388,7 @@ export async function fetchAudioTranscription(audioBlob: Blob): Promise<string> 
   const { aiModelList, sttModel } = useSettingStore.getState()
   
   if (!sttModel) {
-    throw new Error('未配置语音识别模型')
+    throw new Error('Speech recognition model not configured')
   }
 
   // 查找STT模型配置
@@ -420,11 +420,11 @@ export async function fetchAudioTranscription(audioBlob: Blob): Promise<string> 
   }
   
   if (!sttConfig) {
-    throw new Error('未找到语音识别模型配置')
+    throw new Error('Speech recognition model configuration not found')
   }
 
   if (!sttConfig.baseURL || !sttConfig.apiKey) {
-    throw new Error('语音识别模型配置不完整')
+    throw new Error('Speech recognition model configuration is incomplete')
   }
 
   try {
@@ -447,7 +447,7 @@ export async function fetchAudioTranscription(audioBlob: Blob): Promise<string> 
     })
     return result.text
   } catch (error) {
-    console.error('语音识别错误:', error)
+    console.error('[Audio] Speech recognition failed:', error)
     throw error
   }
 }

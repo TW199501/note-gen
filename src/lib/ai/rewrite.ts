@@ -1,13 +1,22 @@
-import { getAISettings, prepareMessages, createOpenAIClient, handleAIError, validateAIService } from './utils';
+import { getAISettings, prepareMessages, createOpenAIClient, createChatCompletionStream, handleAIError, validateAIService } from './utils';
 import { createAiStreamContentProcessor, sanitizeAiRewriteOutput } from './sanitize';
 
 const REWRITE_OUTPUT_RULE = 'Never output any thinking, reasoning, analysis, or <think> tags. Output only the final rewritten text.'
 
-/**
- * 润色文本
- * @param text 要润色的文本
- * @returns 润色后的文本
- */
+const ORGANIZE_PROMPT = `You are a Markdown editor. Reorganize and restructure the following Markdown content for better readability and logical flow.
+
+Rules:
+1. Add appropriate headings and subheadings to organize sections
+2. Reorder content for logical flow
+3. Break up long paragraphs, merge fragmented ones
+4. Preserve ALL original information and semantics — do NOT add or remove factual content
+5. Preserve Markdown formatting (bold, italic, links, code, tables, images, etc.)
+6. Respond in the SAME language as the input
+7. Output ONLY the reorganized Markdown, no explanations, no wrapping code fences
+
+Input:
+`
+
 export async function fetchAiPolish(text: string): Promise<string> {
   try {
     const aiConfig = await getAISettings('primaryModel')
@@ -40,11 +49,6 @@ Output:`
   }
 }
 
-/**
- * 精简文本
- * @param text 要精简的文本
- * @returns 精简后的文本
- */
 export async function fetchAiConcise(text: string): Promise<string> {
   try {
     const aiConfig = await getAISettings('primaryModel')
@@ -77,11 +81,6 @@ Output:`
   }
 }
 
-/**
- * 拓展文本
- * @param text 要拓展的文本
- * @returns 拓展后的文本
- */
 export async function fetchAiExpand(text: string): Promise<string> {
   try {
     const aiConfig = await getAISettings('primaryModel')
@@ -114,12 +113,6 @@ Output:`
   }
 }
 
-/**
- * 流式润色文本
- * @param text 要润色的文本
- * @param onChunk 流式回调函数
- * @param abortSignal 中止信号
- */
 export async function fetchAiPolishStream(
   text: string,
   onChunk: (chunk: string, isFirst: boolean) => void,
@@ -189,19 +182,11 @@ Output:`
       onChunk(remaining.content, isFirst)
     }
   } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      return
-    }
+    if (error instanceof Error && error.name === 'AbortError') return
     throw error
   }
 }
 
-/**
- * 流式精简文本
- * @param text 要精简的文本
- * @param onChunk 流式回调函数
- * @param abortSignal 中止信号
- */
 export async function fetchAiConciseStream(
   text: string,
   onChunk: (chunk: string, isFirst: boolean) => void,
@@ -271,19 +256,11 @@ Output:`
       onChunk(remaining.content, isFirst)
     }
   } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      return
-    }
+    if (error instanceof Error && error.name === 'AbortError') return
     throw error
   }
 }
 
-/**
- * 流式拓展文本
- * @param text 要拓展的文本
- * @param onChunk 流式回调函数
- * @param abortSignal 中止信号
- */
 export async function fetchAiExpandStream(
   text: string,
   onChunk: (chunk: string, isFirst: boolean) => void,
@@ -353,9 +330,26 @@ Output:`
       onChunk(remaining.content, isFirst)
     }
   } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      return
+    if (error instanceof Error && error.name === 'AbortError') return
+    throw error
+  }
+}
+
+export async function fetchAiOrganizeStream(
+  text: string,
+  onChunk: (chunk: string, isFirst: boolean) => void,
+  abortSignal?: AbortSignal
+): Promise<void> {
+  try {
+    const aiConfig = await getAISettings('primaryModel')
+    if (!aiConfig || await validateAIService(aiConfig.baseURL) === null) {
+      throw new Error('AI service not configured')
     }
+
+    const { messages } = await prepareMessages(`${ORGANIZE_PROMPT}${text}`)
+    await createChatCompletionStream(aiConfig, messages, onChunk, { temperature: 0.7, topP: 0.95, signal: abortSignal })
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') return
     throw error
   }
 }

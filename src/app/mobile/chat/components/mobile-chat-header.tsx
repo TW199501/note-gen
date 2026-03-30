@@ -5,10 +5,7 @@ import { History, MessageSquarePlus, Search, Trash2 } from "lucide-react"
 import { useTranslations } from "next-intl"
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
-import "dayjs/locale/zh-cn"
-import "dayjs/locale/en"
 import useChatStore from "@/stores/chat"
-import useSettingStore from "@/stores/setting"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -22,9 +19,8 @@ import { SearchDialog } from "@/components/search-dialog"
 
 dayjs.extend(relativeTime)
 
-function formatRelativeTime(timestamp: number, locale: string): string {
-  const dayjsLocale = locale === "en" ? "en" : "zh-cn"
-  return dayjs(timestamp).locale(dayjsLocale).fromNow()
+function formatRelativeTime(timestamp: number): string {
+  return dayjs(timestamp).fromNow()
 }
 
 export function MobileChatHeader() {
@@ -36,7 +32,6 @@ export function MobileChatHeader() {
     deleteConversation,
     loading,
   } = useChatStore()
-  const { language } = useSettingStore()
   const tEmpty = useTranslations("record.chat.empty")
   const tInput = useTranslations("record.chat.input")
   const tSearch = useTranslations("search")
@@ -121,7 +116,7 @@ export function MobileChatHeader() {
                           <div className="min-w-0">
                             <p className="text-sm font-medium truncate">{conversation.title}</p>
                             <p className="text-xs text-muted-foreground mt-1">
-                              {formatRelativeTime(conversation.updatedAt, language)}
+                              {formatRelativeTime(conversation.updatedAt)}
                             </p>
                           </div>
                           <Button

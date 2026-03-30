@@ -41,7 +41,10 @@
     "info": "Informação",
     "unsaved": "Não salvo",
     "saving": "Salvando",
-    "configureSync": "Configurar Sincronização"
+    "configureSync": "Configurar Sincronização",
+    "all": "Todos",
+    "today": "Hoje",
+    "yesterday": "Ontem"
   },
   "settings": {
     "defaultModels": {
@@ -362,6 +365,11 @@
       },
       "showUndoRedo": "Botões Desfazer/Refazer",
       "showUndoRedoDesc": "Mostrar botões de desfazer e refazer na barra de guias do editor.",
+      "showEditorToolbar": "Barra de Formatação",
+      "showEditorToolbarDesc": "Mostrar a barra de ferramentas de formatação no topo do editor.",
+      "browserSettings": "Configurações do Navegador",
+      "browserHomepage": "Página Inicial do Navegador",
+      "browserHomepageDesc": "Definir a página inicial padrão do navegador integrado.",
       "completion": {
         "title": "Auto Completar",
         "model": {
@@ -1100,6 +1108,13 @@
           "desc": "Gere sugestões de prompt rápidas para ajudar os usuários a iniciar conversas"
         }
       },
+      "organize": {
+        "title": "Modelo de Organização",
+        "model": {
+          "title": "Modelo de Organização de Notas e Arquivos",
+          "desc": "Modelo de IA para organizar notas e arquivos. Recomendado: use um modelo sem modo de pensamento para resultados mais rápidos"
+        }
+      },
       "conversationTitle": {
         "title": "会话标题",
         "model": {
@@ -1225,7 +1240,27 @@
       "addModel": "Adicionar modelo",
       "newModel": "Novo modelo",
       "checkConnection": "Testar conexão",
-      "model": "Modelo"
+      "model": "Modelo",
+      "tabs": {
+        "provider": "Provedores de Modelo",
+        "assignment": "Configuração de Modelo"
+      },
+      "assignment": {
+        "chat": "💬 Chat",
+        "editor": "✏️ Editor",
+        "record": "📝 Registro",
+        "rag": "📚 Base de Conhecimento",
+        "vision": "👁️ Visão",
+        "voice": "🔊 Voz",
+        "organize": {
+          "title": "Organizar Conteúdo",
+          "desc": "Usado para reorganizar e reestruturar o conteúdo das notas"
+        },
+        "audio": {
+          "title": "Leitura em Voz Alta",
+          "desc": "Usado para a função de leitura em voz alta"
+        }
+      }
     },
     "ocr": {
       "title": "OCR",
@@ -1352,6 +1387,13 @@
         "description": "Nenhum modelo de áudio foi configurado. Usando a leitura do próprio sistema."
       },
       "options": {
+        "mode": {
+          "title": "Modo",
+          "desc": "O modo automático prefere as vozes do sistema e só tenta um modelo quando a fala local não está disponível.",
+          "auto": "Automático (Recomendado)",
+          "local": "Somente local",
+          "model": "Somente modelo"
+        },
         "audioModel": {
           "title": "Modelo de áudio",
           "desc": "Escolha o modelo de IA para texto-para-fala (TTS). Suporta diferentes vozes e parâmetros."
@@ -1369,6 +1411,7 @@
       "confirm": "Tem certeza de que deseja esvaziar a lixeira?",
       "records": "{count} registros podem ser restaurados",
       "empty": "Esvaziar",
+      "restoreAll": "Restaurar todos",
       "close": "Fechar Lixeira"
     },
     "queue": {
@@ -1380,7 +1423,8 @@
       "recorded": "Gravado",
       "record": "Gravar",
       "detected": "Detectado",
-      "save": "Salvar"
+      "save": "Salvar",
+      "saveImage": "Salvar imagem"
     },
     "mark": {
       "empty": "Nenhum registro ainda",
@@ -1633,6 +1677,25 @@
       },
       "toolbar": {
         "search": "Pesquisar",
+        "filter": {
+          "title": "Filtrar",
+          "description": "Reduza registros instantaneamente por conteúdo, tempo e tipo.",
+          "search": "Pesquisar",
+          "searchPlaceholder": "Pesquisar texto, descrição ou link do registro",
+          "type": "Tipo",
+          "time": "Tempo",
+          "tag": "Tag",
+          "allTags": "Todas as tags",
+          "clear": "Limpar filtros",
+          "selectAllTypes": "Selecionar todos os tipos",
+          "clearTypes": "Limpar seleção de tipos",
+          "timeOptions": {
+            "all": "Todo o período",
+            "today": "Hoje",
+            "last7Days": "Últimos 7 dias",
+            "last30Days": "Últimos 30 dias"
+          }
+        },
         "trash": "Lixeira",
         "restore": "Restaurar",
         "delete": "Excluir",
@@ -1673,10 +1736,29 @@
         "link": "Gravar Link",
         "file": "Carregar Arquivo",
         "todo": "Registro Todo",
-        "closeTrash": "Fechar lixeira"
+        "closeTrash": "Fechar lixeira",
+        "visibleCount": "Total de {count} registros",
+        "view": {
+          "list": "Lista",
+          "compact": "Compacto",
+          "cards": "Cartões"
+        }
       },
       "list": {
-        "title": "Registros"
+        "title": "Registros",
+        "emptyFiltered": "Nenhum registro corresponde aos critérios",
+        "emptyFilteredHint": "Tente ajustar os termos de pesquisa ou filtros",
+        "filteredLabel": "{count} filtrados",
+        "filtered": "Filtrado",
+        "filteredByTag": "Tag",
+        "filteredByType": "{count} tipos",
+        "filteredSummary": "Mostrando {count} resultados · {filters}",
+        "searchChip": "Pesquisa: {value}",
+        "time": {
+          "today": "Hoje",
+          "last7Days": "Últimos 7 dias",
+          "last30Days": "Últimos 30 dias"
+        }
       },
       "note": {
         "organizeAs": "Organizar como",
@@ -1685,7 +1767,9 @@
         "confirm": "Confirmar",
         "cancel": "Cancelar",
         "removeThinking": "Remover processo de raciocínio",
-        "stop": "Parar"
+        "stop": "Parar",
+        "noModel": "Modelo de organização não configurado",
+        "noModelDesc": "Vá em Configurações → Chat → Modelo de Organização para selecionar um modelo de IA"
       },
       "imageGallery": {
         "expand": "Expandir",
@@ -1727,11 +1811,11 @@
         "noMatchingConversations": "Nenhuma conversa correspondente encontrada",
         "noConversationHistory": "Ainda não há histórico de conversas",
         "quickPrompts": {
-          "title": "快速开始",
-          "writeNote": "帮我写一篇笔记",
-          "summarize": "帮我总结这段内容",
-          "brainstorm": "帮我头脑风暴一些想法",
-          "explain": "帮我解释这个概念"
+          "title": "Início Rápido",
+          "writeNote": "Ajude-me a escrever uma nota",
+          "summarize": "Ajude-me a resumir este conteúdo",
+          "brainstorm": "Ajude-me a brainstormar ideias",
+          "explain": "Ajude-me a explicar este conceito"
         }
       },
       "newChat": "Novo Chat com Nova Tag",
@@ -1851,7 +1935,59 @@
             "cancel": "Cancelar",
             "confirm": "Confirmar",
             "confirmed": "Confirmado",
-            "cancelled": "Cancelado"
+            "cancelled": "Cancelado",
+            "fallback": {
+              "title": "Executar operação",
+              "description": "Confirme o objetivo e o conteúdo desta operação."
+            },
+            "params": {
+              "filePath": "Caminho do arquivo",
+              "content": "Conteúdo do arquivo",
+              "sourcePath": "Caminho de origem",
+              "targetPath": "Caminho de destino",
+              "files": "Lista de arquivos",
+              "newName": "Novo nome",
+              "scriptName": "Nome do script",
+              "command": "Comando"
+            },
+            "tools": {
+              "create_file": {
+                "title": "Criar arquivo",
+                "description": "Um novo arquivo será criado no workspace."
+              },
+              "create_files_batch": {
+                "title": "Criar arquivos",
+                "description": "Vários novos arquivos serão criados no workspace."
+              },
+              "rename_file": {
+                "title": "Renomear arquivo",
+                "description": "O arquivo selecionado será renomeado."
+              },
+              "move_file": {
+                "title": "Mover arquivo",
+                "description": "O arquivo será movido para um novo local."
+              },
+              "copy_file": {
+                "title": "Copiar arquivo",
+                "description": "Uma cópia do arquivo será criada no local de destino."
+              },
+              "replace_editor_content": {
+                "title": "Substituir conteúdo do editor",
+                "description": "O conteúdo atual do editor será substituído."
+              },
+              "insert_at_cursor": {
+                "title": "Inserir na posição do cursor",
+                "description": "O conteúdo será inserido na posição atual do cursor."
+              },
+              "delete_markdown_file": {
+                "title": "Excluir arquivo",
+                "description": "O arquivo selecionado será excluído permanentemente."
+              },
+              "execute_skill_script": {
+                "title": "Executar script",
+                "description": "Um script ou comando fornecido pela skill será executado."
+              }
+            }
           }
         },
         "imageSelector": {
@@ -1871,8 +2007,12 @@
           "noFiles": "Nenhum arquivo encontrado",
           "loading": "Carregando..."
         },
+        "clearContext": {
+          "tooltip": "Limpar Contexto",
+          "message": "Contexto limpo. As conversas subsequentes conterão apenas o conteúdo após esta mensagem."
+        },
         "stopped": "A conversa foi encerrada",
-        "newChat": "开始新对话"
+        "newChat": "Iniciar nova conversa"
       },
       "header": {
         "configApiKey": "Configurar CHAVE DE API",
@@ -1906,7 +2046,8 @@
       },
       "ragSources": {
         "label": "Encontrado {count} notas na base de conhecimento",
-        "openFile": "Abrir arquivo"
+        "openFile": "Abrir arquivo",
+        "quoteContent": "Conteúdo citado"
       },
       "preview": {
         "close": "Fechar",
@@ -1920,9 +2061,16 @@
         "delete": "Excluir",
         "deleteConfirm": "Tem certeza de que deseja excluir esta mensagem?"
       },
-      "condensing": "正在压缩上下文...",
+      "condensing": "Comprimindo contexto...",
       "condensed": {
-        "message": "已压缩 {count} 条历史消息"
+        "message": "{count} mensagens históricas comprimidas"
+      },
+      "thinking": "Pensando...",
+      "agent": {
+        "fileGenerated": "Arquivos gerados com sucesso:",
+        "stepFailed": "Validação ou etapas adicionais falharam: {message}",
+        "completedSteps": "{count} etapas concluídas",
+        "thinking": "Pensando"
       },
       "quote": {
         "lineSingle": "引用自 {fileName} 第 {line} 行",
@@ -1963,6 +2111,42 @@
       "howToUse": "Como usar o recurso de sincronização?"
     }
   },
+  "browser": {
+    "title": "Navegador",
+    "urlPlaceholder": "Digite a URL...",
+    "back": "Voltar",
+    "forward": "Avançar",
+    "reload": "Recarregar",
+    "home": "Início",
+    "extractText": "Extrair Texto",
+    "screenshot": "Captura para IA",
+    "loading": "Carregando...",
+    "vlmRequired": "Modelo de visão necessário para capturas de tela",
+    "clearData": "Limpar dados do navegador",
+    "clearDataConfirm": "Isso limpará todo o cache, cookies e histórico do navegador. Continuar?",
+    "bookmark": {
+      "add": "Adicionar Favorito",
+      "remove": "Remover Favorito",
+      "title": "Favoritos",
+      "empty": "Nenhum favorito ainda"
+    },
+    "contextMenu": {
+      "quoteToChat": "Citar no Chat",
+      "screenshotToAI": "Captura para IA",
+      "addBookmark": "Adicionar aos Favoritos",
+      "translate": "Traduzir Seleção"
+    },
+    "history": {
+      "title": "Histórico",
+      "search": "Pesquisar histórico",
+      "clear": "Limpar Histórico",
+      "clearConfirm": "Limpar todo o histórico de navegação?",
+      "empty": "Nenhum histórico de navegação",
+      "today": "Hoje",
+      "yesterday": "Ontem",
+      "earlier": "Anterior"
+    }
+  },
   "navigation": {
     "chat": "Conversa",
     "record": "Registro",
@@ -1985,7 +2169,9 @@
     "showRightSidebar": "Mostrar Barra Lateral Direita",
     "searchPlaceholder": "Pesquisar notas ou registros...",
     "showCenterPanel": "Mostrar editor",
-    "hideCenterPanel": "Ocultar editor"
+    "hideCenterPanel": "Ocultar editor",
+    "notesMode": "Modo Notas",
+    "browserMode": "Modo Navegador"
   },
   "activity": {
     "title": "Calendário de Atividade",
@@ -2192,7 +2378,31 @@
         "importing": "Importando...",
         "importSuccess": "Importação Bem-sucedida",
         "importSuccessDesc": "Importados {count} arquivos com sucesso",
-        "importError": "Falha na Importação"
+        "importError": "Falha na Importação",
+        "organizeFiles": "Organizar com IA"
+      },
+      "organize": {
+        "title": "Organizar Notas com IA",
+        "desc": "Analisar {count} arquivos de notas não categorizados no diretório raiz e deixar a IA sugerir classificações.",
+        "noFiles": "Nenhum arquivo de nota não categorizado no diretório raiz",
+        "analyzing": "IA está analisando o conteúdo dos arquivos...",
+        "reviewDesc": "A IA sugere classificar {count} arquivos da seguinte forma. Por favor, revise:",
+        "applying": "Movendo arquivos...",
+        "startAnalyze": "Iniciar Análise",
+        "reAnalyze": "Reanalisar",
+        "apply": "Aplicar ({count})",
+        "cancel": "Cancelar",
+        "selectAll": "Selecionar Tudo",
+        "deselectAll": "Desmarcar Tudo",
+        "selected": "{count}/{total} selecionados",
+        "applySuccess": "{count} arquivos organizados com sucesso",
+        "applyError": "Erro ao mover arquivos",
+        "analyzeError": "Análise de IA falhou, verifique as configurações do modelo",
+        "noModel": "Modelo de organização não configurado",
+        "noModelDesc": "Vá em Configurações → Chat → Modelo de Organização para selecionar um modelo de IA",
+        "renameCount": "{count} arquivos sugeridos para renomear",
+        "enableRename": "Ativar renomeação",
+        "disableRename": "Manter nome original"
       },
       "sync": {
         "syncingRemote": "Buscando arquivo remoto...",
@@ -2319,6 +2529,22 @@
           "promptTemplate": "Traduzir este texto: \n{content}\n, para {language}, retorne diretamente o resultado traduzido."
         },
         "notSupported": "Esta ação não é suportada"
+      },
+      "mobile": {
+        "cancel": "Cancelar",
+        "create": "Criar",
+        "save": "Salvar",
+        "emptyDir": "Esta pasta está vazia",
+        "root": "Raiz",
+        "openFiles": "Abrir arquivos",
+        "remote": "Arquivo remoto",
+        "remoteFileNotPulled": "Somente na nuvem · Toque para baixar",
+        "remoteFolderOnly": "Pasta somente na nuvem",
+        "file": "Arquivo",
+        "folder": "Pasta",
+        "folderChildren": "{files} arquivos · {folders} pastas",
+        "filePlaceholder": "exemplo.md",
+        "folderPlaceholder": "exemplo-pasta"
       },
       "deleteConfirm": "Confirmar exclusão deste arquivo?"
     },
@@ -2488,9 +2714,17 @@
         "streak": "Sequência Atual",
         "streakHint": "Dias consecutivos com atividade"
       },
+      "status": {
+        "title": "Configuração atual",
+        "sync": "Plano de backup",
+        "model": "Modelo padrão",
+        "configured": "Conectado",
+        "unconfigured": "Não configurado",
+        "modelFallback": "Modelo padrão não definido"
+      },
       "settings": {
         "title": "Configurações",
-        "description": "Abra diretamente daqui as configurações de cada recurso."
+        "description": "Abra diretamente daqui as configuraç��es de cada recurso."
       }
     },
     "chat": {
@@ -2566,6 +2800,7 @@
   },
   "editor": {
     "placeholder": "Digite / para abrir o menu, ou comece a escrever...",
+    "aiNoSelection": "Nada para processar — selecione um trecho ou coloque o cursor em um parágrafo",
     "outline": {
       "title": "Esboço",
       "open": "Abrir Esboço",
@@ -2638,7 +2873,9 @@
       "quoteDisplay": {
         "fromFile": "Citado de {fileName}",
         "line": "Citado de {fileName} linha {line}",
-        "lines": "Citado de {fileName} linhas {start}-{end}"
+        "lines": "Citado de {fileName} linhas {start}-{end}",
+        "collapse": "Recolher",
+        "expand": "Expandir"
       }
     },
     "upload": {
@@ -2679,11 +2916,75 @@
     "description": "Clique para selecionar uma ferramenta de registro e criar registros rapidamente"
   },
   "editor": {
+    "placeholder": "Digite / para abrir o menu, ou comece a escrever...",
+    "aiNoSelection": "Nenhum texto para processar, selecione o conteúdo ou coloque o cursor em um parágrafo",
+    "outline": {
+      "title": "Esboço",
+      "open": "Abrir Esboço",
+      "close": "Fechar Esboço"
+    },
+    "translation": {
+      "fail": "Falha na tradução",
+      "failNoSelection": "Por favor, selecione o texto para traduzir",
+      "translating": "Traduzindo...",
+      "translatingTo": "Traduzindo para {language}...",
+      "success": "Tradução concluída",
+      "successTo": "Traduzido para {language}",
+      "customLanguageEmpty": "Por favor, digite o idioma de destino",
+      "customLanguageExample": "ex.: Inglês, Japonês, Francês, etc."
+    },
+    "quoteDisplay": {
+      "fromFile": "Citado de {fileName}",
+      "line": "Citado de {fileName} linha {line}",
+      "lines": "Citado de {fileName} linhas {start}-{end}",
+      "collapse": "Recolher",
+      "expand": "Expandir"
+    },
+    "toolbar": {
+      "undo": "Desfazer",
+      "redo": "Refazer",
+      "heading1": "Título 1",
+      "heading2": "Título 2",
+      "heading3": "Título 3",
+      "bold": "Negrito",
+      "italic": "Itálico",
+      "strike": "Tachado",
+      "underline": "Sublinhado",
+      "inlineCode": "Código na linha",
+      "highlight": "Destacar",
+      "blockquote": "Citação",
+      "bulletList": "Lista com marcadores",
+      "orderedList": "Lista numerada",
+      "taskList": "Lista de tarefas",
+      "codeBlock": "Bloco de código",
+      "alignLeft": "Alinhar à esquerda",
+      "alignCenter": "Centralizar",
+      "alignRight": "Alinhar à direita",
+      "horizontalRule": "Linha horizontal",
+      "table": "Tabela",
+      "image": "Imagem",
+      "link": "Link",
+      "ai": "AI",
+      "moreInsert": "Mais Inserções",
+      "inlineMath": "Fórmula Inline",
+      "blockMath": "Fórmula em Bloco",
+      "mermaid": "Diagrama Mermaid",
+      "mermaidFlowchart": "Fluxograma",
+      "mermaidSequence": "Diagrama de Sequência",
+      "mermaidGantt": "Gráfico de Gantt",
+      "mermaidClass": "Diagrama de Classes",
+      "mermaidState": "Diagrama de Estados",
+      "mermaidPie": "Gráfico de Pizza",
+      "mermaidER": "Diagrama ER",
+      "mermaidJourney": "Jornada do Usuário",
+      "searchReplace": "Buscar e Substituir"
+    },
     "bubbleMenu": {
       "ai": "IA",
       "polish": "Polir",
       "concise": "Conciso",
       "expand": "Expandir",
+      "organize": "Organizar",
       "translate": "Traduzir",
       "translateSubtitle": "Traduzir para",
       "quoteToChat": "Citar no Chat",
@@ -2735,7 +3036,9 @@
       "editSrc": "Editar URL",
       "altPlaceholder": "Digite o texto alternativo...",
       "srcPlaceholder": "Digite a URL da imagem...",
-      "delete": "Excluir imagem"
+      "delete": "Excluir imagem",
+      "confirm": "Confirmar",
+      "cancel": "Cancelar"
     },
     "mermaid": {
       "rendering": "Renderizando...",

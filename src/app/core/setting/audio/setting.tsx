@@ -1,7 +1,6 @@
 import { Item, ItemGroup, ItemMedia, ItemContent, ItemTitle, ItemDescription, ItemActions } from '@/components/ui/item';
 import { useTranslations } from 'next-intl';
-import { ModelSelect } from "../components/model-select";
-import { Gauge, Volume2, Mic } from "lucide-react";
+import { Gauge, Volume2 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { useState, useEffect } from "react";
 import { Store } from "@tauri-apps/plugin-store";
@@ -124,17 +123,6 @@ export function Setting() {
           </ItemActions>
         </Item>
 
-        <Item variant="outline">
-          <ItemMedia variant="icon"><Volume2 className="size-4" /></ItemMedia>
-          <ItemContent>
-            <ItemTitle>{t('tts.model.title')}</ItemTitle>
-            <ItemDescription>{t('tts.model.desc')}</ItemDescription>
-          </ItemContent>
-          <ItemActions>
-            <ModelSelect modelKey="tts" />
-          </ItemActions>
-        </Item>
-
         {audioModel && (
           <Item variant="outline">
             <ItemMedia variant="icon"><Gauge className="size-4" /></ItemMedia>
@@ -164,19 +152,6 @@ export function Setting() {
         <h3 className="text-sm font-medium text-foreground">{t('stt.title')}</h3>
         <p className="text-xs text-muted-foreground">{t('stt.desc')}</p>
       </div>
-
-      <ItemGroup className="gap-4">
-        <Item variant="outline">
-          <ItemMedia variant="icon"><Mic className="size-4" /></ItemMedia>
-          <ItemContent>
-            <ItemTitle>{t('stt.model.title')}</ItemTitle>
-            <ItemDescription>{t('stt.model.desc')}</ItemDescription>
-          </ItemContent>
-          <ItemActions>
-            <ModelSelect modelKey="stt" />
-          </ItemActions>
-        </Item>
-      </ItemGroup>
     </ItemGroup>
   )
 }

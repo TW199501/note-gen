@@ -17,6 +17,7 @@ import {
   MessageCircle,
   Minimize2,
   Maximize2,
+  ListTree,
   Languages,
   ChevronRight
 } from 'lucide-react'
@@ -43,6 +44,7 @@ interface BubbleMenuProps {
   onAIConcise?: () => void
   onAIExpand?: () => void
   onAITranslate?: (targetLanguage: string) => void
+  onAIOrganize?: () => void
   onQuoteToChat?: () => void
 }
 
@@ -52,6 +54,7 @@ export function BubbleMenu({
   onAIConcise,
   onAIExpand,
   onAITranslate,
+  onAIOrganize,
   onQuoteToChat,
 }: BubbleMenuProps) {
   const t = useTranslations('editor')
@@ -339,6 +342,9 @@ export function BubbleMenu({
               </button>
               <button className="w-full px-3 py-1.5 text-left text-sm hover:bg-muted flex items-center gap-2" onClick={() => { setShowAISubmenu(false); onAIExpand?.() }}>
                 <Maximize2 className="w-3.5 h-3.5" /><span>{t('bubbleMenu.expand')}</span>
+              </button>
+              <button className="w-full px-3 py-1.5 text-left text-sm hover:bg-muted flex items-center gap-2" onClick={() => { setShowAISubmenu(false); onAIOrganize?.() }}>
+                <ListTree className="w-3.5 h-3.5" /><span>{t('bubbleMenu.organize')}</span>
               </button>
 
               <div className="border-t border-border my-1" />

@@ -1,0 +1,391 @@
+use std::collections::HashMap;
+use std::sync::Mutex;
+use tauri::{
+    AppHandle, Manager,
+    webview::WebviewBuilder,
+    LogicalPosition, LogicalSize, Emitter,
+};
+use serde::Serialize;
+
+pub struct BrowserState {
+    webview_label: Mutex<Option<String>>,
+    context_menu_labels: Mutex<Option<HashMap<String, String>>>,
+}
+
+impl BrowserState {
+    pub fn new() -> Self {
+        Self {
+            webview_label: Mutex::new(None),
+            context_menu_labels: Mutex::new(None),
+        }
+    }
+}
+
+
+#[derive(Serialize, Clone)]
+struct UrlPayload {
+    url: String,
+}
+
+#[derive(Serialize, Clone)]
+struct LoadingPayload {
+    loading: bool,
+}
+
+const BROWSER_LABEL: &str = "browser-webview";
+
+fn build_context_menu_js(labels: &HashMap<String, String>) -> String {
+    let quote_label = labels.get("quote").map(|s| s.as_str()).unwrap_or("Quote to Chat");
+    let translate_label = labels.get("translate").map(|s| s.as_str()).unwrap_or("Translate Selection");
+    let screenshot_label = labels.get("screenshot").map(|s| s.as_str()).unwrap_or("Screenshot to AI");
+    let bookmark_label = labels.get("bookmark").map(|s| s.as_str()).unwrap_or("Add to Bookmarks");
+    format!(r#"(function(){{
+        if(window.__noteGenContextMenu) return;
+        window.__noteGenContextMenu=true;
+        var style=document.createElement('style');
+        style.textContent='#notegen-ctx-menu{{position:fixed;z-index:999999;background:var(--bg,#fff);border:1px solid var(--bd,#e0e0e0);border-radius:6px;padding:4px 0;box-shadow:0 2px 10px rgba(0,0,0,.18);font-family:system-ui,-apple-system,sans-serif;font-size:13px;min-width:180px;color:var(--fg,#222)}}#notegen-ctx-menu>div{{padding:7px 14px;cursor:pointer;display:flex;align-items:center;gap:8px}}#notegen-ctx-menu>div:hover{{background:var(--hv,#f0f0f0)}}@media(prefers-color-scheme:dark){{#notegen-ctx-menu{{--bg:#2a2a2a;--bd:#444;--fg:#eee;--hv:#3a3a3a}}}}';
+        document.head.appendChild(style);
+        document.addEventListener('contextmenu',function(e){{
+            e.preventDefault();
+            var sel=window.getSelection().toString();
+            var old=document.getElementById('notegen-ctx-menu');
+            if(old)old.remove();
+            var m=document.createElement('div');
+            m.id='notegen-ctx-menu';
+            function addItem(label,action){{
+                var d=document.createElement('div');
+                d.textContent=label;
+                d.onclick=function(){{
+                    window.__TAURI_INTERNALS__.invoke('__browser_context_action',{{
+                        action:action,text:sel,url:window.location.href,title:document.title
+                    }});
+                    m.remove();
+                }};
+                m.appendChild(d);
+            }}
+            if(sel){{
+                addItem('{quote}','quote');
+                addItem('{translate}','translate');
+            }}
+            addItem('{screenshot}','screenshot');
+            addItem('{bookmark}','bookmark');
+            var x=e.clientX,y=e.clientY;
+            m.style.left=x+'px';m.style.top=y+'px';
+            document.body.appendChild(m);
+            setTimeout(function(){{
+                var rect=m.getBoundingClientRect();
+                if(rect.right>window.innerWidth)m.style.left=(window.innerWidth-rect.width-4)+'px';
+                if(rect.bottom>window.innerHeight)m.style.top=(window.innerHeight-rect.height-4)+'px';
+            }},0);
+            document.addEventListener('click',function h(){{m.remove();document.removeEventListener('click',h);}},{{once:true}});
+        }});
+    }})();"#,
+        quote = quote_label,
+        translate = translate_label,
+        screenshot = screenshot_label,
+        bookmark = bookmark_label,
+    )
+}
+
+#[tauri::command]
+pub async fn browser_create(
+    app: AppHandle,
+    state: tauri::State<'_, BrowserState>,
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+    url: Option<String>,
+) -> Result<(), String> {
+    let mut label = state.webview_label.lock().map_err(|e| e.to_string())?;
+
+    // If already exists, just show it
+    if label.is_some() {
+        if let Some(wv) = app.get_webview(BROWSER_LABEL) {
+            wv.show().map_err(|e| e.to_string())?;
+            return Ok(());
+        }
+    }
+
+    let window = app.get_window("main").ok_or("Main window not found")?;
+
+    let app_handle = app.clone();
+    let initial_url = url.unwrap_or_else(|| "https://www.google.com".to_string());
+    let builder = WebviewBuilder::new(
+        BROWSER_LABEL,
+        tauri::WebviewUrl::External(initial_url.parse().unwrap()),
+    )
+    .auto_resize()
+    .on_page_load(move |wv, payload| {
+        match payload.event() {
+            tauri::webview::PageLoadEvent::Started => {
+                let _ = app_handle.emit("browser-loading", LoadingPayload { loading: true });
+            }
+            tauri::webview::PageLoadEvent::Finished => {
+                let _ = app_handle.emit("browser-loading", LoadingPayload { loading: false });
+                // Get URL and title after load
+                if let Ok(url) = wv.url() {
+                    let _ = app_handle.emit("browser-url-changed", UrlPayload { url: url.to_string() });
+                }
+                // Inject script to get title - uses Tauri's webview.eval() API for JS injection
+                let _ = wv.eval(
+                    "window.__TAURI_INTERNALS__.invoke('__browser_title_changed', { title: document.title })"
+                );
+                // Inject script to get favicon
+                let _ = wv.eval(r#"(function(){
+                    var links = document.querySelectorAll('link[rel*="icon"]');
+                    var favicon = '';
+                    if (links.length > 0) {
+                        var best = links[0]; var bestSize = 0;
+                        links.forEach(function(l){
+                            var s = l.getAttribute('sizes');
+                            var sz = s ? parseInt(s.split('x')[0]) : 16;
+                            if(sz > bestSize){ bestSize = sz; best = l; }
+                        });
+                        favicon = best.href;
+                    } else {
+                        favicon = window.location.origin + '/favicon.ico';
+                    }
+                    window.__TAURI_INTERNALS__.invoke('__browser_favicon_changed', { favicon: favicon });
+                })();"#);
+                // Re-inject context menu if labels are stored
+                if let Some(browser_state) = app_handle.try_state::<BrowserState>() {
+                    if let Ok(labels_guard) = browser_state.context_menu_labels.lock() {
+                        if let Some(labels) = labels_guard.as_ref() {
+                            let js = build_context_menu_js(labels);
+                            let _ = wv.eval(&js);
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    window.add_child(
+        builder,
+        LogicalPosition::new(x, y),
+        LogicalSize::new(width, height),
+    ).map_err(|e| e.to_string())?;
+
+    *label = Some(BROWSER_LABEL.to_string());
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn browser_navigate(app: AppHandle, url: String) -> Result<(), String> {
+    let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+    let parsed_url = url::Url::parse(&url).map_err(|e| e.to_string())?;
+    webview.navigate(parsed_url).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn browser_go_back(app: AppHandle) -> Result<(), String> {
+    let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+    // Tauri's webview.eval() API injects JS into the webview context
+    webview.eval("window.history.back()").map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn browser_go_forward(app: AppHandle) -> Result<(), String> {
+    let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+    webview.eval("window.history.forward()").map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn browser_reload(app: AppHandle) -> Result<(), String> {
+    let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+    webview.eval("window.location.reload()").map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn browser_show(app: AppHandle) -> Result<(), String> {
+    if let Some(webview) = app.get_webview(BROWSER_LABEL) {
+        webview.show().map_err(|e| e.to_string())?;
+        // Position will be restored by frontend syncSize() call
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn browser_hide(app: AppHandle) -> Result<(), String> {
+    let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+    // hide() + move offscreen for reliability — some platforms don't fully hide child webviews
+    webview.hide().map_err(|e| e.to_string())?;
+    webview.set_position(LogicalPosition::new(-10000.0, -10000.0)).map_err(|e| e.to_string())?;
+    webview.set_size(LogicalSize::new(0.0, 0.0)).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn browser_resize(
+    app: AppHandle,
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+) -> Result<(), String> {
+    let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+    webview
+        .set_position(LogicalPosition::new(x, y))
+        .map_err(|e| e.to_string())?;
+    webview
+        .set_size(LogicalSize::new(width, height))
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn browser_extract_text(app: AppHandle) -> Result<(), String> {
+    let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+    let url = webview.url().map_err(|e| e.to_string())?.to_string();
+
+    // Inject script to extract page text and emit result via Tauri event
+    let emit_url = url.replace('\\', "\\\\").replace('\'', "\\'");
+    let js_code = format!(r#"(function(){{
+        var text = document.body.innerText || '';
+        var title = document.title || '';
+        window.__TAURI_INTERNALS__.invoke('__browser_content_extracted', {{
+            text: text.substring(0, 8000),
+            title: title,
+            url: '{}'
+        }});
+    }})();"#, emit_url);
+    webview.eval(&js_code).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn browser_get_url(app: AppHandle) -> Result<String, String> {
+    let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+    let url = webview.url().map_err(|e| e.to_string())?;
+    Ok(url.to_string())
+}
+
+#[tauri::command]
+pub async fn browser_get_title(app: AppHandle) -> Result<String, String> {
+    let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+    // Inject JS via Tauri webview.eval() to retrieve document title
+    webview.eval("window.__TAURI_INTERNALS__.invoke('__browser_title_result', { title: document.title })")
+        .map_err(|e| e.to_string())?;
+    Ok(String::new()) // Title comes via event
+}
+
+#[tauri::command]
+pub async fn browser_get_selected_text(app: AppHandle) -> Result<String, String> {
+    let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+    // Inject JS via Tauri webview.eval() to get the current text selection
+    let js_code = r#"
+        (function() {
+            var sel = window.getSelection();
+            var text = sel ? sel.toString() : '';
+            window.__TAURI_INTERNALS__.invoke('__browser_selected_text', { text: text });
+        })();
+    "#;
+    webview.eval(js_code).map_err(|e| e.to_string())?;
+    Ok(String::new())
+}
+
+#[allow(dead_code)]
+#[tauri::command]
+pub async fn browser_inject_context_menu(
+    app: AppHandle,
+    state: tauri::State<'_, BrowserState>,
+    labels: HashMap<String, String>,
+) -> Result<(), String> {
+    let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+    let js = build_context_menu_js(&labels);
+    webview.eval(&js).map_err(|e| e.to_string())?;
+    // Store labels for re-injection on page load
+    let mut stored = state.context_menu_labels.lock().map_err(|e| e.to_string())?;
+    *stored = Some(labels);
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn browser_clear_data(
+    app: AppHandle,
+    state: tauri::State<'_, BrowserState>,
+) -> Result<(), String> {
+    if let Some(webview) = app.get_webview(BROWSER_LABEL) {
+        // Inject JS to clear client-side storage before closing
+        let js_clear = r#"(function(){
+            try { localStorage.clear(); } catch(e) {}
+            try { sessionStorage.clear(); } catch(e) {}
+            try {
+                document.cookie.split(';').forEach(function(c) {
+                    document.cookie = c.trim().split('=')[0] +
+                        '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+                });
+            } catch(e) {}
+            try {
+                if (window.caches) {
+                    caches.keys().then(function(names) {
+                        names.forEach(function(name) { caches.delete(name); });
+                    });
+                }
+            } catch(e) {}
+            try {
+                if (window.indexedDB.databases) {
+                    window.indexedDB.databases().then(function(dbs) {
+                        dbs.forEach(function(db) { window.indexedDB.deleteDatabase(db.name); });
+                    });
+                }
+            } catch(e) {}
+        })();"#;
+        let _ = webview.eval(js_clear);
+
+        // Wait for JS to execute
+        tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+
+        // Close the webview
+        webview.close().map_err(|e| e.to_string())?;
+    }
+
+    // Reset state so WebView can be recreated
+    let mut label = state.webview_label.lock().map_err(|e| e.to_string())?;
+    *label = None;
+
+    Ok(())
+}
+
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+#[tauri::command]
+pub async fn browser_capture(app: AppHandle) -> Result<String, String> {
+    let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+
+    let position = webview.position().map_err(|e| e.to_string())?;
+    let size = webview.size().map_err(|e| e.to_string())?;
+
+    // Use xcap to capture the screen region
+    let app_data = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let screenshot_path = app_data.join("browser-screenshot.png");
+
+    // Capture using xcap (already a project dependency)
+    let monitors = xcap::Monitor::all().map_err(|e| e.to_string())?;
+    if let Some(monitor) = monitors.first() {
+        let image = monitor.capture_image().map_err(|e| e.to_string())?;
+
+        // Crop to webview area
+        let x = position.x as u32;
+        let y = position.y as u32;
+        let w = size.width.min(image.width().saturating_sub(x));
+        let h = size.height.min(image.height().saturating_sub(y));
+
+        let cropped = image::imageops::crop_imm(&image, x, y, w, h).to_image();
+        cropped.save(&screenshot_path).map_err(|e| e.to_string())?;
+
+        Ok(screenshot_path.to_string_lossy().to_string())
+    } else {
+        Err("No monitor found".to_string())
+    }
+}
+
+#[cfg(any(target_os = "android", target_os = "ios"))]
+#[tauri::command]
+pub async fn browser_capture(_app: AppHandle) -> Result<String, String> {
+    Err("Screenshot capture is not supported on mobile".to_string())
+}

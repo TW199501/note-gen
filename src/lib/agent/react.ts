@@ -465,8 +465,7 @@ export class ReActAgent {
     let memoryPrompt = ''
     try {
       const { contextLoader } = await import('@/lib/context/loader')
-      // Get all memories (preferences are always included, knowledge is matched by similarity)
-      const memoryContext = await contextLoader.getContextForQuery('')  // Empty query gets all preferences
+      const memoryContext = await contextLoader.getContextForQuery('')
       if (memoryContext.preferences.length > 0 || memoryContext.memory.length > 0) {
         memoryPrompt = contextLoader.formatMemoriesForPrompt(memoryContext)
       }
@@ -474,7 +473,24 @@ export class ReActAgent {
       console.error('[Agent] Failed to load memories:', error)
     }
 
+    let userLanguage = ''
+    try {
+      const appLanguage = localStorage.getItem('app-language') || 'zh'
+      const langMap: Record<string, string> = {
+        'zh': '简体中文',
+        'zh-TW': '繁體中文',
+        'en': 'English',
+        'ja': '日本語',
+        'pt-BR': 'Português (Brasil)',
+      }
+      userLanguage = langMap[appLanguage] || appLanguage
+    } catch {
+      userLanguage = '简体中文'
+    }
+
     let prompt = `You are an efficient AI agent that uses tools to help users complete tasks. Follow the ReAct framework: Thought → Action → Observation.
+
+**IMPORTANT: You MUST respond in ${userLanguage}. All your Final Answer content, explanations, and user-facing text must be in ${userLanguage}.**
 
 ${memoryPrompt ? `## User Memories\n\n${memoryPrompt}\n` : ''}
 

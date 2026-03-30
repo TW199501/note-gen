@@ -65,7 +65,7 @@ export function ChatClipboard({chat}: { chat: Chat }) {
     setLoading(true)
     const queueId = uuid()
     // 获取文件后缀
-    addQueue({ queueId, tagId: currentTagId!, progress: '保存图片', type: 'image', startTime: Date.now() })
+    addQueue({ queueId, tagId: currentTagId!, progress: t('saveImage'), type: 'image', startTime: Date.now() })
     const isImageFolderExists = await exists('image', { baseDir: BaseDirectory.AppData})
     if (!isImageFolderExists) {
       await mkdir('image', { baseDir: BaseDirectory.AppData})

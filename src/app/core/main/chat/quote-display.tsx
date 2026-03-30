@@ -57,7 +57,7 @@ export function QuoteDisplay({ quoteData, onRemove }: QuoteDisplayProps) {
             className="mt-1 text-[11px] text-primary"
             onClick={() => setExpanded((value) => !value)}
           >
-            {expanded ? '收起' : '展开'}
+            {expanded ? t('collapse') : t('expand')}
           </button>
         )}
       </div>

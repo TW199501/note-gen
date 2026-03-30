@@ -8,6 +8,33 @@ export interface Prompt {
   isDefault?: boolean
 }
 
+const defaultPromptI18n = {
+  titles: {
+    'zh': '写作助手',
+    'zh-TW': '寫作助手',
+    'en': 'Writing Assistant',
+    'ja': 'ライティングアシスタント',
+    'pt-BR': 'Assistente de Escrita',
+  } as Record<string, string>,
+  contents: {
+    'zh': '请你扮演一个笔记软件的智能助手，可以参考记录内容，使用 markdown 语法，回答用户的问题。',
+    'zh-TW': '請你扮演一個筆記軟體的智能助手，可以參考記錄內容，使用 markdown 語法，回答用戶的問題。',
+    'en': 'You are an intelligent assistant for a note-taking app. You can reference recorded content, use markdown syntax, and answer user questions.',
+    'ja': 'あなたはノートアプリのインテリジェントアシスタントです。記録内容を参照し、markdown構文を使用して、ユーザーの質問に答えてください。',
+    'pt-BR': 'Você é um assistente inteligente de um aplicativo de notas. Você pode referenciar conteúdo gravado, usar sintaxe markdown e responder perguntas do usuário.',
+  } as Record<string, string>,
+}
+
+function getLocalizedDefault(): Prompt {
+  const lang = localStorage.getItem('app-language') || 'zh'
+  return {
+    id: '0',
+    title: defaultPromptI18n.titles[lang] || defaultPromptI18n.titles['zh'],
+    content: defaultPromptI18n.contents[lang] || defaultPromptI18n.contents['zh'],
+    isDefault: true,
+  }
+}
+
 interface PromptState {
   promptList: Prompt[]
   currentPrompt: Prompt | null
@@ -21,28 +48,32 @@ interface PromptState {
 }
 
 const usePromptStore = create<PromptState>((set, get) => ({
-  promptList: [
-    {
-      id: '0',
-      title: '写作助手',
-      content: '请你扮演一个笔记软件的智能助手，可以参考记录内容，使用 markdown 语法，回答用户的问题。',
-      isDefault: true
-    }
-  ],
+  promptList: [{
+    id: '0',
+    title: defaultPromptI18n.titles['zh'],
+    content: defaultPromptI18n.contents['zh'],
+    isDefault: true,
+  }],
   currentPrompt: null,
   
   initPromptData: async () => {
     const store = await Store.load('store.json');
     const promptList = await store.get<Prompt[]>('promptList');
+    const localizedDefault = getLocalizedDefault()
     if (promptList) {
-      set({ promptList });
+      const updated = promptList.map(p =>
+        p.id === '0' && p.isDefault
+          ? { ...p, title: localizedDefault.title, content: localizedDefault.content }
+          : p
+      )
+      set({ promptList: updated });
+      await store.set('promptList', updated);
     } else {
-      // 如果不存在，设置默认
-      const defaultPromptList = get().promptList;
+      const defaultPromptList = [localizedDefault];
+      set({ promptList: defaultPromptList });
       await store.set('promptList', defaultPromptList);
     }
     
-    // 设置当前使用的prompt
     const currentPromptId = await store.get<string>('currentPromptId');
     if (currentPromptId) {
       const prompt = get().promptList.find(item => item.id === currentPromptId);
@@ -50,7 +81,6 @@ const usePromptStore = create<PromptState>((set, get) => ({
         set({ currentPrompt: prompt });
       }
     } else {
-      // 默认使用第一个prompt
       const defaultPrompt = get().promptList[0];
       set({ currentPrompt: defaultPrompt });
       await store.set('currentPromptId', defaultPrompt.id);

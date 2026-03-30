@@ -1,6 +1,6 @@
 'use client'
 
-import { useEditor, EditorContent } from '@tiptap/react'
+import { useEditor, EditorContent, type Editor as TiptapEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Link from '@tiptap/extension-link'
@@ -42,12 +42,13 @@ import { BubbleMenu as BubbleMenuComponent } from './bubble-menu'
 import { ImageBubbleMenu } from './image-bubble-menu'
 import { toast } from '@/hooks/use-toast'
 import { FloatingTableMenu } from './floating-table-menu'
+import { EditorToolbar } from './editor-toolbar'
 import { FooterBar } from './footer-bar/index'
 import { Outline } from './outline'
 import { SlashCommand, suggestionOptions } from './slash-command'
 import { SlashCommandPortal } from './slash-command/slash-command-portal'
 import { fetchCompletionStream } from '@/lib/ai/completion'
-import { fetchAiPolishStream, fetchAiConciseStream, fetchAiExpandStream } from '@/lib/ai/rewrite'
+import { fetchAiPolishStream, fetchAiConciseStream, fetchAiExpandStream, fetchAiOrganizeStream } from '@/lib/ai/rewrite'
 import { fetchAiTranslateStream } from '@/lib/ai/translate'
 import { AISuggestion } from './ai-suggestion'
 import { AISuggestionFloating } from './ai-suggestion-floating'
@@ -70,6 +71,35 @@ import { OUTLINE_PANEL_PADDING_CLASS } from '@/lib/outline-styles'
 import './style.css'
 
 const lowlight = createLowlight(common)
+
+/** 有圈選則回傳圈選範圍；否則回傳游標所在最內層文字區塊（段落、標題、列表項、程式碼區塊內文等） */
+function getAiEditRange(editor: TiptapEditor): { from: number; to: number } | null {
+  const { from, to } = editor.state.selection
+  if (from !== to) {
+    return { from, to }
+  }
+  const $from = editor.state.selection.$from
+  const blockStart = $from.start()
+  const blockEnd = $from.end()
+  if (blockStart >= blockEnd) return null
+  return { from: blockStart, to: blockEnd }
+}
+
+function getMarkdownForSlice(editor: TiptapEditor, from: number, to: number): string {
+  const slice = editor.state.doc.slice(from, to)
+  const tempDoc = editor.schema.node('doc', null, slice.content)
+  const json = tempDoc.toJSON()
+  return editor.markdown?.serialize(json) ?? editor.state.doc.textBetween(from, to)
+}
+
+/** 供 AI 與引用：優先圈選，無則整段／區塊 */
+function getMarkdownForAiEdit(editor: TiptapEditor): { markdown: string; from: number; to: number } | null {
+  const range = getAiEditRange(editor)
+  if (!range) return null
+  const markdown = getMarkdownForSlice(editor, range.from, range.to)
+  if (!markdown.trim()) return null
+  return { markdown, from: range.from, to: range.to }
+}
 
 // 自定义扩展：处理粘贴 Markdown 文本
 const PasteMarkdown = Extension.create({
@@ -198,7 +228,7 @@ export function TipTapEditor({
   autoScrollRef.current = autoScroll
 
   // 获取正文缩放设置
-  const { contentTextScale } = useSettingStore()
+  const { contentTextScale, showEditorToolbar } = useSettingStore()
 
   // 居中内容设置
   const [centeredContent, setCenteredContent] = useState(false)
@@ -1224,12 +1254,12 @@ export function TipTapEditor({
   const handleAIPolish = useCallback(async () => {
     if (!editor) return
 
-    const { from, to } = editor.state.selection
-    const selectedText = editor.state.doc.textBetween(from, to)
-
-    if (!selectedText.trim()) {
+    const edit = getMarkdownForAiEdit(editor)
+    if (!edit) {
+      toast({ title: t('aiNoSelection') })
       return
     }
+    const { markdown: selectedText, from, to } = edit
 
     // Create abort controller for this request
     const controller = new AbortController()
@@ -1237,6 +1267,7 @@ export function TipTapEditor({
     // Delete original text and start streaming
     editor.chain()
       .focus()
+      .setTextSelection({ from, to })
       .deleteSelection()
       .run()
 
@@ -1308,18 +1339,18 @@ export function TipTapEditor({
         .run()
       emitter.emit('ai-streaming-complete')
     }
-  }, [editor])
+  }, [editor, t])
 
   // Handle AI Concise - simplify selected text (with streaming and suggestion mode)
   const handleAIConcise = useCallback(async () => {
     if (!editor) return
 
-    const { from, to } = editor.state.selection
-    const selectedText = editor.state.doc.textBetween(from, to)
-
-    if (!selectedText.trim()) {
+    const edit = getMarkdownForAiEdit(editor)
+    if (!edit) {
+      toast({ title: t('aiNoSelection') })
       return
     }
+    const { markdown: selectedText, from, to } = edit
 
     // Create abort controller for this request
     const controller = new AbortController()
@@ -1327,6 +1358,7 @@ export function TipTapEditor({
     // Delete original text and start streaming
     editor.chain()
       .focus()
+      .setTextSelection({ from, to })
       .deleteSelection()
       .run()
 
@@ -1398,18 +1430,18 @@ export function TipTapEditor({
         .run()
       emitter.emit('ai-streaming-complete')
     }
-  }, [editor])
+  }, [editor, t])
 
   // Handle AI Expand - expand selected text (with streaming and suggestion mode)
   const handleAIExpand = useCallback(async () => {
     if (!editor) return
 
-    const { from, to } = editor.state.selection
-    const selectedText = editor.state.doc.textBetween(from, to)
-
-    if (!selectedText.trim()) {
+    const edit = getMarkdownForAiEdit(editor)
+    if (!edit) {
+      toast({ title: t('aiNoSelection') })
       return
     }
+    const { markdown: selectedText, from, to } = edit
 
     // Create abort controller for this request
     const controller = new AbortController()
@@ -1417,6 +1449,7 @@ export function TipTapEditor({
     // Delete original text and start streaming
     editor.chain()
       .focus()
+      .setTextSelection({ from, to })
       .deleteSelection()
       .run()
 
@@ -1488,7 +1521,80 @@ export function TipTapEditor({
         .run()
       emitter.emit('ai-streaming-complete')
     }
-  }, [editor])
+  }, [editor, t])
+
+  const handleAIOrganize = useCallback(async () => {
+    if (!editor) return
+
+    const edit = getMarkdownForAiEdit(editor)
+    if (!edit) {
+      toast({ title: t('aiNoSelection') })
+      return
+    }
+    const { markdown: selectedText, from, to } = edit
+
+    const controller = new AbortController()
+
+    editor.chain()
+      .focus()
+      .setTextSelection({ from, to })
+      .deleteSelection()
+      .run()
+
+    const initialCoords = editor.view.coordsAtPos(editor.state.selection.from)
+    emitter.emit('start-ai-streaming', {
+      originalText: selectedText,
+      type: 'organize',
+      position: initialCoords,
+      controller,
+    })
+
+    let accumulatedResult = ''
+    const startPosition = editor.state.selection.from
+
+    try {
+      await fetchAiOrganizeStream(
+        selectedText,
+        (chunk) => {
+          editor.chain()
+            .insertContentAt(startPosition + accumulatedResult.length, chunk)
+            .run()
+
+          accumulatedResult += chunk
+
+          const coords = editor.view.coordsAtPos(startPosition + accumulatedResult.length)
+          emitter.emit('update-ai-streaming-content', {
+            suggestedText: accumulatedResult,
+            position: coords,
+          })
+        },
+        controller.signal
+      )
+
+      editor.chain()
+        .deleteRange({ from: startPosition, to: startPosition + accumulatedResult.length })
+        .insertContent(accumulatedResult, { contentType: 'markdown' })
+        .run()
+
+      const finalCoords = editor.view.coordsAtPos(startPosition + accumulatedResult.length)
+      emitter.emit('ai-streaming-complete', {
+        originalText: selectedText,
+        suggestedText: accumulatedResult,
+        type: 'organize',
+        position: finalCoords,
+        generatedRange: { from: startPosition, to: startPosition + accumulatedResult.length },
+      })
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        return
+      }
+      editor.chain()
+        .focus()
+        .insertContent(selectedText)
+        .run()
+      emitter.emit('ai-streaming-complete')
+    }
+  }, [editor, t])
 
   const handleAITranslate = useCallback(async (targetLanguage: string) => {
     if (!editor) return
@@ -2280,35 +2386,37 @@ export function TipTapEditor({
       }
     }
 
-    // Get quote from editor for chat
+    // Get quote from editor for chat（無圈選時沿用游標所在段落／區塊）
     const handleGetQuote = () => {
       if (!editor) return
-      const { from, to } = editor.state.selection
-      if (from !== to) {
-        const quote = editor.state.doc.textBetween(from, to)
-        const fileName = activeFilePath?.split('/').pop() || ''
-        const textBeforeFrom = editor.state.doc.textBetween(0, from, '\n', '\n')
-        const startLine = (textBeforeFrom.match(/\n/g)?.length || 0) + 1
+      const range = getAiEditRange(editor)
+      if (!range) return
+      const { from, to } = range
+      const quote = editor.state.doc.textBetween(from, to)
+      if (!quote.trim()) return
 
-        const textBeforeTo = editor.state.doc.textBetween(0, to, '\n', '\n')
-        const endLine = (textBeforeTo.match(/\n/g)?.length || 0) + 1
-        const markdownLines = editor.getMarkdown().split('\n')
-        const quotedMarkdown = markdownLines.slice(startLine - 1, endLine).join('\n')
+      const fileName = activeFilePath?.split('/').pop() || ''
+      const textBeforeFrom = editor.state.doc.textBetween(0, from, '\n', '\n')
+      const startLine = (textBeforeFrom.match(/\n/g)?.length || 0) + 1
 
-        const quoteData = {
-          quote,
-          fullContent: quotedMarkdown || quote,
-          fileName,
-          startLine,
-          endLine,
-          from,
-          to,
-          articlePath: activeFilePath || '',
-        }
+      const textBeforeTo = editor.state.doc.textBetween(0, to, '\n', '\n')
+      const endLine = (textBeforeTo.match(/\n/g)?.length || 0) + 1
+      const markdownLines = editor.getMarkdown().split('\n')
+      const quotedMarkdown = markdownLines.slice(startLine - 1, endLine).join('\n')
 
-        useChatStore.getState().setPendingQuote(quoteData)
-        emitter.emit('insert-quote', quoteData)
+      const quoteData = {
+        quote,
+        fullContent: quotedMarkdown || quote,
+        fileName,
+        startLine,
+        endLine,
+        from,
+        to,
+        articlePath: activeFilePath || '',
       }
+
+      useChatStore.getState().setPendingQuote(quoteData)
+      emitter.emit('insert-quote', quoteData)
     }
 
     // Track if listeners have been set up (for cleanup)
@@ -2435,6 +2543,17 @@ export function TipTapEditor({
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleEditorDrop}
       >
+        {/* Fixed top toolbar - desktop only */}
+        {!isMobile && showEditorToolbar && editor && (
+          <EditorToolbar
+            editor={editor}
+            onAIPolish={handleAIPolish}
+            onAIConcise={handleAIConcise}
+            onAIExpand={handleAIExpand}
+            onAIOrganize={handleAIOrganize}
+            onQuoteToChat={onQuoteToChat}
+          />
+        )}
         <div
           className={getEditorContentContainerClass({
             centeredContent,
@@ -2464,6 +2583,7 @@ export function TipTapEditor({
               onAIConcise={handleAIConcise}
               onAIExpand={handleAIExpand}
               onAITranslate={handleAITranslate}
+              onAIOrganize={handleAIOrganize}
               onQuoteToChat={onQuoteToChat}
             />
           )}

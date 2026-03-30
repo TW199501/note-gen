@@ -1,7 +1,7 @@
 "use client"
 
 import { TooltipButton } from "@/components/tooltip-button"
-import { FilePlus, FolderPlus, FolderInput, LoaderCircle } from "lucide-react"
+import { FilePlus, FolderPlus, FolderInput, LoaderCircle, Sparkles } from "lucide-react"
 import { useTranslations } from "next-intl"
 import * as React from "react"
 import useArticleStore from "@/stores/article"
@@ -11,11 +11,13 @@ import { readDir, copyFile, mkdir, exists } from '@tauri-apps/plugin-fs'
 import { join } from '@tauri-apps/api/path'
 import { getWorkspacePath } from '@/lib/workspace'
 import { toast } from '@/hooks/use-toast'
+import { OrganizeFiles } from './organize-files'
 
 export function FileActions() {
   const { newFolder, newFile, loadFileTree } = useArticleStore()
   const t = useTranslations('article.file.toolbar')
   const [isImporting, setIsImporting] = React.useState(false)
+  const [organizeOpen, setOrganizeOpen] = React.useState(false)
 
   const debounceNewFile = debounce(newFile, 200)
   const debounceNewFolder = debounce(newFolder, 200)
@@ -139,6 +141,13 @@ export function FileActions() {
         disabled={isImporting}
         side="bottom"
       />
+      <TooltipButton 
+        icon={<Sparkles className="h-4 w-4" />} 
+        tooltipText={t('organizeFiles')} 
+        onClick={() => setOrganizeOpen(true)}
+        side="bottom"
+      />
+      <OrganizeFiles open={organizeOpen} onOpenChange={setOrganizeOpen} />
     </div>
   )
 }

@@ -1,12 +1,12 @@
-
 import Database from '@tauri-apps/plugin-sql';
 
-// 导出数据库实例
-export const db = await Database.load('sqlite:note.db');
+let _db: Database | null = null;
 
-// 获取数据库实例(兼容旧代码)
-export async function getDb() {
-  return db;
+export async function getDb(): Promise<Database> {
+  if (!_db) {
+    _db = await Database.load('sqlite:note.db');
+  }
+  return _db;
 }
 
 // 初始化所有数据库
@@ -20,6 +20,8 @@ export async function initAllDatabases() {
   const { initConversationsDb } = await import('./conversations');
   const { initMemoriesDb } = await import('./memories');
   const { initActivityDb } = await import('./activity');
+  const { initBookmarksDb } = await import('./bookmarks');
+  const { initBrowserHistoryDb } = await import('./browser-history');
 
   // 执行初始化：先确保基础表存在，再做 conversations 对 chats 的迁移/补列。
   await initChatsDb();
@@ -30,4 +32,6 @@ export async function initAllDatabases() {
   await initVectorDb();
   await initMemoriesDb();
   await initActivityDb();
+  await initBookmarksDb();
+  await initBrowserHistoryDb();
 }

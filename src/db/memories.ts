@@ -66,6 +66,56 @@ function generateUUID(): string {
   })
 }
 
+// 记忆向量缓存（避免每次操作都读全表 + JSON.parse）
+interface CachedMemoryVector {
+  id: string
+  category: MemoryCategory
+  embedding: number[]
+}
+
+class MemoryVectorCache {
+  private cache: Map<string, CachedMemoryVector> = new Map()
+  private dirty = true
+
+  async ensureLoaded() {
+    if (!this.dirty) return
+    const db = await getDb()
+    const rows = await db.select<{ id: string; category: MemoryCategory; embedding: string }[]>(
+      "select id, category, embedding from memories where embedding is not null"
+    )
+    this.cache.clear()
+    for (const row of rows) {
+      try {
+        this.cache.set(row.id, {
+          id: row.id,
+          category: row.category,
+          embedding: JSON.parse(row.embedding),
+        })
+      } catch { /* skip malformed */ }
+    }
+    this.dirty = false
+  }
+
+  getAll(): CachedMemoryVector[] {
+    return Array.from(this.cache.values())
+  }
+
+  set(id: string, category: MemoryCategory, embedding: number[]) {
+    this.cache.set(id, { id, category, embedding })
+  }
+
+  delete(id: string) {
+    this.cache.delete(id)
+  }
+
+  invalidate() {
+    this.dirty = true
+    this.cache.clear()
+  }
+}
+
+const memoryVectorCache = new MemoryVectorCache()
+
 /**
  * 初始化记忆表
  */
@@ -126,29 +176,21 @@ export async function upsertMemory(
 
   const embeddingStr = JSON.stringify(embedding)
 
-  // 检查是否存在相似记忆（去重）
-  const allMemories = await getAllMemories()
+  // 检查是否存在相似记忆（去重）— 使用缓存避免全表读取 + 重复 JSON.parse
+  await memoryVectorCache.ensureLoaded()
+  const cachedVectors = memoryVectorCache.getAll()
   const SIMILARITY_THRESHOLD = 0.85
 
-  let similarMemory: Memory | null = null
+  let similarMemoryId: string | null = null
   let maxSimilarity = 0
 
-  for (const existingMemory of allMemories) {
-    // 只在同一类别内查找相似记忆
-    if (existingMemory.category !== category) continue
+  for (const cached of cachedVectors) {
+    if (cached.category !== category) continue
 
-    if (!existingMemory.embedding) continue
-
-    try {
-      const existingEmbedding = JSON.parse(existingMemory.embedding) as number[]
-      const similarity = cosineSimilarity(embedding, existingEmbedding)
-
-      if (similarity > maxSimilarity) {
-        maxSimilarity = similarity
-        similarMemory = existingMemory
-      }
-    } catch {
-      continue
+    const similarity = cosineSimilarity(embedding, cached.embedding)
+    if (similarity > maxSimilarity) {
+      maxSimilarity = similarity
+      similarMemoryId = cached.id
     }
   }
 
@@ -157,19 +199,17 @@ export async function upsertMemory(
   let replacedId: string | undefined
   let newId: string
 
-  if (similarMemory && maxSimilarity >= SIMILARITY_THRESHOLD) {
-    // 替换旧记忆
-    newId = similarMemory.id
-    replacedId = similarMemory.id
+  if (similarMemoryId && maxSimilarity >= SIMILARITY_THRESHOLD) {
+    newId = similarMemoryId
+    replacedId = similarMemoryId
     replaced = true
 
     await db.execute(
       `update memories set content = $1, embedding = $2, category = $3,
        replaced_id = $4, updated_at = $5 where id = $6`,
-      [memory.content, embeddingStr, category, similarMemory.id, now, newId]
+      [memory.content, embeddingStr, category, similarMemoryId, now, newId]
     )
   } else {
-    // 插入新记忆
     newId = generateUUID()
 
     await db.execute(
@@ -179,6 +219,9 @@ export async function upsertMemory(
       [newId, memory.content, embeddingStr, category, null, 0, now, now, now]
     )
   }
+
+  // 同步更新缓存
+  memoryVectorCache.set(newId, category, embedding)
 
   return { id: newId, replaced, replacedId }
 }
@@ -213,32 +256,43 @@ export async function getMemoriesByCategory(category: MemoryCategory): Promise<M
 }
 
 /**
- * 获取相似记忆（用于去重）
+ * 获取相似记忆（用于去重）— 使用缓存做向量匹配，仅对命中的 ID 读取完整记录
  */
 export async function getSimilarMemories(
   embedding: number[],
   threshold: number = 0.85
 ): Promise<Array<{ memory: Memory; similarity: number }>> {
-  const allMemories = await getAllMemories()
-  const results: Array<{ memory: Memory; similarity: number }> = []
+  await memoryVectorCache.ensureLoaded()
+  const cachedVectors = memoryVectorCache.getAll()
 
-  for (const memory of allMemories) {
-    if (!memory.embedding) continue
+  const hits: Array<{ id: string; similarity: number }> = []
 
-    try {
-      const memoryEmbedding = JSON.parse(memory.embedding) as number[]
-      const similarity = cosineSimilarity(embedding, memoryEmbedding)
-
-      if (similarity >= threshold) {
-        results.push({ memory, similarity })
-      }
-    } catch {
-      continue
+  for (const cached of cachedVectors) {
+    const similarity = cosineSimilarity(embedding, cached.embedding)
+    if (similarity >= threshold) {
+      hits.push({ id: cached.id, similarity })
     }
   }
 
-  // 按相似度降序排序
-  results.sort((a, b) => b.similarity - a.similarity)
+  hits.sort((a, b) => b.similarity - a.similarity)
+
+  if (hits.length === 0) return []
+
+  const db = await getDb()
+  const results: Array<{ memory: Memory; similarity: number }> = []
+
+  for (const hit of hits) {
+    const rows = await db.select<Memory[]>(
+      `select id, content, embedding, category, replaced_id as replacedId,
+         access_count as accessCount, last_accessed_at as lastAccessedAt,
+         created_at as createdAt, updated_at as updatedAt
+         from memories where id = $1`,
+      [hit.id]
+    )
+    if (rows[0]) {
+      results.push({ memory: rows[0], similarity: hit.similarity })
+    }
+  }
 
   return results
 }
@@ -310,6 +364,7 @@ export async function deleteMemory(id: string): Promise<void> {
     "delete from memories where id = $1",
     [id]
   )
+  memoryVectorCache.delete(id)
 }
 
 /**
@@ -320,10 +375,11 @@ export async function clearAllMemories(): Promise<void> {
   await db.execute(
     "delete from memories"
   )
+  memoryVectorCache.invalidate()
 }
 
 /**
- * 获取记忆统计信息
+ * 获取记忆统计信息 — 直接用 SQL 聚合，不读全表
  */
 export async function getMemoryStats(): Promise<{
   total: number
@@ -331,15 +387,18 @@ export async function getMemoryStats(): Promise<{
   memories: number
   totalAccessCount: number
 }> {
-  const allMemories = await getAllMemories()
-  const preferences = allMemories.filter(m => m.category === 'preference').length
-  const memories = allMemories.filter(m => m.category === 'memory').length
-  const totalAccessCount = allMemories.reduce((sum, m) => sum + m.accessCount, 0)
+  const db = await getDb()
+  const rows = await db.select<{ category: string; cnt: number; acc: number }[]>(
+    "select category, count(*) as cnt, coalesce(sum(access_count), 0) as acc from memories group by category"
+  )
 
-  return {
-    total: allMemories.length,
-    preferences,
-    memories,
-    totalAccessCount
+  let total = 0, preferences = 0, memories = 0, totalAccessCount = 0
+  for (const row of rows) {
+    total += row.cnt
+    totalAccessCount += row.acc
+    if (row.category === 'preference') preferences = row.cnt
+    else if (row.category === 'memory') memories = row.cnt
   }
+
+  return { total, preferences, memories, totalAccessCount }
 }

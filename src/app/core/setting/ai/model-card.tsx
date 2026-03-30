@@ -16,7 +16,7 @@ import { ModelConfig, ModelType, AiConfig } from "../config"
 import { useTranslations } from 'next-intl'
 import ModelSelect from "./modelSelect"
 import { useState, useRef } from "react"
-import { createOpenAIClient } from "@/lib/ai/utils"
+import { createOpenAIClient, isAnthropicProvider, createAnthropicClient } from "@/lib/ai/utils"
 import { toast } from "@/hooks/use-toast"
 import { blobToBytes, invokeAiBinary, invokeAiJson, invokeAiMultipart } from "@/lib/ai/tauri-client"
 
@@ -168,14 +168,23 @@ export default function ModelCard({ modelConfig, aiConfig, onUpdate, onDelete }:
           return true
 
         default:
-          const openai = await createOpenAIClient(fullAiConfig)
-          await openai.chat.completions.create({
-            model: model.model,
-            messages: [{
-              role: 'user' as const,
-              content: 'Hello'
-            }],
-          })
+          if (isAnthropicProvider(fullAiConfig)) {
+            const anthropic = await createAnthropicClient(fullAiConfig)
+            await anthropic.messages.create({
+              model: model.model,
+              max_tokens: 10,
+              messages: [{ role: 'user', content: 'Hello' }],
+            })
+          } else {
+            const openai = await createOpenAIClient(fullAiConfig)
+            await openai.chat.completions.create({
+              model: model.model,
+              messages: [{
+                role: 'user' as const,
+                content: 'Hello'
+              }],
+            })
+          }
           return true
       }
     } catch (error) {

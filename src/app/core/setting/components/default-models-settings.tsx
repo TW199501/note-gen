@@ -9,7 +9,7 @@ import {
   ItemDescription,
   ItemActions,
 } from '@/components/ui/item'
-import { BotMessageSquare, PenTool, Zap, GitCommit, FileText, Lightbulb } from 'lucide-react'
+import { BotMessageSquare, PenTool, Zap, GitCommit, FileText, Lightbulb, FolderOpen } from 'lucide-react'
 import { ModelSelect } from './model-select'
 
 interface DefaultModelsSettingsProps {
@@ -62,6 +62,19 @@ export function DefaultModelsSettings({ type }: DefaultModelsSettingsProps) {
             </ItemContent>
             <ItemActions>
               <ModelSelect modelKey="inspiration" />
+            </ItemActions>
+          </Item>
+
+          <Item variant="outline">
+            <ItemMedia variant="icon">
+              <FolderOpen className="size-4" />
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle>{t('chat.organize.model.title')}</ItemTitle>
+              <ItemDescription>{t('chat.organize.model.desc')}</ItemDescription>
+            </ItemContent>
+            <ItemActions>
+              <ModelSelect modelKey="organize" />
             </ItemActions>
           </Item>
         </>

@@ -458,6 +458,35 @@ export const ChatInput = React.memo(function ChatInput() {
         setPlaceholder(promptText)
       }
     })
+    // Browser integration events
+    emitter.on('browser-quote-text', (event: unknown) => {
+      const data = event as { text: string; url: string; title: string }
+      if (data?.text) {
+        setPendingQuote({
+          quote: data.text.substring(0, 2000),
+          fullContent: data.text,
+          fileName: data.title || data.url,
+          startLine: 0,
+          endLine: 0,
+          from: 0,
+          to: 0,
+          articlePath: data.url,
+        })
+        setTimeout(() => textareaRef.current?.focus(), 50)
+      }
+    })
+    emitter.on('browser-screenshot', (event: unknown) => {
+      const data = event as { path: string }
+      if (data?.path) {
+        setAttachedImages(prev => [...prev, {
+          id: crypto.randomUUID(),
+          url: convertFileSrc(data.path),
+          name: 'browser-screenshot.png',
+          source: 'paste' as const,
+        }])
+        setTimeout(() => textareaRef.current?.focus(), 50)
+      }
+    })
     return () => {
       onboardingTypingTimerRefs.current.forEach((timerId) => window.clearTimeout(timerId))
       onboardingTypingTimerRefs.current = []
@@ -467,6 +496,8 @@ export const ChatInput = React.memo(function ChatInput() {
       emitter.off('insert-quote')
       emitter.off('quick-prompt-insert')
       emitter.off('ai-placeholder-generated')
+      emitter.off('browser-quote-text')
+      emitter.off('browser-screenshot')
     }
   }, [debouncedGenPlaceholder, setPendingQuote])
 

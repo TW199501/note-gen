@@ -110,6 +110,12 @@ export async function initMarksDb() {
       createdAt integer
     )
   `)
+
+  // 性能索引：覆盖 getMarks(tagId) 和 getTags 的 COUNT 查询
+  await db.execute(`
+    create index if not exists idx_marks_tag_deleted_created
+    on marks(tagId, deleted, createdAt desc)
+  `)
 }
 
 export async function getMarks(id: number) {
@@ -183,7 +189,9 @@ export async function deleteAllMarks() {
 }
 
 export async function insertMarks(marks: Partial<Mark>[]) {
+  if (marks.length === 0) return
   const db = await getDb();
+  await db.execute('BEGIN TRANSACTION')
   try {
     for (const mark of marks) {
       await db.execute(
@@ -191,7 +199,9 @@ export async function insertMarks(marks: Partial<Mark>[]) {
         [mark.tagId, mark.type, mark.content, mark.url, mark.desc, mark.createdAt, mark.deleted]
       );
     }
+    await db.execute('COMMIT')
   } catch (error) {
+    await db.execute('ROLLBACK')
     console.error('Error inserting marks:', error);
     throw error;
   }
@@ -212,7 +222,9 @@ export async function clearTrash() {
 }
 
 export async function updateMarks(marks: Mark[]) {
+  if (marks.length === 0) return
   const db = await getDb();
+  await db.execute('BEGIN TRANSACTION')
   try {
     for (const mark of marks) {
       await db.execute(
@@ -220,22 +232,24 @@ export async function updateMarks(marks: Mark[]) {
         [mark.tagId, mark.url, mark.desc, mark.content, mark.createdAt, mark.id]
       );
     }
+    await db.execute('COMMIT')
   } catch (error) {
+    await db.execute('ROLLBACK')
     console.error('Error updating marks:', error);
     throw error;
   }
 }
 
 export async function deleteMarks(ids: number[]) {
+  if (ids.length === 0) return
   const db = await getDb();
   const createdAt = Date.now();
+  const placeholders = ids.map((_, i) => `$${i + 3}`).join(', ')
   try {
-    for (const id of ids) {
-      await db.execute(
-        "update marks set deleted = $1, createdAt = $2 where id = $3",
-        [1, createdAt, id]
-      );
-    }
+    await db.execute(
+      `update marks set deleted = $1, createdAt = $2 where id in (${placeholders})`,
+      [1, createdAt, ...ids]
+    )
   } catch (error) {
     console.error('Error deleting marks:', error);
     throw error;
@@ -243,15 +257,15 @@ export async function deleteMarks(ids: number[]) {
 }
 
 export async function restoreMarks(ids: number[]) {
+  if (ids.length === 0) return
   const db = await getDb();
   const createdAt = Date.now();
+  const placeholders = ids.map((_, i) => `$${i + 3}`).join(', ')
   try {
-    for (const id of ids) {
-      await db.execute(
-        "update marks set deleted = $1, createdAt = $2 where id = $3",
-        [0, createdAt, id]
-      );
-    }
+    await db.execute(
+      `update marks set deleted = $1, createdAt = $2 where id in (${placeholders})`,
+      [0, createdAt, ...ids]
+    )
   } catch (error) {
     console.error('Error restoring marks:', error);
     throw error;

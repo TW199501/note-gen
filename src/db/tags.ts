@@ -54,11 +54,14 @@ export async function getTags() {
   const db = await getDb();
   const tags = await db.select<Tag[]>("select * from tags order by sortOrder asc, id asc")
 
-  // 获取 tags 对应的 marks 数量
+  // 一次查询获取所有 tag 的 marks 数量，避免 N+1
+  const counts = await db.select<{ tagId: number; total: number }[]>(
+    "select tagId, count(*) as total from marks where deleted = 0 group by tagId"
+  )
+  const countMap = new Map(counts.map(c => [c.tagId, c.total]))
+
   for (const tag of tags) {
-    // deleted = 0  
-    const res = await db.select<{ total: number }[]>("select count(*) as total from marks where tagId = $1 and deleted = $2", [tag.id, 0])
-    tag.total = res[0].total
+    tag.total = countMap.get(tag.id) ?? 0
   }
 
   return tags
@@ -92,31 +95,39 @@ export async function deleteAllTags() {
 
 export async function insertTags(tags: Tag[]) {
   const db = await getDb();
-  for (const tag of tags) {
-    if (tag.isLocked) continue;
-    const exists = await db.select<Tag[]>("select * from tags where id = $1", [tag.id])
-    if (exists.length > 0) {
+  await db.execute('BEGIN TRANSACTION')
+  try {
+    for (const tag of tags) {
+      if (tag.isLocked) continue;
       await db.execute(
-        "update tags set name = $1, isLocked = $2, isPin = $3, sortOrder = $4 where id = $5",
-        [tag.name, tag.isLocked, tag.isPin, tag.sortOrder, tag.id]
-      )
-    } else {
-      await db.execute(
-        "insert into tags (id, name, isLocked, isPin, sortOrder) values ($1, $2, $3, $4, $5)",
+        `insert into tags (id, name, isLocked, isPin, sortOrder) values ($1, $2, $3, $4, $5)
+         on conflict(id) do update set name = excluded.name, isLocked = excluded.isLocked, isPin = excluded.isPin, sortOrder = excluded.sortOrder`,
         [tag.id, tag.name, tag.isLocked, tag.isPin, tag.sortOrder]
       )
     }
+    await db.execute('COMMIT')
+  } catch (error) {
+    await db.execute('ROLLBACK')
+    throw error;
   }
   return true;
 }
 
 export async function updateTagsOrder(tags: { id: number; sortOrder: number }[]) {
+  if (tags.length === 0) return true;
   const db = await getDb();
-  for (const tag of tags) {
-    await db.execute(
-      "update tags set sortOrder = $1 where id = $2",
-      [tag.sortOrder, tag.id]
-    )
+  await db.execute('BEGIN TRANSACTION')
+  try {
+    for (const tag of tags) {
+      await db.execute(
+        "update tags set sortOrder = $1 where id = $2",
+        [tag.sortOrder, tag.id]
+      )
+    }
+    await db.execute('COMMIT')
+  } catch (error) {
+    await db.execute('ROLLBACK')
+    throw error;
   }
   return true;
 }
