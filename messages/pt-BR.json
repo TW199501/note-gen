@@ -2801,6 +2801,8 @@
   "editor": {
     "placeholder": "Digite / para abrir o menu, ou comece a escrever...",
     "aiNoSelection": "Nada para processar — selecione um trecho ou coloque o cursor em um parágrafo",
+    "syncingRemote": "Buscando arquivo remoto",
+    "pullingRemote": "Obtendo conteúdo mais recente do servidor remoto...",
     "outline": {
       "title": "Esboço",
       "open": "Abrir Esboço",

@@ -1,36 +1,54 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { BrowserNavBar } from './browser-nav-bar'
-import { BrowserStatusBar } from './browser-status-bar'
 import { BrowserWebView } from './browser-webview'
-import { BookmarkDrawer } from './bookmark-drawer'
+import { BrowserDrawer, type BrowserDrawerTab } from './browser-drawer'
 import { BookmarkBar } from './bookmark-bar'
-import { HistoryDrawer } from './history-drawer'
+import { addBookmark, isBookmarked } from '@/db/bookmarks'
+import emitter from '@/lib/emitter'
 
 export function BrowserPanel() {
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [historyOpen, setHistoryOpen] = useState(false)
+  const [drawerTab, setDrawerTab] = useState<BrowserDrawerTab>('history')
   const [bookmarkRefresh, setBookmarkRefresh] = useState(0)
+
+  function openDrawer(tab: BrowserDrawerTab) {
+    setDrawerTab(tab)
+    setDrawerOpen(true)
+  }
+
+  // Listen for context menu bookmark action
+  useEffect(() => {
+    const handleAddBookmark = async (data: unknown) => {
+      const { url, title } = data as { url: string; title: string }
+      if (!url) return
+      const already = await isBookmarked(url)
+      if (!already) {
+        await addBookmark(title || url, url)
+        setBookmarkRefresh((n) => n + 1)
+      }
+    }
+    emitter.on('browser-add-bookmark' as any, handleAddBookmark)
+    return () => {
+      emitter.off('browser-add-bookmark' as any, handleAddBookmark)
+    }
+  }, [])
 
   return (
     <div className="flex flex-col h-full">
       <BrowserNavBar
         onBookmarkToggle={() => setBookmarkRefresh((n) => n + 1)}
-        onMenuClick={() => setDrawerOpen(true)}
-        onHistoryClick={() => setHistoryOpen(true)}
+        onMenuClick={() => openDrawer('bookmarks')}
+        onHistoryClick={() => openDrawer('history')}
       />
       <BookmarkBar refreshTrigger={bookmarkRefresh} />
       <BrowserWebView />
-      <BrowserStatusBar />
-      <BookmarkDrawer
+      <BrowserDrawer
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
-        refreshTrigger={bookmarkRefresh}
-      />
-      <HistoryDrawer
-        open={historyOpen}
-        onOpenChange={setHistoryOpen}
+        defaultTab={drawerTab}
+        bookmarkRefreshTrigger={bookmarkRefresh}
       />
     </div>
   )

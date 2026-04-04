@@ -2109,8 +2109,8 @@
     "hideRightSidebar": "右サイドバーを非表示",
     "showRightSidebar": "右サイドバーを表示",
     "searchPlaceholder": "ノートまたは記録を検索...",
-    "showCenterPanel": "显示编辑器",
-    "hideCenterPanel": "隐藏编辑器",
+    "showCenterPanel": "エディターを表示",
+    "hideCenterPanel": "エディターを非表示",
     "notesMode": "ノートモード",
     "browserMode": "ブラウザモード"
   },
@@ -2849,6 +2849,8 @@
   "editor": {
     "placeholder": "「/」を入力してメニューを開くか、直接書き始める...",
     "aiNoSelection": "処理できるテキストがありません。範囲を選択するか、段落内にカーソルを置いてください",
+    "syncingRemote": "リモートファイルをプル中",
+    "pullingRemote": "リモートサーバーから最新コンテンツを取得中...",
     "outline": {
       "title": "アウトライン",
       "open": "アウトラインを開く",

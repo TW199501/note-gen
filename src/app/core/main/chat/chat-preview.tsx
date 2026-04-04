@@ -51,7 +51,7 @@ export default function ChatPreview({text, streaming = false}: ChatPreviewProps)
   
   useEffect(() => {
     md.current = new MarkdownIt({
-      html: true,
+      html: false,
       linkify: true,
       typographer: true,
       highlight: function (str, lang): string {

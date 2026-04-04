@@ -13,22 +13,9 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
   assetPrefix: isProd ? undefined : `http://${internalHost}:3456`,
-  sassOptions: {
-    silenceDeprecations: ['legacy-js-api'],
-  },
   reactStrictMode: false,
   turbopack: {},
   devIndicators: false,
-  webpack: (config) => {
-    // 过滤掉 flushSync 警告 - 来自 Tiptap 编辑器的已知问题
-    config.stats = {
-      ...config.stats,
-      warningsFilter: (warning: string) => {
-        return !warning.includes('flushSync');
-      }
-    };
-    return config;
-  }
 };
 
 export default withNextIntl(nextConfig);

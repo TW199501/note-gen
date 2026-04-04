@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 
 export function MarkLoading({mark}: {mark: MarkQueue}){
   const [timeNow, setTimeNow] = useState(Date.now())
-  const timer = useRef<NodeJS.Timeout>()
+  const timer = useRef<NodeJS.Timeout>(undefined)
   const t = useTranslations('record.mark.type');
 
   useEffect(() => {

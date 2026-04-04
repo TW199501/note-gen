@@ -90,11 +90,11 @@ const renderInfographic = async (
 
 const renderInfographicError = (container: HTMLElement, error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
-  container.innerHTML = `
-    <div style="color: #b91c1c; padding: 10px; border: 1px solid #b91c1c; background: rgba(185, 28, 28, 0.08);">
-      Infographic 渲染失败: ${message}
-    </div>
-  `;
+  const errorDiv = document.createElement('div');
+  errorDiv.style.cssText = 'color: #b91c1c; padding: 10px; border: 1px solid #b91c1c; background: rgba(185, 28, 28, 0.08);';
+  errorDiv.textContent = `Infographic 渲染失败: ${message}`;
+  container.innerHTML = '';
+  container.appendChild(errorDiv);
 };
 
 const getInfographicCode = (element: HTMLElement) => {

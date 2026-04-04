@@ -18,7 +18,6 @@ import { DirTree } from "@/stores/article";
 import { toast } from "@/hooks/use-toast";
 import { join } from "@tauri-apps/api/path";
 import { Store } from "@tauri-apps/plugin-store";
-import { createHash } from 'crypto';
 import { isSkillsFolder } from './skills/utils';
 import { getVectorDocumentKey } from './vector-document-key';
 
@@ -39,10 +38,16 @@ function handleRAGError(error: unknown, context: string, showToast: boolean = tr
 }
 
 /**
- * 生成内容哈希值，用于去重
+ * 生成内容哈希值，用于去重（同步实现，兼容 browser 环境）
  */
 function generateContentHash(content: string): string {
-  return createHash('sha256').update(content.trim()).digest('hex');
+  const str = content.trim();
+  let hash = 0x811c9dc5; // FNV-1a offset basis
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash = (hash * 0x01000193) >>> 0; // FNV-1a prime, unsigned 32-bit
+  }
+  return hash.toString(16).padStart(8, '0');
 }
 
 /**

@@ -1,4 +1,4 @@
-import { endOfWeek, format, startOfWeek, subWeeks } from 'date-fns'
+import dayjs from 'dayjs'
 
 import { getAllActivityEvents } from '@/db/activity'
 import { buildActivityHeatmap, summarizeActivityEntries } from './aggregate'
@@ -9,13 +9,13 @@ function getBrowserTimeZone() {
 }
 
 function getDefaultRange() {
-  const today = new Date()
-  const startDate = startOfWeek(subWeeks(today, 25), { weekStartsOn: 0 })
-  const endDate = endOfWeek(today, { weekStartsOn: 0 })
+  const today = dayjs()
+  const startDate = today.subtract(25, 'week').startOf('week')
+  const endDate = today.endOf('week')
 
   return {
-    startDate: format(startDate, 'yyyy-MM-dd'),
-    endDate: format(endDate, 'yyyy-MM-dd'),
+    startDate: startDate.format('YYYY-MM-DD'),
+    endDate: endDate.format('YYYY-MM-DD'),
   }
 }
 

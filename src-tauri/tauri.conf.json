@@ -13,7 +13,7 @@
     "withGlobalTauri": true,
     "macOSPrivateApi": true,
     "security": {
-      "csp": null,
+      "csp": "default-src 'self' tauri: asset:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' asset: http://asset.localhost https: http: data: blob:; font-src 'self' asset: http://asset.localhost data:; connect-src 'self' ipc: http://ipc.localhost https: http://localhost:* http://127.0.0.1:*; worker-src 'self' blob:; media-src 'self' blob: https:",
       "assetProtocol": {
         "enable": true,
         "scope": ["**"]
@@ -32,7 +32,7 @@
   },
   "bundle": {
     "active": true,
-    "createUpdaterArtifacts": true,
+    "createUpdaterArtifacts": false,
     "targets": "all",
     "resources": [
       "icons"
@@ -57,13 +57,10 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDRENURGRUVFREY4M0RGRDkKUldUWjM0UGY3djVkVGQ0aDluR0J6SnBUV2dET0FibXdzVmdTL2hIM21QQ1NCS3R2enllUStSd2oK",
-      "endpoints": [
-        "http://api.upgrade.toolsetlink.com/v1/tauri/upgrade?tauriKey=tyEi-iLVFxnRhGc9c_xApw&versionName={{current_version}}&appointVersionName=&devModelKey=&devKey=&target={{target}}&arch={{arch}}",
-        "https://github.com/codexu/note-gen/releases/latest/download/latest.json"
-      ],
-      "createUpdaterArtifacts": true,
-      "dangerousInsecureTransportProtocol": true
+      "pubkey": "",
+      "endpoints": [],
+      "createUpdaterArtifacts": false,
+      "dangerousInsecureTransportProtocol": false
     }
   }
 }

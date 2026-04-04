@@ -34,7 +34,7 @@ export function SkillCard({ skill, onRefresh }: SkillCardProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
-  const saveTimeoutRef = useRef<NodeJS.Timeout>()
+  const saveTimeoutRef = useRef<NodeJS.Timeout>(undefined)
 
   const skillContent = getSkill(skill.id)
 

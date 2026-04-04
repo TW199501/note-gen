@@ -49,7 +49,7 @@ export function MdEditor({ tabContentsRef, filePath }: MdEditorProps) {
   const [editorReady, setEditorReady] = useState(false)
   // AI streaming state
   const [aiStreaming, setAiStreaming] = useState(false)
-  const terminateRef = useRef<(() => void) | undefined>()
+  const terminateRef = useRef<(() => void) | undefined>(undefined)
 
   // Bug fix: Listen for file close events to clean up loaded state
   useEffect(() => {

@@ -15,6 +15,9 @@ import { LinkedResource } from '@/lib/files'
 import type { Conversation } from '@/db/conversations'
 import { S3Config, WebDAVConfig } from '@/types/sync'
 
+// 模块级别的 condense 版本计数器，防止竞态条件
+let _condenseVersion = 0
+
 export interface PendingQuote {
   quote: string
   fullContent: string
@@ -140,9 +143,8 @@ const useChatStore = create<ChatState>((set, get) => ({
       return
     }
 
-    // 添加版本号引用，防止竞态条件
-    const versionRef = { current: 0 }
-    const currentVersion = ++versionRef.current
+    // 递增版本号，用于防止竞态条件（模块级别共享，跨调用有效）
+    const currentVersion = ++_condenseVersion
 
     const { chats } = state
 
@@ -156,7 +158,7 @@ const useChatStore = create<ChatState>((set, get) => ({
       const { shouldCondense, condenseChats } = await import('@/lib/ai/condense')
 
       // 版本号检查：防止被新版本覆盖
-      if (currentVersion !== versionRef.current) {
+      if (currentVersion !== _condenseVersion) {
         return
       }
 
@@ -165,7 +167,7 @@ const useChatStore = create<ChatState>((set, get) => ({
       }
 
       // 再次检查版本号
-      if (currentVersion !== versionRef.current) {
+      if (currentVersion !== _condenseVersion) {
         return
       }
 
@@ -177,7 +179,7 @@ const useChatStore = create<ChatState>((set, get) => ({
         const condensedResults = await condenseChats(chatsAfterClear)
 
         // 版本号检查：防止在压缩过程中被新版本覆盖
-        if (currentVersion !== versionRef.current) {
+        if (currentVersion !== _condenseVersion) {
           return
         }
 
@@ -500,6 +502,7 @@ const useChatStore = create<ChatState>((set, get) => ({
   },
   uploadChats: async () => {
     set({ syncState: true })
+    try {
     const path = '.data'
     const filename = 'chats.json'
     const chats = await getAllChats()
@@ -589,8 +592,13 @@ const useChatStore = create<ChatState>((set, get) => ({
     if (res) {
       result = true
     }
-    set({ syncState: false })
     return result
+    } catch (error) {
+      console.error('[ChatStore] uploadChats failed:', error)
+      return false
+    } finally {
+      set({ syncState: false })
+    }
   },
   // MCP 工具调用记录
   mcpToolCalls: [],
@@ -754,21 +762,7 @@ const useChatStore = create<ChatState>((set, get) => ({
   startNewConversation: async () => {
     const { currentConversationId } = get()
 
-    // 如果当前会话无消息，删除它（从数据库查询最新状态）
-    if (currentConversationId) {
-      const { getConversation } = await import('@/db/conversations')
-      const currentConv = await getConversation(currentConversationId)
-      if (currentConv && currentConv.messageCount === 0) {
-        // 空会话，直接删除
-        const { deleteConversation: deleteConv } = await import('@/db/conversations')
-        await deleteConv(currentConversationId)
-      }
-      // 刷新会话列表
-      await get().initConversations()
-    }
-
-    // 清空聊天，不立即创建新会话
-    // 等到用户发送第一条消息时才创建会话
+    // 先立即清空 UI 状态，确保画面干净（同步操作）
     set({
       currentConversationId: null,
       chats: [],
@@ -776,9 +770,19 @@ const useChatStore = create<ChatState>((set, get) => ({
       agentAutoApproveConversationId: null,
       agentAutoApproveRuntimeSkillId: null
     })
-    // 清空 Agent 状态
     get().resetAgentState()
     get().clearMcpToolCalls()
+
+    // 再异步清理旧会话（UI 已经切换，不会闪烁）
+    if (currentConversationId) {
+      const { getConversation } = await import('@/db/conversations')
+      const currentConv = await getConversation(currentConversationId)
+      if (currentConv && currentConv.messageCount === 0) {
+        const { deleteConversation: deleteConv } = await import('@/db/conversations')
+        await deleteConv(currentConversationId)
+      }
+      await get().initConversations()
+    }
   },
 }))
 

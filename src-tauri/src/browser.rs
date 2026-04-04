@@ -113,7 +113,7 @@ pub async fn browser_create(
     let initial_url = url.unwrap_or_else(|| "https://www.google.com".to_string());
     let builder = WebviewBuilder::new(
         BROWSER_LABEL,
-        tauri::WebviewUrl::External(initial_url.parse().unwrap()),
+        tauri::WebviewUrl::External(initial_url.parse().map_err(|e| format!("Invalid URL '{}': {}", initial_url, e))?),
     )
     .auto_resize()
     .on_page_load(move |wv, payload| {

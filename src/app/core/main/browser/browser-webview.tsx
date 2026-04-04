@@ -115,13 +115,17 @@ export function BrowserWebView() {
     }
   }, [])
 
-  // Sync size on resize
+  // Sync size on resize — observe both container and parent to catch sibling changes (e.g. BookmarkBar appearing)
   useEffect(() => {
     const observer = new ResizeObserver(() => {
       syncSize()
     })
     if (containerRef.current) {
       observer.observe(containerRef.current)
+      // Also observe parent so BookmarkBar show/hide triggers resync
+      if (containerRef.current.parentElement) {
+        observer.observe(containerRef.current.parentElement)
+      }
     }
     return () => observer.disconnect()
   }, [syncSize])

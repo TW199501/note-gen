@@ -7,6 +7,7 @@ import { Globe, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { getAllBookmarks, removeBookmark, type Bookmark } from '@/db/bookmarks'
+import useBrowserStore from '@/stores/browser'
 
 interface BookmarkDrawerProps {
   open: boolean
@@ -17,6 +18,12 @@ interface BookmarkDrawerProps {
 export function BookmarkDrawer({ open, onOpenChange, refreshTrigger }: BookmarkDrawerProps) {
   const t = useTranslations('browser.bookmark')
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([])
+  const { pushOverlay, popOverlay } = useBrowserStore()
+
+  useEffect(() => {
+    if (open) pushOverlay()
+    else popOverlay()
+  }, [open, pushOverlay, popOverlay])
 
   useEffect(() => {
     if (open) {

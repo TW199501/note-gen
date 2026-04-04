@@ -28,7 +28,7 @@ use browser::{
     browser_create, browser_navigate, browser_go_back, browser_go_forward,
     browser_reload, browser_show, browser_hide, browser_resize,
     browser_extract_text, browser_capture, browser_get_url, browser_get_title,
-    browser_get_selected_text, browser_clear_data, BrowserState,
+    browser_get_selected_text, browser_clear_data, browser_inject_context_menu, BrowserState,
 };
 
 fn main() {
@@ -97,6 +97,7 @@ fn main() {
             browser_get_title,
             browser_get_selected_text,
             browser_clear_data,
+            browser_inject_context_menu,
         ])
 
         // 应用设置 - 在所有插件和命令注册后

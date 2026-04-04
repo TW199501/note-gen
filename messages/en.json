@@ -2770,6 +2770,8 @@
   "editor": {
     "placeholder": "Type / to open menu, or start writing...",
     "aiNoSelection": "No text to process — select some text or place the cursor in a paragraph",
+    "syncingRemote": "Syncing remote file",
+    "pullingRemote": "Fetching latest content from remote server...",
     "outline": {
       "title": "Outline",
       "open": "Open Outline",

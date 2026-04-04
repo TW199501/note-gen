@@ -12,6 +12,7 @@ import emitter from '@/lib/emitter'
 
 export function BrowserStatusBar() {
   const t = useTranslations('browser')
+  const tCommon = useTranslations('common')
   const { browserLoading, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserFavicon } = useBrowserStore()
   const { imageMethodModel, browserHomepage } = useSettingStore()
   const hasVlm = !!imageMethodModel
@@ -86,7 +87,7 @@ export function BrowserStatusBar() {
                 {t('clearData')}
               </Button>
               <Button variant="outline" size="sm" className="h-6 text-xs" onClick={() => setConfirmClear(false)}>
-                Cancel
+                {tCommon('cancel')}
               </Button>
             </div>
           ) : (

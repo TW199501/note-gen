@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { useTranslations } from 'next-intl'
-import { ArrowLeft, ArrowRight, RotateCw, Home, Star, Menu, Lock, History } from 'lucide-react'
+import { ArrowLeft, ArrowRight, RotateCw, Home, Star, Settings2, Lock, History, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import useBrowserStore from '@/stores/browser'
 import useSettingStore from '@/stores/setting'
 import { isBookmarked, addBookmark, removeBookmarkByUrl } from '@/db/bookmarks'
@@ -20,10 +21,27 @@ interface BrowserNavBarProps {
 
 export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick }: BrowserNavBarProps) {
   const t = useTranslations('browser')
-  const { browserUrl, browserTitle, browserLoading, browserFavicon } = useBrowserStore()
+  const tCommon = useTranslations('common')
+  const { browserUrl, browserTitle, browserLoading, browserFavicon, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserFavicon } = useBrowserStore()
   const { browserHomepage } = useSettingStore()
   const [inputUrl, setInputUrl] = useState(browserUrl)
   const [bookmarked, setBookmarked] = useState(false)
+  const [confirmClear, setConfirmClear] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+
+  async function handleClearData() {
+    try {
+      await invoke('browser_clear_data')
+      setBrowserReady(false)
+      setBrowserUrl(browserHomepage)
+      setBrowserTitle('')
+      setBrowserFavicon('')
+      setConfirmClear(false)
+      setSettingsOpen(false)
+    } catch (error) {
+      console.error('[Browser] Failed to clear data:', error)
+    }
+  }
 
   useEffect(() => {
     setInputUrl(browserUrl)
@@ -133,14 +151,42 @@ export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick }:
           <TooltipContent><p>{t('history.title')}</p></TooltipContent>
         </Tooltip>
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onMenuClick}>
-              <Menu className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent><p>{t('bookmark.title')}</p></TooltipContent>
-        </Tooltip>
+        <Popover open={settingsOpen} onOpenChange={(open) => { setSettingsOpen(open); if (!open) setConfirmClear(false) }}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <Settings2 className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+            </TooltipTrigger>
+            <TooltipContent><p>{t('settings')}</p></TooltipContent>
+          </Tooltip>
+          <PopoverContent align="end" className="w-56 p-2">
+            <div className="space-y-1">
+              <Button variant="ghost" size="sm" className="w-full justify-start text-xs gap-2" onClick={onMenuClick}>
+                <Star className="h-3.5 w-3.5" />
+                {t('bookmark.title')}
+              </Button>
+              {confirmClear ? (
+                <div className="flex items-center gap-1 px-2 py-1">
+                  <span className="text-xs text-muted-foreground flex-1">{t('clearDataConfirm')}</span>
+                  <Button variant="destructive" size="sm" className="h-6 text-xs" onClick={handleClearData}>
+                    {t('clearData')}
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-6 text-xs" onClick={() => setConfirmClear(false)}>
+                    {tCommon('cancel')}
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="ghost" size="sm" className="w-full justify-start text-xs gap-2" onClick={() => setConfirmClear(true)}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                  {t('clearData')}
+                </Button>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
     </TooltipProvider>
   )

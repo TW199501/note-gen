@@ -7,6 +7,7 @@ import Chat from './chat'
 import dynamic from 'next/dynamic'
 import { useSidebarStore } from "@/stores/sidebar"
 import useBrowserStore from "@/stores/browser"
+import useChatStore from "@/stores/chat"
 import { BrowserPanel } from "./browser"
 import { useEffect, useState, useRef } from 'react'
 import { Store } from '@tauri-apps/plugin-store'
@@ -66,12 +67,14 @@ function ResizableWrapper() {
   } = useSidebarStore()
   const { workspaceMode } = useBrowserStore()
 
-  // 切换模式时控制 WebView 显示/隐藏
+  // 切换模式时控制 WebView 显示/隐藏，并在进入浏览器模式时开启新对话
   useEffect(() => {
     if (workspaceMode === 'notes') {
       invoke('browser_hide').catch(() => {})
     } else {
       invoke('browser_show').catch(() => {})
+      // 进入浏览器模式时，开启新对话以避免引用之前的笔记上下文
+      useChatStore.getState().startNewConversation()
     }
   }, [workspaceMode])
 

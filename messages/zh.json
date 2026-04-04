@@ -2644,6 +2644,8 @@
   "editor": {
     "placeholder": "输入 / 唤起菜单，或直接开始写作...",
     "aiNoSelection": "没有可处理的文字，请圈选内容或将光标放在段落中",
+    "syncingRemote": "正在拉取远程文件",
+    "pullingRemote": "正在从远程服务器获取最新内容...",
     "outline": {
       "title": "大纲",
       "open": "打开大纲",

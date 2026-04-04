@@ -160,10 +160,6 @@ async function requestGitLab(method: string, url: string, body?: object) {
   const store = await Store.load('store.json')
   const gitlabAccessToken = await store.get<string>('gitlabAccessToken')
 
-  console.log('[requestGitLab] URL:', url)
-  console.log('[requestGitLab] Method:', method)
-  console.log('[requestGitLab] Token exists:', !!gitlabAccessToken)
-  console.log('[requestGitLab] Token prefix:', gitlabAccessToken?.substring(0, 10))
 
   const headers = new Headers()
   headers.append('PRIVATE-TOKEN', gitlabAccessToken as string)

@@ -2691,6 +2691,8 @@
   },
   "editor": {
     "placeholder": "輸入 / 叫出選單，或直接開始寫作...",
+    "syncingRemote": "正在拉取遠端檔案",
+    "pullingRemote": "正在從遠端伺服器取得最新內容...",
     "outline": {
       "title": "大綱",
       "open": "開啟大綱",

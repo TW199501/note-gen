@@ -214,26 +214,10 @@ pub async fn start_mcp_stdio_server(
                 cmd
             }
         } else {
-            // 如果找不到 npx，尝试通过 shell 执行
-            let full_command = if args.is_empty() {
-                command.clone()
-            } else {
-                format!("{} {}", command, args.join(" "))
-            };
-
-            #[cfg(target_os = "windows")]
-            {
-                let mut cmd = Command::new("cmd");
-                cmd.args(&["/C", &full_command]);
-                cmd
-            }
-
-            #[cfg(not(target_os = "windows"))]
-            {
-                let mut cmd = Command::new("sh");
-                cmd.args(&["-c", &full_command]);
-                cmd
-            }
+            // 如果找不到 npx，直接使用 command 执行，不经过 shell 以防止命令注入
+            let mut cmd = Command::new(&command);
+            cmd.args(&args);
+            cmd
         }
     } else {
         // 普通命令直接执行

@@ -230,8 +230,8 @@ export async function insertChats(chats: Chat[]) {
   try {
     for (const chat of chats) {
       await db.execute(
-        "insert into chats (tagId, content, role, type, image, images, inserted, createdAt, ragSources) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-        [chat.tagId, chat.content, chat.role, chat.type, chat.image, chat.images, chat.inserted ? 1 : 0, chat.createdAt, chat.ragSources]
+        "insert into chats (tagId, conversationId, content, role, type, image, images, inserted, createdAt, ragSources, ragSourceDetails, agentHistory, thinking, quoteData, condensedContent, condensedAt) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)",
+        [chat.tagId, chat.conversationId ?? null, chat.content, chat.role, chat.type, chat.image, chat.images, chat.inserted ? 1 : 0, chat.createdAt, chat.ragSources, chat.ragSourceDetails ?? null, chat.agentHistory ?? null, chat.thinking ?? null, chat.quoteData ?? null, chat.condensedContent ?? null, chat.condensedAt ?? null]
       )
     }
     await db.execute('COMMIT')

@@ -15,6 +15,7 @@ import {
   clearHistory,
   type BrowserHistoryEntry,
 } from '@/db/browser-history'
+import useBrowserStore from '@/stores/browser'
 
 dayjs.extend(relativeTime)
 
@@ -51,9 +52,16 @@ function groupByDate(entries: BrowserHistoryEntry[]): GroupedHistory {
 
 export function HistoryDrawer({ open, onOpenChange }: HistoryDrawerProps) {
   const t = useTranslations('browser.history')
+  const tCommon = useTranslations('common')
   const [entries, setEntries] = useState<BrowserHistoryEntry[]>([])
   const [query, setQuery] = useState('')
   const [confirmClear, setConfirmClear] = useState(false)
+  const { pushOverlay, popOverlay } = useBrowserStore()
+
+  useEffect(() => {
+    if (open) pushOverlay()
+    else popOverlay()
+  }, [open, pushOverlay, popOverlay])
 
   useEffect(() => {
     if (open) {
@@ -166,7 +174,7 @@ export function HistoryDrawer({ open, onOpenChange }: HistoryDrawerProps) {
                   {t('clear')}
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => setConfirmClear(false)}>
-                  Cancel
+                  {tCommon('cancel')}
                 </Button>
               </div>
             ) : (
