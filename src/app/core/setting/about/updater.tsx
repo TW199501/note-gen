@@ -18,7 +18,7 @@ export default function Updater() {
     const [loading, setLoading] = useState(false);
     const { version } = useSettingStore();
     const { update, checkForUpdates, ignoreCurrentVersion } = useUpdateStore();
-    const [latestBody, setLatestBody] = useState(null);
+    const [latestBody, setLatestBody] = useState<string | null>(null);
     const [isMobile, setIsMobile] = useState(false);
 
     async function checkUpdate() {
@@ -26,8 +26,8 @@ export default function Updater() {
       try {
         await checkForUpdates();
         getRelease().then((release) => {
-          if (release) {
-            setLatestBody(release.body)
+          if (release && typeof release === 'object' && 'body' in release) {
+            setLatestBody(release.body ?? null)
           }
         })
       } catch (error) {
@@ -65,7 +65,7 @@ export default function Updater() {
     }
 
     function openRelease() {
-      open('https://github.com/codexu/note-gen/releases');
+      // TODO: 替換為自己的 GitHub releases URL
     }
 
     async function handleIgnoreVersion() {

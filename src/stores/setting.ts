@@ -456,65 +456,6 @@ const useSettingStore = create<SettingState>((set, get) => ({
       }
     }
 
-    // 获取 NoteGen 限时免费模型
-    // 如果服务不可用,静默失败,不影响用户使用自己的模型
-    try {
-      const apiKey = noteGenDefaultModels[0].apiKey
-      const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      }
-      const res = await fetch('https://api.notegen.top/v1/models', {
-        method: 'GET',
-        headers
-      })
-
-      // 检查响应状态
-      if (!res.ok) {
-        throw new Error(`API responded with status: ${res.status}`)
-      }
-
-      const resModels = await res.json()
-
-      if (resModels.data && resModels.data.length > 0) {
-        // 移除旧的 NoteGen Limited 配置
-        finalAiModelList = finalAiModelList.filter(model => 
-          model.title !== 'NoteGen Limited' && model.key !== 'note-gen-limited'
-        )
-        
-        // 过滤出不在默认模型中的限时免费模型
-        const limitedModels = resModels.data.filter((model: any) => {
-          // 检查是否在 noteGenDefaultModels 的 models 数组中
-          return !noteGenDefaultModels[0].models?.some(defaultModel => defaultModel.model === model.id)
-        })
-        
-        // 如果有限时免费模型,创建统一的 NoteGen Limited 配置
-        if (limitedModels.length > 0) {
-          const noteGenLimitedConfig = {
-            apiKey,
-            baseURL: "https://api.notegen.top/v1",
-            key: "note-gen-limited",
-            title: "NoteGen Limited",
-            models: limitedModels.map((model: any) => ({
-              id: `note-gen-limited-${model.id}`,
-              model: model.id,
-              modelType: "chat",
-              temperature: 0.7,
-              topP: 1,
-              enableStream: true
-            }))
-          }
-          
-          finalAiModelList.push(noteGenLimitedConfig)
-          await store.set('aiModelList', finalAiModelList)
-          set({ aiModelList: finalAiModelList })
-        }
-      }
-    } catch (error) {
-      // 静默处理错误,不影响应用初始化和用户使用自己的模型
-      console.debug('NoteGen API service unavailable, skipping limited models:', error)
-    }
-
     Object.entries(get()).forEach(async ([key, value]) => {
       const res = await store.get(key)
 
