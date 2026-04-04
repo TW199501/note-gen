@@ -107,10 +107,24 @@ NoteGen 是從 codexu/note-gen fork 出來的，目前決定獨立發展。本�
 ## 階段七：TitleBar 拆分 + 瀏覽器 UI 精簡 -- DONE
 
 | 項目 | 修復內容 |
-| --- | --- |
-| TitleBar 拆分 | 485 行拆為三檔：`title-bar.tsx`（~185 行共用）、~`~title-bar-notes.tsx~`~（~230 行）、`title-bar-browser.tsx` |
+|---|---|
+| TitleBar 拆分 | 485 行拆為三檔：`title-bar.tsx`（共用）、`title-bar-notes.tsx`（筆記）、`title-bar-browser.tsx`（瀏覽器） |
 | 瀏覽器底部 bar 移除 | 「擷取文字」「截圖」移至頂部工具列，「清除資料」移至網址列設定 Popover |
 | 瀏覽器模式切換 bug | 搜尋列隱藏、切換時自動開新對話 |
+
+---
+
+## 階段八：右鍵選單 + Drawer 合併 + 升級 -- DONE
+
+| 項目 | 修復內容 |
+|---|---|
+| 右鍵選單補齊 | 加入上一頁/下一頁/重新載入/複製/貼上/全選/列印/開發者工具，分組加分隔線 |
+| BrowserDrawer 合併 | BookmarkDrawer + HistoryDrawer 合併為左側 Tab 面板 |
+| `browser_open_devtools` | 新增 Rust 命令，支援從右鍵選單開啟開發者工具 |
+| ESLint 8 → 9 | 升級至 9.39，清除 dead import，lint 零 warning |
+| next-intl 3.26 → 4.9 | 修復 `experimental.turbo` deprecated 警告 |
+| 移除作者關聯 | 清除硬編碼 API key、`api.notegen.top`、作者 GitHub 連結 |
+| 版號 | 1.0.0 → 1.0.1 |
 
 ---
 

@@ -2058,10 +2058,18 @@
       "empty": "尚無書籤"
     },
     "contextMenu": {
+      "back": "上一頁",
+      "forward": "下一頁",
+      "reload": "重新載入",
+      "copy": "複製",
+      "paste": "貼上",
+      "selectAll": "全選",
       "quoteToChat": "引用到對話",
       "screenshotToAI": "截圖給 AI",
       "addBookmark": "加入書籤",
-      "translate": "翻譯選取文字"
+      "translate": "翻譯選取文字",
+      "print": "列印",
+      "devTools": "開發者工具"
     },
     "history": {
       "title": "歷史紀錄",

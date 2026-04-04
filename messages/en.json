@@ -2076,10 +2076,18 @@
       "empty": "No bookmarks yet"
     },
     "contextMenu": {
+      "back": "Back",
+      "forward": "Forward",
+      "reload": "Reload",
+      "copy": "Copy",
+      "paste": "Paste",
+      "selectAll": "Select All",
       "quoteToChat": "Quote to Chat",
       "screenshotToAI": "Screenshot to AI",
       "addBookmark": "Add to Bookmarks",
-      "translate": "Translate Selection"
+      "translate": "Translate Selection",
+      "print": "Print",
+      "devTools": "Developer Tools"
     },
     "history": {
       "title": "History",

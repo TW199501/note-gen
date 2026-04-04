@@ -2131,10 +2131,18 @@
       "empty": "Nenhum favorito ainda"
     },
     "contextMenu": {
+      "back": "Voltar",
+      "forward": "Avançar",
+      "reload": "Recarregar",
+      "copy": "Copiar",
+      "paste": "Colar",
+      "selectAll": "Selecionar Tudo",
       "quoteToChat": "Citar no Chat",
       "screenshotToAI": "Captura para IA",
       "addBookmark": "Adicionar aos Favoritos",
-      "translate": "Traduzir Seleção"
+      "translate": "Traduzir Seleção",
+      "print": "Imprimir",
+      "devTools": "Ferramentas do Desenvolvedor"
     },
     "history": {
       "title": "Histórico",

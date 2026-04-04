@@ -35,15 +35,23 @@ struct LoadingPayload {
 const BROWSER_LABEL: &str = "browser-webview";
 
 fn build_context_menu_js(labels: &HashMap<String, String>) -> String {
+    let back_label = labels.get("back").map(|s| s.as_str()).unwrap_or("Back");
+    let forward_label = labels.get("forward").map(|s| s.as_str()).unwrap_or("Forward");
+    let reload_label = labels.get("reload").map(|s| s.as_str()).unwrap_or("Reload");
+    let copy_label = labels.get("copy").map(|s| s.as_str()).unwrap_or("Copy");
+    let paste_label = labels.get("paste").map(|s| s.as_str()).unwrap_or("Paste");
+    let select_all_label = labels.get("selectAll").map(|s| s.as_str()).unwrap_or("Select All");
     let quote_label = labels.get("quote").map(|s| s.as_str()).unwrap_or("Quote to Chat");
     let translate_label = labels.get("translate").map(|s| s.as_str()).unwrap_or("Translate Selection");
     let screenshot_label = labels.get("screenshot").map(|s| s.as_str()).unwrap_or("Screenshot to AI");
     let bookmark_label = labels.get("bookmark").map(|s| s.as_str()).unwrap_or("Add to Bookmarks");
+    let print_label = labels.get("print").map(|s| s.as_str()).unwrap_or("Print");
+    let devtools_label = labels.get("devTools").map(|s| s.as_str()).unwrap_or("Developer Tools");
     format!(r#"(function(){{
         if(window.__noteGenContextMenu) return;
         window.__noteGenContextMenu=true;
         var style=document.createElement('style');
-        style.textContent='#notegen-ctx-menu{{position:fixed;z-index:999999;background:var(--bg,#fff);border:1px solid var(--bd,#e0e0e0);border-radius:6px;padding:4px 0;box-shadow:0 2px 10px rgba(0,0,0,.18);font-family:system-ui,-apple-system,sans-serif;font-size:13px;min-width:180px;color:var(--fg,#222)}}#notegen-ctx-menu>div{{padding:7px 14px;cursor:pointer;display:flex;align-items:center;gap:8px}}#notegen-ctx-menu>div:hover{{background:var(--hv,#f0f0f0)}}@media(prefers-color-scheme:dark){{#notegen-ctx-menu{{--bg:#2a2a2a;--bd:#444;--fg:#eee;--hv:#3a3a3a}}}}';
+        style.textContent='#notegen-ctx-menu{{position:fixed;z-index:999999;background:var(--bg,#fff);border:1px solid var(--bd,#e0e0e0);border-radius:6px;padding:4px 0;box-shadow:0 2px 10px rgba(0,0,0,.18);font-family:system-ui,-apple-system,sans-serif;font-size:13px;min-width:200px;color:var(--fg,#222)}}#notegen-ctx-menu>div{{padding:7px 14px;cursor:pointer;display:flex;align-items:center;gap:8px}}#notegen-ctx-menu>div:hover{{background:var(--hv,#f0f0f0)}}#notegen-ctx-menu>.ctx-sep{{height:1px;background:var(--bd,#e0e0e0);margin:4px 8px;padding:0;cursor:default}}#notegen-ctx-menu>.ctx-sep:hover{{background:var(--bd,#e0e0e0)}}@media(prefers-color-scheme:dark){{#notegen-ctx-menu{{--bg:#2a2a2a;--bd:#444;--fg:#eee;--hv:#3a3a3a}}}}';
         document.head.appendChild(style);
         document.addEventListener('contextmenu',function(e){{
             e.preventDefault();
@@ -52,23 +60,47 @@ fn build_context_menu_js(labels: &HashMap<String, String>) -> String {
             if(old)old.remove();
             var m=document.createElement('div');
             m.id='notegen-ctx-menu';
-            function addItem(label,action){{
+            function addItem(label,fn){{
                 var d=document.createElement('div');
                 d.textContent=label;
-                d.onclick=function(){{
+                d.onclick=function(){{fn();m.remove();}};
+                m.appendChild(d);
+            }}
+            function addAction(label,action){{
+                addItem(label,function(){{
                     window.__TAURI_INTERNALS__.invoke('__browser_context_action',{{
                         action:action,text:sel,url:window.location.href,title:document.title
                     }});
-                    m.remove();
-                }};
-                m.appendChild(d);
+                }});
             }}
+            function addSep(){{
+                var s=document.createElement('div');
+                s.className='ctx-sep';
+                m.appendChild(s);
+            }}
+            addItem('{back}',function(){{window.history.back();}});
+            addItem('{forward}',function(){{window.history.forward();}});
+            addItem('{reload}',function(){{window.location.reload();}});
+            addSep();
             if(sel){{
-                addItem('{quote}','quote');
-                addItem('{translate}','translate');
+                addItem('{copy}',function(){{document.execCommand('copy');}});
             }}
-            addItem('{screenshot}','screenshot');
-            addItem('{bookmark}','bookmark');
+            addItem('{paste}',function(){{document.execCommand('paste');}});
+            addItem('{select_all}',function(){{document.execCommand('selectAll');}});
+            addSep();
+            if(sel){{
+                addAction('{quote}','quote');
+                addAction('{translate}','translate');
+            }}
+            addAction('{screenshot}','screenshot');
+            addAction('{bookmark}','bookmark');
+            addSep();
+            addItem('{print}',function(){{window.print();}});
+            addItem('{devtools}',function(){{
+                window.__TAURI_INTERNALS__.invoke('__browser_context_action',{{
+                    action:'devtools',text:'',url:window.location.href,title:document.title
+                }});
+            }});
             var x=e.clientX,y=e.clientY;
             m.style.left=x+'px';m.style.top=y+'px';
             document.body.appendChild(m);
@@ -80,10 +112,18 @@ fn build_context_menu_js(labels: &HashMap<String, String>) -> String {
             document.addEventListener('click',function h(){{m.remove();document.removeEventListener('click',h);}},{{once:true}});
         }});
     }})();"#,
+        back = back_label,
+        forward = forward_label,
+        reload = reload_label,
+        copy = copy_label,
+        paste = paste_label,
+        select_all = select_all_label,
         quote = quote_label,
         translate = translate_label,
         screenshot = screenshot_label,
         bookmark = bookmark_label,
+        print = print_label,
+        devtools = devtools_label,
     )
 }
 
@@ -197,7 +237,14 @@ pub async fn browser_go_forward(app: AppHandle) -> Result<(), String> {
 #[tauri::command]
 pub async fn browser_reload(app: AppHandle) -> Result<(), String> {
     let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
-    webview.eval("window.location.reload()").map_err(|e| e.to_string())?;
+    webview.eval("window.location.reload()").map_err(|e| e.to_string())?; // existing code
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn browser_open_devtools(app: AppHandle) -> Result<(), String> {
+    let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+    webview.open_devtools();
     Ok(())
 }
 

@@ -2072,10 +2072,18 @@
       "empty": "ブックマークがありません"
     },
     "contextMenu": {
+      "back": "戻る",
+      "forward": "進む",
+      "reload": "再読み込み",
+      "copy": "コピー",
+      "paste": "貼り付け",
+      "selectAll": "すべて選択",
       "quoteToChat": "チャットに引用",
       "screenshotToAI": "スクリーンショットをAIへ",
       "addBookmark": "ブックマークに追加",
-      "translate": "選択テキストを翻訳"
+      "translate": "選択テキストを翻訳",
+      "print": "印刷",
+      "devTools": "開発者ツール"
     },
     "history": {
       "title": "履歴",

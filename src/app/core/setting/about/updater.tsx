@@ -9,7 +9,6 @@ import { toast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { ArrowBigRightDash, Link, Loader2 } from 'lucide-react';
 import { getRelease } from '@/lib/sync/github';
-import { open } from '@tauri-apps/plugin-shell';
 import { isMobileDevice } from '@/lib/check';
 
 export default function Updater() {

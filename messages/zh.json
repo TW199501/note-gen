@@ -2019,10 +2019,18 @@
       "empty": "暂无书签"
     },
     "contextMenu": {
+      "back": "返回",
+      "forward": "前进",
+      "reload": "刷新",
+      "copy": "复制",
+      "paste": "粘贴",
+      "selectAll": "全选",
       "quoteToChat": "引用到对话",
       "screenshotToAI": "截图给 AI",
       "addBookmark": "添加到书签",
-      "translate": "翻译选中文字"
+      "translate": "翻译选中文字",
+      "print": "打印",
+      "devTools": "开发者工具"
     },
     "history": {
       "title": "历史记录",

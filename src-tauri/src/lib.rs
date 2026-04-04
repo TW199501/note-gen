@@ -16,7 +16,7 @@ use browser::{
     browser_create, browser_navigate, browser_go_back, browser_go_forward,
     browser_reload, browser_show, browser_hide, browser_resize,
     browser_extract_text, browser_capture, browser_get_url, browser_get_title,
-    browser_get_selected_text, browser_inject_context_menu, browser_clear_data, BrowserState,
+    browser_get_selected_text, browser_inject_context_menu, browser_clear_data, browser_open_devtools, BrowserState,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -65,6 +65,7 @@ pub fn run() {
             browser_get_selected_text,
             browser_inject_context_menu,
             browser_clear_data,
+            browser_open_devtools,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

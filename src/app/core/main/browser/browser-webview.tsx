@@ -18,10 +18,18 @@ export function BrowserWebView() {
     try {
       await invoke('browser_inject_context_menu', {
         labels: {
+          back: t('back'),
+          forward: t('forward'),
+          reload: t('reload'),
+          copy: t('copy'),
+          paste: t('paste'),
+          selectAll: t('selectAll'),
           quote: t('quoteToChat'),
           translate: t('translate'),
           screenshot: t('screenshotToAI'),
           bookmark: t('addBookmark'),
+          print: t('print'),
+          devTools: t('devTools'),
         }
       })
     } catch {
@@ -102,6 +110,9 @@ export function BrowserWebView() {
             break
           case 'translate':
             emitter.emit('browser-translate-text' as any, { text })
+            break
+          case 'devtools':
+            invoke('browser_open_devtools').catch((err: unknown) => console.error('[Browser] DevTools failed:', err))
             break
         }
       }),
