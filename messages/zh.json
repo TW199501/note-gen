@@ -2010,6 +2010,7 @@
     "screenshot": "截图给 AI",
     "loading": "加载中...",
     "vlmRequired": "需要配置视觉模型才能使用截图功能",
+    "settings": "设置",
     "clearData": "清除浏览器数据",
     "clearDataConfirm": "这将清除所有浏览器缓存、Cookie 和历史记录。确定继续吗？",
     "bookmark": {
@@ -2701,6 +2702,7 @@
       "image": "图片",
       "link": "链接",
       "ai": "AI",
+      "save": "保存",
       "moreInsert": "更多插入",
       "inlineMath": "行内公式",
       "blockMath": "块级公式",

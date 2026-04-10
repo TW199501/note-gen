@@ -34,10 +34,17 @@ export const MarkList = React.memo(function MarkList() {
 
   const filterSummary = React.useMemo(() => buildRecordFilterSummary(effectiveFilters), [effectiveFilters])
 
+  const prevFilteredIdsRef = React.useRef<number[]>([])
   React.useEffect(() => {
-    setVisibleMarkIds(filteredMarks.map((mark: Mark) => mark.id))
+    const ids = filteredMarks.map((mark: Mark) => mark.id)
+    const prev = prevFilteredIdsRef.current
+    if (prev.length !== ids.length || prev.some((id, i) => id !== ids[i])) {
+      prevFilteredIdsRef.current = ids
+      setVisibleMarkIds(ids)
+    }
     return () => setVisibleMarkIds([])
-  }, [filteredMarks, setVisibleMarkIds])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredMarks])
 
   const view = (() => {
     switch (recordViewMode) {

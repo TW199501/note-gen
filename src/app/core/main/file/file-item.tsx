@@ -474,7 +474,7 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
     // 如果输入为空字符串，生成默认文件名
     if (!name || name.trim() === '') {
       const parentPath = path.includes('/') ? path.split('/').slice(0, -1).join('/') : ''
-      finalName = await generateUniqueFilename(parentPath, 'Untitled')
+      finalName = await generateUniqueFilename(parentPath)
       setName(finalName)
     } else {
       // 统一处理：将空格替换为下划线，确保本地和远程文件名一致

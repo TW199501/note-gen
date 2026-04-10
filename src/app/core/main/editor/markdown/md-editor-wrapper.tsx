@@ -1,7 +1,7 @@
 'use client'
 
 import useArticleStore from '@/stores/article'
-import { useEffect, useState, useCallback, useRef, RefObject } from 'react'
+import { useEffect, useState, useCallback, useRef, RefObject, useMemo } from 'react'
 import { TipTapEditor } from './tiptap-editor'
 import { Outline } from './outline'
 import { Loader2, Download } from 'lucide-react'
@@ -45,6 +45,9 @@ export function MdEditor({ tabContentsRef, filePath }: MdEditorProps) {
   const [outlinePosition, setOutlinePosition] = useState<OutlinePosition>(DEFAULT_OUTLINE_POSITION)
   // State for editor instance (to trigger re-render when ready)
   const [editorInstance, setEditorInstance] = useState<any>(null)
+  // Track unsaved changes
+  const [isDirty, setIsDirty] = useState(false)
+  const pendingContentRef = useRef<string | null>(null)
   // Track if editor has called onEditorReady (meaning it's fully initialized)
   const [editorReady, setEditorReady] = useState(false)
   // AI streaming state
@@ -265,16 +268,44 @@ export function MdEditor({ tabContentsRef, filePath }: MdEditorProps) {
       tabContentsRef.current[filePath] = content
     }
 
-    // Save to disk - only if this is the active file
+    // Mark as dirty and store pending content - wait for manual save
     if (filePath && filePath === activeFilePath) {
-      saveCurrentArticle(content)
+      pendingContentRef.current = content
+      setIsDirty(true)
     } else if (!filePath && !isCreatingFileRef.current) {
       // Auto-create untitled file
       isCreatingFileRef.current = true
       createUntitledFile(content)
       isCreatingFileRef.current = false
     }
-  }, [saveCurrentArticle, filePath, tabContentsRef, activeFilePath])
+  }, [filePath, tabContentsRef, activeFilePath])
+
+  // Manual save handler
+  const handleSave = useCallback(() => {
+    if (pendingContentRef.current !== null && filePath && filePath === activeFilePath) {
+      saveCurrentArticle(pendingContentRef.current)
+      pendingContentRef.current = null
+      setIsDirty(false)
+    }
+  }, [saveCurrentArticle, filePath, activeFilePath])
+
+  // Ctrl+S keyboard shortcut
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        handleSave()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [handleSave])
+
+  // Reset dirty state when switching files
+  useEffect(() => {
+    setIsDirty(false)
+    pendingContentRef.current = null
+  }, [filePath])
 
   // Handle quote to chat - get selected text and emit event
   const handleQuoteToChat = useCallback(() => {
@@ -394,6 +425,8 @@ export function MdEditor({ tabContentsRef, filePath }: MdEditorProps) {
         editable={!isPulling && !aiStreaming}
         autoScroll={aiStreaming}
         showOverlay={aiStreaming}
+        onSave={handleSave}
+        isDirty={isDirty}
         onTerminate={() => {
           if (terminateRef.current) {
             terminateRef.current()

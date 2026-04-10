@@ -2063,6 +2063,7 @@
     "screenshot": "スクリーンショットをAIへ",
     "loading": "読み込み中...",
     "vlmRequired": "スクリーンショットにはビジョンモデルの設定が必要です",
+    "settings": "設定",
     "clearData": "ブラウザデータを消去",
     "clearDataConfirm": "ブラウザのキャッシュ、Cookie、履歴がすべて消去されます。続行しますか？",
     "bookmark": {
@@ -2906,6 +2907,7 @@
       "image": "画像",
       "link": "リンク",
       "ai": "AI",
+      "save": "保存",
       "moreInsert": "その他挿入",
       "inlineMath": "インライン数式",
       "blockMath": "ブロック数式",

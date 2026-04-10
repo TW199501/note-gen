@@ -11,7 +11,6 @@ import Highlight from '@tiptap/extension-highlight'
 import Underline from '@tiptap/extension-underline'
 import TextAlign from '@tiptap/extension-text-align'
 import Typography from '@tiptap/extension-typography'
-import Dropcursor from '@tiptap/extension-dropcursor'
 import { Table } from '@tiptap/extension-table'
 import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
@@ -28,7 +27,7 @@ import { InlineMath, BlockMath } from './math-extension'
 import { MermaidDiagram } from './mermaid-extension'
 import { MathEditorDialog } from './math-editor-dialog'
 import { SearchReplacePanel } from './search-replace-panel'
-import { useEffect, useRef, useCallback, useState } from 'react'
+import { useEffect, useRef, useCallback, useState, useMemo } from 'react'
 import { Store } from '@tauri-apps/plugin-store'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { handleImageUpload } from '@/lib/image-handler'
@@ -165,6 +164,8 @@ interface TipTapEditorProps {
   autoScroll?: boolean
   showOverlay?: boolean
   onTerminate?: () => void
+  onSave?: () => void
+  isDirty?: boolean
 }
 
 type MobileSelectionContext =
@@ -210,6 +211,8 @@ export function TipTapEditor({
   autoScroll = false,
   showOverlay = false,
   onTerminate,
+  onSave,
+  isDirty,
 }: TipTapEditorProps) {
   const t = useTranslations('editor')
   const tMermaid = useTranslations('editor.mermaid.templates')
@@ -298,69 +301,69 @@ export function TipTapEditor({
     }
   }, [activeFilePath])
 
-  const editor = useEditor({
-    immediatelyRender: false,
-    extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3, 4, 5, 6],
-        },
-        codeBlock: false,
-        link: false,
-        paragraph: false,
-        underline: false,
-      }),
-      MarkdownParagraph,
-      Placeholder.configure({
-        placeholder: placeholderText,
-        showOnlyCurrent: true,
-      }),
-      Link.configure({
-        openOnClick: false,
-      }),
-      TaskList,
-      TaskItem.configure({
-        nested: true,
-      }),
-      StableCodeBlockLowlight.configure({
-        lowlight,
-      }),
-      CharacterCount,
-      Highlight.configure({
-        multicolor: true,
-      }),
-      Underline,
-      TextAlign.configure({
-        types: ['heading', 'paragraph'],
-      }),
-      Typography,
-      SearchAndReplace,
-      Dropcursor,
-      Table.configure({
-        resizable: true,
-      }),
-      TableRow,
-      TableHeader,
-      TableCell,
-      Markdown.configure({
-        indentation: {
-          style: 'space',
-          size: 2,
-        },
-      }),
-      SlashCommand.configure({
-        suggestion: suggestionOptions,
-      }),
-      QuoteMark,
-      AISuggestion,
-      UniqueId.configure({
-        attributeName: 'data-id',
-        types: ['paragraph', 'heading', 'blockquote', 'codeBlock', 'listItem', 'bulletList', 'orderedList', 'taskItem', 'table', 'tableRow', 'tableCell', 'tableHeader'],
-      }),
-      InlineMath,
-      BlockMath,
-      MermaidDiagram,
-      Image.extend({
+  // Memoize extensions to prevent Tiptap from recreating the editor on every render.
+  // Tiptap v3's useEditor uses reference equality to compare extensions; without memoization,
+  // each .configure() call creates a new instance, triggering infinite setOptions → re-render loops.
+  const extensions = useMemo(() => [
+    StarterKit.configure({
+      heading: {
+        levels: [1, 2, 3, 4, 5, 6],
+      },
+      codeBlock: false,
+      link: false,
+      paragraph: false,
+      underline: false,
+    }),
+    MarkdownParagraph,
+    Placeholder.configure({
+      placeholder: placeholderText,
+      showOnlyCurrent: true,
+    }),
+    Link.configure({
+      openOnClick: false,
+    }),
+    TaskList,
+    TaskItem.configure({
+      nested: true,
+    }),
+    StableCodeBlockLowlight.configure({
+      lowlight,
+    }),
+    CharacterCount,
+    Highlight.configure({
+      multicolor: true,
+    }),
+    Underline,
+    TextAlign.configure({
+      types: ['heading', 'paragraph'],
+    }),
+    Typography,
+    SearchAndReplace,
+    Table.configure({
+      resizable: true,
+    }),
+    TableRow,
+    TableHeader,
+    TableCell,
+    Markdown.configure({
+      indentation: {
+        style: 'space',
+        size: 2,
+      },
+    }),
+    SlashCommand.configure({
+      suggestion: suggestionOptions,
+    }),
+    QuoteMark,
+    AISuggestion,
+    UniqueId.configure({
+      attributeName: 'data-id',
+      types: ['paragraph', 'heading', 'blockquote', 'codeBlock', 'listItem', 'bulletList', 'orderedList', 'taskItem', 'table', 'tableRow', 'tableCell', 'tableHeader'],
+    }),
+    InlineMath,
+    BlockMath,
+    MermaidDiagram,
+    Image.extend({
         addAttributes() {
           return {
             ...this.parent?.(),
@@ -443,7 +446,12 @@ export function TipTapEditor({
       }),
       // 自定义粘贴 Markdown 扩展
       PasteMarkdown,
-    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [placeholderText])
+
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions,
     content: initialContent,
     contentType: 'markdown',
     editable,
@@ -2552,6 +2560,8 @@ export function TipTapEditor({
             onAIExpand={handleAIExpand}
             onAIOrganize={handleAIOrganize}
             onQuoteToChat={onQuoteToChat}
+            onSave={onSave}
+            isDirty={isDirty}
           />
         )}
         <div

@@ -365,18 +365,22 @@ export const ChatInput = React.memo(function ChatInput() {
     }
   }
 
+  // 用 ref 保持最新的 genInputPlaceholder，避免 useCallback deps 過多導致頻繁重建
+  const genInputPlaceholderRef = useRef(genInputPlaceholder)
+  genInputPlaceholderRef.current = genInputPlaceholder
+
   // 防抖的 placeholder 生成函数，延迟 1.5 秒执行，只执行最后一次
   const debouncedGenPlaceholder = useCallback(() => {
     // 清除之前的定时器
     if (placeholderTimerRef.current) {
       clearTimeout(placeholderTimerRef.current)
     }
-    
+
     // 设置新的定时器
     placeholderTimerRef.current = setTimeout(() => {
-      genInputPlaceholder()
+      genInputPlaceholderRef.current()
     }, 1500) // 1.5秒延迟
-  }, [primaryModel, marks, chats, trashState, t])
+  }, [])
 
 
   // 插入占位符

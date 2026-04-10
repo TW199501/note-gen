@@ -2122,6 +2122,7 @@
     "screenshot": "Captura para IA",
     "loading": "Carregando...",
     "vlmRequired": "Modelo de visão necessário para capturas de tela",
+    "settings": "Configurações",
     "clearData": "Limpar dados do navegador",
     "clearDataConfirm": "Isso limpará todo o cache, cookies e histórico do navegador. Continuar?",
     "bookmark": {
@@ -2975,6 +2976,7 @@
       "image": "Imagem",
       "link": "Link",
       "ai": "AI",
+      "save": "Salvar",
       "moreInsert": "Mais Inserções",
       "inlineMath": "Fórmula Inline",
       "blockMath": "Fórmula em Bloco",

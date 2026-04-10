@@ -2049,6 +2049,7 @@
     "screenshot": "截圖給 AI",
     "loading": "載入中...",
     "vlmRequired": "需要設定視覺模型才能使用截圖功能",
+    "settings": "設定",
     "clearData": "清除瀏覽器資料",
     "clearDataConfirm": "這將清除所有瀏覽器快取、Cookie 和歷史紀錄。確定繼續嗎？",
     "bookmark": {
@@ -2786,6 +2787,7 @@
       "image": "圖片",
       "link": "連結",
       "ai": "AI",
+      "save": "儲存",
       "moreInsert": "更多插入",
       "inlineMath": "行內公式",
       "blockMath": "區塊公式",

@@ -456,74 +456,75 @@ const useSettingStore = create<SettingState>((set, get) => ({
       }
     }
 
-    Object.entries(get()).forEach(async ([key, value]) => {
+    // Batch-load all store keys and apply in a single set() to avoid cascading re-renders
+    const entries = Object.entries(get()).filter(([, value]) => typeof value !== 'function')
+    const batch: Record<string, unknown> = {}
+    let templateListValue: GenTemplate[] | null = null
+
+    for (const [key, value] of entries) {
+      if (key === 'version') continue
       const res = await store.get(key)
 
-      if (typeof value === 'function') return
-      if (res !== undefined && key !== 'version') {
+      if (res !== undefined) {
         if (key === 'templateList') {
-          set({ [key]: [] })
-          setTimeout(() => {
-            set({ [key]: res as GenTemplate[] })
-          }, 0);
+          // templateList needs a two-phase update (clear then set) for UI reactivity
+          templateListValue = res as GenTemplate[]
         } else if (key === 'aiModelList' && hasNoteGenModels) {
-          // 如果已经有NoteGen模型，使用存储的配置
-          set({ [key]: res as AiConfig[] })
+          batch[key] = res as AiConfig[]
         } else if (key === 'recordToolbarConfig') {
-          // 确保包含所有工具，如果缺少新工具则自动添加
           const storedConfig = res as RecordToolbarItem[]
           const defaultConfig = value as RecordToolbarItem[]
-
-          // 检查是否有缺失的工具
           const missingTools = defaultConfig.filter(
             defaultItem => !storedConfig.some(stored => stored.id === defaultItem.id)
           )
-
           if (missingTools.length > 0) {
-            // 合并配置：保留用户的顺序和启用状态，添加新工具
             const mergedConfig = [...storedConfig]
             let maxOrder = Math.max(...storedConfig.map(item => item.order), 0)
-
             missingTools.forEach(tool => {
               mergedConfig.push({ ...tool, order: ++maxOrder })
             })
-
             await store.set(key, mergedConfig)
-            set({ [key]: mergedConfig })
+            batch[key] = mergedConfig
           } else {
-            set({ [key]: res as RecordToolbarItem[] })
+            batch[key] = res as RecordToolbarItem[]
           }
         } else if (key === 'chatToolbarConfigPc' || key === 'chatToolbarConfigMobile') {
-          // 确保聊天工具栏包含所有工具，如果缺少新工具则自动添加
           const storedConfig = res as ChatToolbarItem[]
           const defaultConfig = value as ChatToolbarItem[]
-
-          // 检查是否有缺失的工具
           const missingTools = defaultConfig.filter(
             defaultItem => !storedConfig.some(stored => stored.id === defaultItem.id)
           )
-
           if (missingTools.length > 0) {
-            // 合并配置：保留用户的顺序和启用状态，添加新工具
             const mergedConfig = [...storedConfig]
             let maxOrder = Math.max(...storedConfig.map(item => item.order), 0)
-
             missingTools.forEach(tool => {
               mergedConfig.push({ ...tool, order: ++maxOrder })
             })
-
             await store.set(key, mergedConfig)
-            set({ [key]: mergedConfig })
+            batch[key] = mergedConfig
           } else {
-            set({ [key]: res as ChatToolbarItem[] })
+            batch[key] = res as ChatToolbarItem[]
           }
         } else if (key !== 'aiModelList') {
-          set({ [key]: res })
+          batch[key] = res
         }
       } else {
         await store.set(key, value)
       }
-    })
+    }
+
+    // Single set() call for all loaded values
+    if (Object.keys(batch).length > 0) {
+      set(batch)
+    }
+
+    // templateList two-phase update
+    if (templateListValue !== null) {
+      set({ templateList: [] })
+      setTimeout(() => {
+        set({ templateList: templateListValue })
+      }, 0)
+    }
   },
 
   version: '',

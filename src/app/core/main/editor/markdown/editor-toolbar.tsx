@@ -35,6 +35,7 @@ import {
   Sigma,
   GitBranch,
   Search,
+  Save,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
@@ -67,13 +68,15 @@ interface EditorToolbarProps {
   onAIExpand?: () => void
   onAIOrganize?: () => void
   onQuoteToChat?: () => void
+  onSave?: () => void
+  isDirty?: boolean
 }
 
 type ToolbarItem =
   | { type: 'button'; name: string; icon: React.ComponentType<{ className?: string }>; action: () => void; isActive: () => boolean }
   | { type: 'separator' }
 
-export function EditorToolbar({ editor, onAIPolish, onAIConcise, onAIExpand, onAIOrganize, onQuoteToChat }: EditorToolbarProps) {
+export function EditorToolbar({ editor, onAIPolish, onAIConcise, onAIExpand, onAIOrganize, onQuoteToChat, onSave, isDirty }: EditorToolbarProps) {
   const t = useTranslations('editor')
   const [linkUrl, setLinkUrl] = useState('')
   const [showLinkInput, setShowLinkInput] = useState(false)
@@ -321,6 +324,26 @@ export function EditorToolbar({ editor, onAIPolish, onAIConcise, onAIExpand, onA
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* Save button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              className={cn(
+                "p-1.5 rounded hover:bg-muted transition-colors shrink-0",
+                isDirty ? "text-primary" : "text-muted-foreground"
+              )}
+              onClick={onSave}
+              disabled={!isDirty}
+            >
+              <Save className="w-4 h-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" sideOffset={4}>
+            <p>{t('toolbar.save')} (Ctrl+S)</p>
+          </TooltipContent>
+        </Tooltip>
 
         <div className="w-px h-5 bg-border mx-1 shrink-0" />
 

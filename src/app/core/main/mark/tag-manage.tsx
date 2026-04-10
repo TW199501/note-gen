@@ -372,10 +372,16 @@ export function TagManage() {
     }
   }, [highlightedMarkId, setHighlightedMarkId])
 
+  const prevVisibleMarkIdsRef = React.useRef<number[]>([])
   React.useEffect(() => {
-    setVisibleMarkIds(visibleMarkIds)
+    const prev = prevVisibleMarkIdsRef.current
+    if (prev.length !== visibleMarkIds.length || prev.some((id, i) => id !== visibleMarkIds[i])) {
+      prevVisibleMarkIdsRef.current = visibleMarkIds
+      setVisibleMarkIds(visibleMarkIds)
+    }
     return () => setVisibleMarkIds([])
-  }, [setVisibleMarkIds, visibleMarkIds])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleMarkIds])
 
   const renderTagRecords = React.useCallback((tagId: number) => {
     const filteredMarks = getFilteredTagMarks(tagId).filter((mark: Mark) => {

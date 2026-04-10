@@ -2067,6 +2067,7 @@
     "screenshot": "Screenshot to AI",
     "loading": "Loading...",
     "vlmRequired": "Vision model required for screenshots",
+    "settings": "Settings",
     "clearData": "Clear browser data",
     "clearDataConfirm": "This will clear all browser cache, cookies and history. Continue?",
     "bookmark": {
@@ -2827,6 +2828,7 @@
       "image": "Image",
       "link": "Link",
       "ai": "AI",
+      "save": "Save",
       "moreInsert": "More Insert",
       "inlineMath": "Inline Math",
       "blockMath": "Block Math",
