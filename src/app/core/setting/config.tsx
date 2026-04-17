@@ -137,6 +137,8 @@ export interface AiConfig {
   modelType?: ModelType
   voice?: string
   speed?: number
+  pitch?: number
+  style?: string
   enableStream?: boolean
 }
 

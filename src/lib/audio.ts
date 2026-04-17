@@ -82,7 +82,13 @@ export function resolveCurrentSpeechEngine(task: SpeechTask) {
 /**
  * 调用音频AI模型接口生成语音
  */
-export async function fetchAudioSpeech(text: string, customVoice?: string, customSpeed?: number): Promise<ArrayBuffer> {
+export async function fetchAudioSpeech(
+  text: string,
+  customVoice?: string,
+  customSpeed?: number,
+  customPitch?: number,
+  customStyle?: string
+): Promise<ArrayBuffer> {
   const { aiModelList, audioModel } = useSettingStore.getState()
   
   if (!audioModel) {
@@ -108,6 +114,8 @@ export async function fetchAudioSpeech(text: string, customVoice?: string, custo
           temperature: targetModel.temperature,
           topP: targetModel.topP,
           voice: targetModel.voice,
+          pitch: targetModel.pitch,
+          style: targetModel.style,
           enableStream: targetModel.enableStream
         }
         break
@@ -133,12 +141,16 @@ export async function fetchAudioSpeech(text: string, customVoice?: string, custo
   const voice = customVoice || audioConfig.voice || 'alloy'
   // 使用自定义speed或配置的speed，默认为1
   const speed = customSpeed !== undefined ? customSpeed : (audioConfig.speed !== undefined ? audioConfig.speed : 1)
+  const pitch = customPitch !== undefined ? customPitch : audioConfig.pitch
+  const style = customStyle || audioConfig.style
 
   const requestBody: AudioSpeechRequest = {
     model: audioConfig.model || 'tts-1',
     input: text,
     voice: voice,
-    speed: speed
+    speed: speed,
+    ...(pitch !== undefined ? { pitch } : {}),
+    ...(style ? { style } : {}),
   }
 
   try {
