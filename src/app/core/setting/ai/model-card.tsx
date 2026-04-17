@@ -16,9 +16,8 @@ import { ModelConfig, ModelType, AiConfig } from "../config"
 import { useTranslations } from 'next-intl'
 import ModelSelect from "./modelSelect"
 import { useState, useRef } from "react"
-import { createOpenAIClient, isAnthropicProvider, createAnthropicClient } from "@/lib/ai/utils"
 import { toast } from "@/hooks/use-toast"
-import { blobToBytes, invokeAiBinary, invokeAiJson, invokeAiMultipart } from "@/lib/ai/tauri-client"
+import { checkModelConnection } from "@/lib/ai/check-status"
 
 interface ModelCardProps {
   modelConfig: ModelConfig
@@ -61,139 +60,14 @@ export default function ModelCard({ modelConfig, aiConfig, onUpdate, onDelete }:
   }
 
   const checkModelStatus = async (model: ModelConfig, aiConfig: AiConfig, signal?: AbortSignal) => {
-    try {
-      if (!model.model || !aiConfig.baseURL) return false
-
-      const fullAiConfig: AiConfig = {
-        ...aiConfig,
-        model: model.model,
-        modelType: model.modelType,
-        temperature: model.temperature,
-        topP: model.topP,
-        voice: model.voice,
-        enableStream: model.enableStream
-      }
-
-      switch (model.modelType) {
-        case 'rerank':
-          const query = 'Apple'
-          const documents = ["apple","banana","fruit","vegetable"]
-          const rerankData = await invokeAiJson<any>({
-            config: {
-              baseUrl: aiConfig.baseURL,
-              apiKey: aiConfig.apiKey,
-              customHeaders: aiConfig.customHeaders,
-            },
-            path: '/rerank',
-            method: 'POST',
-            body: {
-              model: model.model,
-              query,
-              documents
-            }
-          }, signal)
-          if (!rerankData || !rerankData.results) {
-            throw new Error('重排序结果格式不正确')
-          }
-          return true
-
-        case 'embedding':
-          const testText = '测试文本'
-          const embeddingDataJson = await invokeAiJson<any>({
-            config: {
-              baseUrl: aiConfig.baseURL,
-              apiKey: aiConfig.apiKey,
-              customHeaders: aiConfig.customHeaders,
-            },
-            path: '/embeddings',
-            method: 'POST',
-            body: {
-              model: model.model,
-              input: testText,
-              encoding_format: 'float'
-            }
-          }, signal)
-          if (!embeddingDataJson || !embeddingDataJson.data || !embeddingDataJson.data[0] || !embeddingDataJson.data[0].embedding) {
-            throw new Error('嵌入结果格式不正确')
-          }
-          return true
-
-        case 'tts':
-          const testAudioText = '测试音频生成'
-          const ttsBuffer = await invokeAiBinary({
-            config: {
-              baseUrl: aiConfig.baseURL,
-              apiKey: aiConfig.apiKey,
-              customHeaders: aiConfig.customHeaders,
-            },
-            path: '/audio/speech',
-            method: 'POST',
-            body: {
-              model: model.model,
-              input: testAudioText,
-              voice: model.voice || 'alloy'
-            }
-          }, signal)
-          if (!ttsBuffer.byteLength) {
-            throw new Error('TTS模型返回格式不正确')
-          }
-          return true
-
-        case 'stt':
-          const testAudioBlob = new Blob([new Uint8Array(100)], { type: 'audio/webm' })
-          try {
-            await invokeAiMultipart({
-              config: {
-                baseUrl: aiConfig.baseURL,
-                apiKey: aiConfig.apiKey,
-                customHeaders: aiConfig.customHeaders,
-              },
-              path: '/audio/transcriptions',
-              fileFieldName: 'file',
-              fields: {
-                model: model.model
-              },
-              file: {
-                bytes: await blobToBytes(testAudioBlob),
-                fileName: 'test.webm',
-                contentType: 'audio/webm',
-              }
-            }, signal)
-          } catch (error) {
-            const message = error instanceof Error ? error.message : String(error)
-            if (message.includes('401') || message.includes('403')) {
-              throw new Error(message)
-            }
-          }
-          return true
-
-        default:
-          if (isAnthropicProvider(fullAiConfig)) {
-            const anthropic = await createAnthropicClient(fullAiConfig)
-            await anthropic.messages.create({
-              model: model.model,
-              max_tokens: 10,
-              messages: [{ role: 'user', content: 'Hello' }],
-            })
-          } else {
-            const openai = await createOpenAIClient(fullAiConfig)
-            await openai.chat.completions.create({
-              model: model.model,
-              messages: [{
-                role: 'user' as const,
-                content: 'Hello'
-              }],
-            })
-          }
-          return true
-      }
-    } catch (error) {
+    const result = await checkModelConnection(aiConfig, model, signal)
+    if (!result.ok && result.error) {
       toast({
-        description: error instanceof Error ? error.message : 'Error',
+        description: result.error,
         variant: 'destructive'
       })
-      return false
     }
+    return result.ok
   }
 
   const renderCheckIcon = () => {
