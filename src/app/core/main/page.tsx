@@ -181,6 +181,7 @@ function ResizableWrapper() {
         ref={leftPanelRef}
         defaultSize={actualLayout[index++]}
         minSize={minSidebarSize}
+        maxSize={40}
         collapsible={true}
         collapsedSize={0}
       >

@@ -107,6 +107,49 @@ function createRequestId() {
     : `${Date.now()}-${Math.random()}`
 }
 
+/**
+ * Make a JSON request using Tauri HTTP plugin's fetch, bypassing Rust serde_json.
+ * This avoids parsing failures from non-standard escape sequences (\xNN etc.)
+ * that some AI providers include in their responses.
+ */
+async function fetchJsonDirect<T>(
+  config: ReturnType<typeof normalizeConfig>,
+  path: string,
+  body: unknown,
+  signal?: AbortSignal
+): Promise<T> {
+  const baseUrl = config.baseUrl.replace(/\/+$/, '')
+  const url = `${baseUrl}${path.startsWith('/') ? path : '/' + path}`
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+  if (config.apiKey) {
+    headers['Authorization'] = `Bearer ${config.apiKey}`
+  }
+  if (config.customHeaders) {
+    Object.assign(headers, config.customHeaders)
+  }
+
+  // Use Tauri HTTP plugin fetch (respects CSP and proxy settings)
+  const { fetch: tauriFetch } = await import('@tauri-apps/plugin-http')
+  const response = await tauriFetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+    signal: signal as AbortSignal | undefined,
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => '')
+    throw new Error(`Request failed: ${response.status} ${errorText}`)
+  }
+
+  const text = await response.text()
+  // JS JSON.parse is more lenient and handles the response correctly
+  return JSON.parse(text) as T
+}
+
 function normalizeConfig(aiConfig?: AiConfig) {
   return {
     baseUrl: aiConfig?.baseURL || '',
@@ -274,12 +317,11 @@ export function createTauriOpenAIClient(aiConfig?: AiConfig): OpenAICompatibleCl
             }, options?.signal)
           }
 
-          return invokeAiJson<OpenAI.Chat.ChatCompletion>({
-            config,
-            path: '/chat/completions',
-            method: 'POST',
-            body,
-          }, options?.signal)
+          // Use fetch directly (via Tauri HTTP plugin) to avoid Rust serde_json
+          // parsing issues with non-standard escape sequences from some AI providers
+          return fetchJsonDirect<OpenAI.Chat.ChatCompletion>(
+            config, '/chat/completions', body, options?.signal
+          )
         }) as ChatCompletionCreate,
       },
     },

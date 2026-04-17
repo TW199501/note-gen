@@ -73,7 +73,7 @@ export function OrganizeFiles({ open, onOpenChange }: OrganizeFilesProps) {
   }, [])
 
   const handleAnalyze = useCallback(async () => {
-    const organizeConfig = await getAISettings('organizeModel')
+    const organizeConfig = await getAISettings('organizeModel') || await getAISettings('primaryModel')
     if (!organizeConfig) {
       toast({
         title: t('noModel'),
@@ -128,10 +128,19 @@ Rules:
 Return ONLY a valid JSON array with this format, no other text:
 [{"fileName":"original.md","folder":"folder-name","newFileName":"better-name.md","reason":"brief reason"}]`
 
-      const result = await fetchAi(prompt, 'organizeModel')
+      const modelType = (await getAISettings('organizeModel')) ? 'organizeModel' : 'primaryModel'
+      const result = await fetchAi(prompt, modelType)
+
+      if (!result || result.trim().length === 0) {
+        toast({ description: t('analyzeError'), variant: 'destructive' })
+        setStep('idle')
+        setLoading(false)
+        return
+      }
 
       const jsonMatch = result.match(/\[[\s\S]*\]/)
       if (!jsonMatch) {
+        console.error('AI returned non-JSON:', result.substring(0, 500))
         toast({ description: t('analyzeError'), variant: 'destructive' })
         setStep('idle')
         setLoading(false)
@@ -153,8 +162,9 @@ Return ONLY a valid JSON array with this format, no other text:
       setStep('review')
     } catch (error) {
       console.error('Analyze error:', error)
+      const errMsg = error instanceof Error ? error.message : String(error)
       toast({
-        description: t('analyzeError'),
+        description: `${t('analyzeError')}: ${errMsg}`,
         variant: 'destructive',
       })
       setStep('idle')

@@ -13,7 +13,8 @@ export async function fetchAi(
   messages?: OpenAI.Chat.ChatCompletionMessageParam[]
 ): Promise<string> {
   try {
-    const aiConfig = await getAISettings(modelType)
+    // 如果指定的模型类型没有配置，回退到 primaryModel
+    const aiConfig = await getAISettings(modelType) || (modelType ? await getAISettings('primaryModel') : undefined)
 
     // 验证AI服务
     if (await validateAIService(aiConfig?.baseURL) === null) return ''

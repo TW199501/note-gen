@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - release
+  workflow_dispatch:
 
 jobs:
   build-android:
@@ -199,27 +200,6 @@ jobs:
         run: |
           rm -f src-tauri/android-release.keystore
 
-  upgradeLink-upload-android:
-    needs: build-android
-    permissions:
-      contents: write
-    runs-on: ubuntu-latest
-    steps:
-      - name: Send Android APK to UpgradeLink
-        uses: toolsetlink/upgradelink-action@3.0.2
-        with:
-          access_key: ${{ secrets.UPGRADE_LINK_ACCESS_KEY }}
-          access_secret: ${{ secrets.UPGRADE_LINK_ACCESS_SECRET }}
-          config: |
-            {
-              "app_type": "file",
-              "request": {
-                "app_key": "${{ secrets.UPGRADE_LINK_ANDROID_APP_KEY }}",
-                "version": "${{ needs.build-android.outputs.appVersion }}",
-                "url": "https://github.com/${{ github.repository }}/releases/download/note-gen-v${{ needs.build-android.outputs.appVersion }}/NoteGen_${{ needs.build-android.outputs.appVersion }}_android-universal.apk",
-                "prompt_upgrade_content": "新版本已发布，包含重要功能更新和 bug 修复"
-              }
-            }
 
   publish-tauri:
     outputs:
@@ -332,22 +312,3 @@ jobs:
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           security delete-keychain $KEYCHAIN_PATH || true
 
-  upgradeLink-upload:
-    needs: publish-tauri
-    permissions:
-      contents: write
-    runs-on: ubuntu-latest
-    steps:
-      - name: Send a request to UpgradeLink
-        uses: toolsetlink/upgradelink-action@3.0.2
-        with:
-          access_key: ${{ secrets.UPGRADE_LINK_ACCESS_KEY }}
-          access_secret: ${{ secrets.UPGRADE_LINK_ACCESS_SECRET }}
-          config: |
-            {
-              "app_type": "tauri",
-              "request": {
-                "app_key": "${{ secrets.UPGRADE_LINK_TAURI_KEY }}",
-                "latest_json_url": "https://github.com/${{ github.repository }}/releases/download/note-gen-v${{ needs.publish-tauri.outputs.appVersion }}/latest.json"
-              }
-            }

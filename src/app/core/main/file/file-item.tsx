@@ -62,8 +62,9 @@ function buildFileRenamePlan({
 export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?: () => void }) {
   const [isEditing, setIsEditing] = useState(item.isEditing)
   const [name, setName] = useState(item.name)
-  const [isComposing, setIsComposing] = useState(false) // 追踪输入法合成状态
+  const [isComposing, setIsComposing] = useState(false) // 追蹤輸入法合成狀態
   const inputRef = useRef<HTMLInputElement>(null)
+  const itemRef = useRef<HTMLDivElement>(null)
   const { activeFilePath, setActiveFilePath, readArticle, fileTree, setFileTree, loadFileTree, vectorIndexedFiles, checkFileVectorIndexed, cleanTabsByDeletedFile, cleanTabsByDeletedFolder } = useArticleStore()
   const setArticleState = useArticleStore.setState
   const { setClipboardItem, clipboardItem, clipboardOperation } = useClipboardStore()
@@ -71,7 +72,7 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
   const t = useTranslations('article.file')
   const isMobile = useIsMobile()
 
-  // 检查路径是否在 skills 文件夹下
+  // 檢查路徑是否在 skills 資料夾下
   const isInSkillsFolder = (itemPath: string): boolean => {
     const parts = itemPath.split('/')
     return parts.some(part => isSkillsFolder(part))
@@ -79,12 +80,19 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
 
   const path = computedParentPath(item)
 
-  // 向量状态更新回调
+  // 當檔案成為 active 時自動滾動到可見範圍
+  useEffect(() => {
+    if (path === activeFilePath && itemRef.current) {
+      itemRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    }
+  }, [activeFilePath, path])
+
+  // 向量狀態更新回撥
   const handleVectorUpdated = useCallback(() => {
     checkFileVectorIndexed(path)
   }, [path, checkFileVectorIndexed])
 
-  // 根据文字大小映射图标大小
+  // 根據文字大小對映圖示大小
   const getIconSize = (textSize: string) => {
     const sizeMap = {
       'xs': 'size-3',
@@ -98,13 +106,13 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
 
   const iconSize = getIconSize(fileManagerTextSize)
 
-  // 检查文件是否被剪切
+  // 檢查檔案是否被剪下
   const isCut = clipboardOperation === 'cut' && clipboardItem?.path === path
 
-  // 检查文件是否已计算向量（skills 文件夹下的文件不显示）
+  // 檢查檔案是否已計算向量（skills 資料夾下的檔案不顯示）
   const hasVector = item.isFile && !isInSkillsFolder(path) && vectorIndexedFiles.has(path)
 
-  // 向量计算状态图标
+  // 向量計算狀態圖示
   const renderVectorIcon = () => {
     if (isInSkillsFolder(path)) return null
 
@@ -120,27 +128,27 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
 
   const isRoot = path.split('/').length === 1
   const folderPath = path.includes('/') ? path.split('/').slice(0, -1).join('/') : ''
-  // 不需要 cloneDeep，因为 getCurrentFolder 只读取数据不修改
+  // 不需要 cloneDeep，因為 getCurrentFolder 只讀取資料不修改
   const currentFolder = getCurrentFolder(folderPath, fileTree)
 
-  // 优化的输入处理，支持输入法
+  // 最佳化的輸入處理，支援輸入法
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target
     const value = input.value
     const cursorPosition = input.selectionStart || 0
     
-    // 如果正在使用输入法合成，不进行空格替换
+    // 如果正在使用輸入法合成，不進行空格替換
     if (isComposing) {
       setName(value)
       return
     }
     
-    // 检查是否包含空格，只有包含空格时才需要处理光标位置
+    // 檢查是否包含空格，只有包含空格時才需要處理游標位置
     if (value.includes(' ')) {
       const sanitizedValue = value.replace(/\s+/g, '_')
       setName(sanitizedValue)
       
-      // 保持光标位置
+      // 保持游標位置
       requestAnimationFrame(() => {
         if (input.selectionStart !== null) {
           input.setSelectionRange(cursorPosition, cursorPosition)
@@ -151,24 +159,24 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
     }
   }, [isComposing])
 
-  // 输入法合成开始
+  // 輸入法合成開始
   const handleCompositionStart = useCallback(() => {
     setIsComposing(true)
   }, [])
 
-  // 输入法合成结束，进行空格替换
+  // 輸入法合成結束，進行空格替換
   const handleCompositionEnd = useCallback((e: React.CompositionEvent<HTMLInputElement>) => {
     setIsComposing(false)
     const input = e.currentTarget
     const value = input.value
     const cursorPosition = input.selectionStart || 0
     
-    // 只有当值包含空格时才需要替换和恢复光标位置
+    // 只有當值包含空格時才需要替換和恢復游標位置
     if (value.includes(' ')) {
       const sanitizedValue = value.replace(/\s+/g, '_')
       setName(sanitizedValue)
       
-      // 计算新的光标位置（空格变为下划线，长度不变，所以位置保持不变）
+      // 計算新的游標位置（空格變為下劃線，長度不變，所以位置保持不變）
       requestAnimationFrame(() => {
         if (input.selectionStart !== null) {
           input.setSelectionRange(cursorPosition, cursorPosition)
@@ -180,101 +188,101 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
   }, [])
 
   async function handleSelectFile() {
-    // 让文件管理器获得焦点，以便响应快捷键
+    // 讓檔案管理器獲得焦點，以便響應快捷鍵
     focusSidebar?.()
     const currentPath = computedParentPath(item)
 
     if (item.name.match(/\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i)) {
-      // 图片文件：设置 activeFilePath，让 EditorLayout 显示图片编辑器
+      // 圖片檔案：設定 activeFilePath，讓 EditorLayout 顯示圖片編輯器
       setActiveFilePath(currentPath)
     } else if (item.name.match(/\.(md|txt|markdown|py|js|ts|jsx|tsx|css|scss|less|html|xml|json|yaml|yml|sh|bash|java|c|cpp|h|go|rs|sql|rb|php|vue|svelte|astro|toml|ini|conf|cfg|gitignore|env|example|template)$/i)) {
-      // Markdown/文本文件：设置 activeFilePath
+      // Markdown/文字檔案：設定 activeFilePath
       setActiveFilePath(currentPath)
 
-      // 检查是否是远程文件
-      // 读取内容的逻辑移到 EditorLayout 中处理，避免重复渲染
+      // 檢查是否是遠端檔案
+      // 讀取內容的邏輯移到 EditorLayout 中處理，避免重複渲染
     } else {
-      // 其他文件类型：设置 activeFilePath，让 EditorLayout 显示 UnsupportedFile 组件
+      // 其他檔案型別：設定 activeFilePath，讓 EditorLayout 顯示 UnsupportedFile 元件
       setActiveFilePath(currentPath)
     }
   }
 
   async function handleDeleteFile() {
-    // 添加确认弹窗
+    // 新增確認彈窗
     const answer = await ask(t('deleteConfirm'), {
       title: item.name,
       kind: 'warning',
     });
-    // 如果用户确认删除，则继续执行
+    // 如果使用者確認刪除，則繼續執行
     if (answer) {
       try {
-        // 获取工作区路径信息
+        // 獲取工作區路徑資訊
         const { getFilePathOptions, getWorkspacePath } = await import('@/lib/workspace')
         const workspace = await getWorkspacePath()
 
-        // 使用当前路径，而不是重新计算的路径
+        // 使用當前路徑，而不是重新計算的路徑
         const currentPath = computedParentPath(item)
 
-        // 根据工作区类型正确删除文件
+        // 根據工作區型別正確刪除檔案
         const pathOptions = await getFilePathOptions(currentPath)
 
         if (workspace.isCustom) {
-          // 自定义工作区
+          // 自定義工作區
           await remove(pathOptions.path)
         } else {
-          // 默认工作区
+          // 預設工作區
           await remove(pathOptions.path, { baseDir: pathOptions.baseDir })
         }
 
-        // 更新文件树
+        // 更新檔案樹
         if (currentFolder) {
           const index = currentFolder.children?.findIndex(file => file.name === item.name)
           if (index !== undefined && index !== -1 && currentFolder.children) {
             const current = currentFolder.children[index]
             if (current.sha) {
-              // 有云端版本：只标记为非本地文件，保留云端文件
+              // 有云端版本：只標記為非本地檔案，保留雲端檔案
               current.isLocale = false
             } else {
-              // 纯本地文件：直接从文件树中移除
+              // 純本地檔案：直接從檔案樹中移除
               currentFolder.children.splice(index, 1)
             }
           }
         } else {
-          // 根目录文件：需要克隆 fileTree 来更新
+          // 根目錄檔案：需要克隆 fileTree 來更新
           const cacheTree = cloneDeep(fileTree)
           const index = cacheTree.findIndex(file => file.name === item.name)
           if (index !== undefined && index !== -1) {
             const current = cacheTree[index]
             if (current.sha) {
-              // 有云端版本：只标记为非本地文件，保留云端文件
+              // 有云端版本：只標記為非本地檔案，保留雲端檔案
               current.isLocale = false
             } else {
-              // 纯本地文件：直接从文件树中移除
+              // 純本地檔案：直接從檔案樹中移除
               cacheTree.splice(index, 1)
             }
           }
           setFileTree(cacheTree)
         }
 
-        // 删除向量数据库中的记录
+        // 刪除向量資料庫中的記錄
         try {
           const { deleteVectorDocumentsByFilename } = await import('@/db/vector')
           await deleteVectorDocumentsByFilename(path)
-          // 从向量索引映射中移除
+          // 從向量索引對映中移除
           const newMap = new Map(vectorIndexedFiles)
           newMap.delete(path)
           setArticleState({ vectorIndexedFiles: newMap })
         } catch (error) {
-          console.error(`删除文件 ${item.name} 的向量数据失败:`, error)
+          console.error(`刪除檔案 ${item.name} 的向量資料失敗:`, error)
         }
 
-        // 清理已被删除的文件对应的 tabs（包括自动选择其他 tab）
+        // 清理已被刪除的檔案對應的 tabs（包括自動選擇其他 tab）
         await cleanTabsByDeletedFile(currentPath)
       } catch (error) {
         console.error('Delete file failed:', error)
         toast({
           title: t('context.deleteLocalFile'),
-          description: '删除文件失败: ' + error,
+          description: '刪除檔案失敗: ' + error,
           variant: 'destructive'
         })
       }
@@ -289,7 +297,7 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
     if (answer) {
       const currentPath = computedParentPath(item)
 
-      // 设置 loading 状态
+      // 設定 loading 狀態
       const cacheTree = cloneDeep(fileTree)
       const setLoadingStatus = (items: typeof cacheTree): boolean => {
         for (const entry of items) {
@@ -309,7 +317,7 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
       }
 
       try {
-        // 获取当前主要备份方式
+        // 獲取當前主要備份方式
         const store = await Store.load('store.json');
         const backupMethod = await store.get<'github' | 'gitee' | 'gitlab' | 'gitea' | 's3' | 'webdav'>('primaryBackupMethod') || 'github';
         const repoName = backupMethod === 's3' || backupMethod === 'webdav'
@@ -357,21 +365,21 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
         }
 
         if (success) {
-          // 只更新当前文件的状态，不刷新整个文件树
+          // 只更新當前檔案的狀態，不重新整理整個檔案樹
           const cacheTree = cloneDeep(fileTree)
 
-          // 递归查找并更新/删除文件
+          // 遞迴查詢並更新/刪除檔案
           const updateOrRemoveFile = (items: typeof cacheTree): boolean => {
             for (let i = 0; i < items.length; i++) {
               const entry = items[i]
               const entryPath = computedParentPath(entry)
               if (entryPath === currentPath && entry.isFile) {
                 if (entry.isLocale) {
-                  // 本地存在：只清除远程 SHA
+                  // 本地存在：只清除遠端 SHA
                   entry.sha = undefined
                   entry.loading = undefined
                 } else {
-                  // 本地不存在：从列表中移除
+                  // 本地不存在：從列表中移除
                   items.splice(i, 1)
                 }
                 return true
@@ -392,7 +400,7 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
             description: t('context.deleteSyncFileSuccess'),
           });
         } else {
-          // 删除失败，清除 loading 状态
+          // 刪除失敗，清除 loading 狀態
           const cacheTree = cloneDeep(fileTree)
           const clearLoadingStatus = (items: typeof cacheTree): boolean => {
             for (const entry of items) {
@@ -410,10 +418,10 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
           if (clearLoadingStatus(cacheTree)) {
             setFileTree(cacheTree)
           }
-          throw new Error('删除操作返回失败')
+          throw new Error('刪除操作返回失敗')
         }
       } catch (error) {
-        // 删除失败，清除 loading 状态
+        // 刪除失敗，清除 loading 狀態
         const cacheTree = cloneDeep(fileTree)
         const clearLoadingStatus = (items: typeof cacheTree): boolean => {
           for (const entry of items) {
@@ -431,7 +439,7 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
         if (clearLoadingStatus(cacheTree)) {
           setFileTree(cacheTree)
         }
-        console.error('[handleDeleteSyncFile] 删除远程文件失败:', error);
+        console.error('[handleDeleteSyncFile] 刪除遠端檔案失敗:', error);
         toast({
           title: t('context.delete'),
           description: t('context.deleteSyncFileError'),
@@ -442,14 +450,14 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
   }
 
   async function handleStartRename() {
-    // 延迟执行，确保上下文菜单完全关闭
+    // 延遲執行，確保上下文選單完全關閉
     setTimeout(() => {
       setIsEditing(true)
       setTimeout(() => {
         const input = inputRef.current
         if (input) {
           input.focus()
-          // 只选中文件名，不包含扩展名
+          // 只選中檔名，不包含副檔名
           const lastDotIndex = item.name.lastIndexOf('.')
           if (lastDotIndex > 0) {
             input.setSelectionRange(0, lastDotIndex)
@@ -462,7 +470,7 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
   }
 
   async function handleRename() {
-    // 获取工作区路径信息
+    // 獲取工作區路徑資訊
     const { getFilePathOptions, getWorkspacePath } = await import('@/lib/workspace')
     const workspace = await getWorkspacePath()
     const originalName = item.name
@@ -471,13 +479,13 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
     
     let finalName = name
     
-    // 如果输入为空字符串，生成默认文件名
+    // 如果輸入為空字串，生成預設檔名
     if (!name || name.trim() === '') {
       const parentPath = path.includes('/') ? path.split('/').slice(0, -1).join('/') : ''
       finalName = await generateUniqueFilename(parentPath)
       setName(finalName)
     } else {
-      // 统一处理：将空格替换为下划线，确保本地和远程文件名一致
+      // 統一處理：將空格替換為下劃線，確保本地和遠端檔名一致
       finalName = name.replace(/\s+/g, '_')
       setName(finalName)
     }
@@ -490,7 +498,7 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
       })
       const { displayName, operation, targetRelativePath } = renamePlan
       
-      // 更新缓存树中的名称
+      // 更新快取樹中的名稱
       if (nextFolder && nextFolder.children) {
         const fileIndex = nextFolder?.children?.findIndex(file => file.name === originalName)
         if (fileIndex !== undefined && fileIndex !== -1) {
@@ -506,14 +514,14 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
       }
       setFileTree(nextTree)
       
-      // 确定是重命名现有文件还是创建新文件
+      // 確定是重新命名現有檔案還是建立新檔案
       if (operation === 'rename') {
-        // 重命名现有文件
-        // 获取源路径和目标路径
+        // 重新命名現有檔案
+        // 獲取源路徑和目標路徑
         const oldPathOptions = await getFilePathOptions(path)
         const newPathOptions = await getFilePathOptions(targetRelativePath)
         
-        // 根据工作区类型执行重命名操作
+        // 根據工作區型別執行重新命名操作
         if (workspace.isCustom) {
           await rename(oldPathOptions.path, newPathOptions.path)
         } else {
@@ -523,10 +531,10 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
           })
         }
       } else {
-        // 创建新文件
+        // 建立新檔案
         const pathOptions = await getFilePathOptions(targetRelativePath)
         
-        // 检查文件是否已存在
+        // 檢查檔案是否已存在
         let isExists = false
         if (workspace.isCustom) {
           isExists = await exists(pathOptions.path)
@@ -535,11 +543,11 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
         }
         
         if (isExists) {
-          toast({ title: '文件名已存在' })
+          toast({ title: '檔名已存在' })
           setTimeout(() => inputRef.current?.focus(), 300);
           return
         } else {
-          // 创建新文件
+          // 建立新檔案
           if (workspace.isCustom) {
             await writeTextFile(pathOptions.path, '')
           } else {
@@ -548,19 +556,19 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
         }
       }
       
-      // 构建新文件的完整路径用于激活文件
+      // 構建新檔案的完整路徑用於啟用檔案
       let newPath = targetRelativePath
-      // 判断 newPath 是否以 / 开头
+      // 判斷 newPath 是否以 / 開頭
       if (newPath.startsWith('/')) {
         newPath = newPath.slice(1)
       }
       setActiveFilePath(newPath)
-      // 新建文件后自动选择该文件并读取内容
+      // 新建檔案後自動選擇該檔案並讀取內容
       readArticle(newPath, '', shouldAutoSyncOnInitialRead({ isNewFile: true }))
     } else {
-      // 处理取消创建或无变更的情况
+      // 處理取消建立或無變更的情況
       if (originalName === '') {
-        // 只有当原文件名为空（新建文件）时才删除列表项
+        // 只有當原檔名為空（新建檔案）時才刪除列表項
         if (currentFolder && currentFolder.children) {
           const index = currentFolder?.children?.findIndex(item => item.name === '')
           if (index !== undefined && index !== -1 && currentFolder?.children) {
@@ -568,7 +576,7 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
           }
           setFileTree(fileTree)
         } else {
-          // 根目录文件：需要克隆 fileTree 来更新
+          // 根目錄檔案：需要克隆 fileTree 來更新
           const cacheTree = cloneDeep(fileTree)
           const index = cacheTree.findIndex(item => item.name === '')
           if (index !== -1) {
@@ -577,7 +585,7 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
           setFileTree(cacheTree)
         }
       } else {
-        // 对于重命名现有文件，如果没有输入新名称，则保持原状态
+        // 對於重新命名現有檔案，如果沒有輸入新名稱，則保持原狀態
         if (currentFolder && currentFolder.children) {
           const fileIndex = currentFolder?.children?.findIndex(file => file.name === item.name)
           if (fileIndex !== undefined && fileIndex !== -1) {
@@ -585,7 +593,7 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
           }
           setFileTree(fileTree)
         } else {
-          // 根目录文件：需要克隆 fileTree 来更新
+          // 根目錄檔案：需要克隆 fileTree 來更新
           const cacheTree = cloneDeep(fileTree)
           const fileIndex = cacheTree.findIndex(file => file.name === item.name)
           if (fileIndex !== -1 && fileIndex !== undefined) {
@@ -600,20 +608,20 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
   }
 
   async function handleShowFileManager() {
-    // 获取工作区路径信息
+    // 獲取工作區路徑資訊
     const { getFilePathOptions, getWorkspacePath } = await import('@/lib/workspace')
     const workspace = await getWorkspacePath()
     
-    // 确定文件所在的目录路径
+    // 確定檔案所在的目錄路徑
     const folderPath = item.parent ? computedParentPath(item.parent) : ''
     
-    // 根据工作区类型确定正确的路径
+    // 根據工作區型別確定正確的路徑
     if (workspace.isCustom) {
-      // 自定义工作区 - 直接使用工作区路径
+      // 自定義工作區 - 直接使用工作區路徑
       const pathOptions = await getFilePathOptions(folderPath)
       openPath(pathOptions.path)
     } else {
-      // 默认工作区 - 使用 AppData 目录
+      // 預設工作區 - 使用 AppData 目錄
       const appDir = await appDataDir()
       openPath(await join(appDir, 'article', folderPath))
     }
@@ -655,21 +663,21 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
       const { getFilePathOptions, getWorkspacePath } = await import('@/lib/workspace')
       const workspace = await getWorkspacePath()
 
-      // 粘贴目标：文件所在的目录（同级粘贴）
+      // 貼上目標：檔案所在的目錄（同級貼上）
       const targetDir = path.includes('/') ? path.split('/').slice(0, -1).join('/') : ''
 
-      // 检查是否会造成循环嵌套
+      // 檢查是否會造成迴圈巢狀
       if (clipboardItem.isDirectory) {
-        // 检查是否粘贴到其子文件夹内部（targetDir 以 clipboardItem.path/ 开头）
-        // 注意：允许粘贴到自身内部（targetDir === clipboardItem.path），但需要特殊处理避免循环
+        // 檢查是否貼上到其子資料夾內部（targetDir 以 clipboardItem.path/ 開頭）
+        // 注意：允許貼上到自身內部（targetDir === clipboardItem.path），但需要特殊處理避免迴圈
         if (targetDir.startsWith(clipboardItem.path + '/')) {
-          toast({ title: '无法将父文件夹粘贴到其子文件夹内部', variant: 'destructive' })
+          toast({ title: '無法將父資料夾貼上到其子資料夾內部', variant: 'destructive' })
           return
         }
       }
 
       if (clipboardItem.isDirectory) {
-        // 粘贴文件夹
+        // 貼上資料夾
         const { generateCopyFoldername } = await import('@/lib/default-filename')
         const { mkdir, readDir } = await import('@tauri-apps/plugin-fs')
 
@@ -678,17 +686,17 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
         const targetPathOptions = await getFilePathOptions(targetPathRelative)
         const sourcePathOptions = await getFilePathOptions(clipboardItem.path)
 
-        // 检查是否是粘贴到自身内部（需要避免循环引用）
+        // 檢查是否是貼上到自身內部（需要避免迴圈引用）
         const isPasteIntoSelf = targetDir === clipboardItem.path
 
-        // 创建目标文件夹
+        // 建立目標資料夾
         if (workspace.isCustom) {
           await mkdir(targetPathOptions.path)
         } else {
           await mkdir(targetPathOptions.path, { baseDir: targetPathOptions.baseDir })
         }
 
-        // 递归复制文件夹内容
+        // 遞迴複製資料夾內容
         const copyDirRecursively = async (srcRelative: string, destRelative: string) => {
           const entries = await readDir(
             srcRelative,
@@ -700,7 +708,7 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
             const destEntryPath = `${destRelative}/${entry.name}`
 
             if (entry.isDirectory) {
-              // 如果粘贴到自身内部，跳过与目标文件夹同名的子文件夹（避免循环引用）
+              // 如果貼上到自身內部，跳過與目標資料夾同名的子資料夾（避免迴圈引用）
               if (isPasteIntoSelf && entry.name === targetName) {
                 continue
               }
@@ -730,19 +738,19 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
 
         await copyDirRecursively(sourcePathOptions.path, targetPathOptions.path)
 
-        // 如果是剪切操作，删除原文件夹
+        // 如果是剪下操作，刪除原資料夾
         if (clipboardOperation === 'cut') {
           if (workspace.isCustom) {
             await remove(sourcePathOptions.path, { recursive: true })
           } else {
             await remove(sourcePathOptions.path, { baseDir: sourcePathOptions.baseDir, recursive: true })
           }
-          // 清理已被删除的原文件夹对应的 tabs
+          // 清理已被刪除的原資料夾對應的 tabs
           await cleanTabsByDeletedFolder(clipboardItem?.path || '')
           setClipboardItem(null, 'none')
         }
       } else {
-        // 粘贴文件
+        // 貼上檔案
         const sourcePathOptions = await getFilePathOptions(clipboardItem.path)
         const { generateCopyFilename } = await import('@/lib/default-filename')
         const uniqueFilename = await generateCopyFilename(targetDir, clipboardItem.name)
@@ -766,7 +774,7 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
           } else {
             await remove(sourcePathOptions.path, { baseDir: sourcePathOptions.baseDir })
           }
-          // 清理已被删除的原文件对应的 tabs
+          // 清理已被刪除的原檔案對應的 tabs
           await cleanTabsByDeletedFile(clipboardItem?.path || '')
           // Clear clipboard after cut & paste operation
           setClipboardItem(null, 'none')
@@ -790,7 +798,7 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
       }
       setFileTree(fileTree)
     } else {
-      // 根目录文件：需要克隆 fileTree 来更新
+      // 根目錄檔案：需要克隆 fileTree 來更新
       const cacheTree = cloneDeep(fileTree)
       const index = cacheTree.findIndex(item => item.name === '')
       if (index !== -1) {
@@ -809,7 +817,7 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
     }
   }, [item])
 
-  // 监听文件管理器统一快捷键触发的自定义事件
+  // 監聽檔案管理器統一快捷鍵觸發的自定義事件
   useEffect(() => {
     const handleRenameEvent = (e: Event) => {
       const customEvent = e as CustomEvent<{ path: string }>
@@ -827,7 +835,7 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
 
     const handlePasteEvent = (e: Event) => {
       const customEvent = e as CustomEvent<{ targetPath: string }>
-      // 粘贴到文件所在目录（同级粘贴）
+      // 貼上到檔案所在目錄（同級貼上）
       if (customEvent.detail.targetPath === path) {
         handlePasteFile()
       }
@@ -844,7 +852,7 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
     }
   }, [path, handleStartRename, handleDeleteFile, handlePasteFile])
 
-  // 获取当前平台（用于显示快捷键）
+  // 獲取當前平臺（用於顯示快捷鍵）
   const [currentPlatform, setCurrentPlatform] = useState<Platform>('unknown')
 
   useEffect(() => {
@@ -862,7 +870,7 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
     }
   }, [])
 
-  // 快捷键显示文本
+  // 快捷鍵顯示文字
   const modKey = currentPlatform === 'macos' ? '⌘' : 'Ctrl'
   const deleteKey = currentPlatform === 'macos' ? '⌫' : 'Del'
   const renameKey = currentPlatform === 'macos' ? '↩' : 'F2'
@@ -872,6 +880,7 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
       <ContextMenu>
         <ContextMenuTrigger>
           <div
+            ref={itemRef}
             className={`${path === activeFilePath ? 'file-manange-item active' : 'file-manange-item'} ${!isRoot && 'translate-x-5 w-[calc(100%-20px)]!'}`}
             onClick={handleSelectFile}
           >
@@ -889,7 +898,7 @@ export function FileItem({ item, focusSidebar }: { item: DirTree; focusSidebar?:
                   onCompositionStart={handleCompositionStart}
                   onCompositionEnd={handleCompositionEnd}
                   onKeyDown={(e) => {
-                    // 阻止删除快捷键冒泡到全局快捷键处理器
+                    // 阻止刪除快捷鍵冒泡到全域性快捷鍵處理器
                     if (e.key === 'Backspace' || e.key === 'Delete') {
                       e.stopPropagation()
                     }

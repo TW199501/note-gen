@@ -1,9 +1,10 @@
 "use client"
-import useSettingStore, { GenTemplate, GenTemplateRange } from "@/stores/setting"
+import { GenTemplate, GenTemplateRange } from "@/stores/setting"
 import useMarkStore from "@/stores/mark"
 import useArticleStore from "@/stores/article"
 import useTagStore from "@/stores/tag"
 import { fetchAiStream } from "@/lib/ai/chat"
+import { getAISettings } from "@/lib/ai/utils"
 import { convertImage } from "@/lib/utils"
 import {
   AlertDialog,
@@ -43,7 +44,6 @@ interface OrganizeNotesProps {
 
 export const OrganizeNotes = forwardRef<{ openOrganize: () => void }, OrganizeNotesProps>(({ inputValue }, ref) => {
   const [open, setOpen] = useState(false)
-  const { primaryModel } = useSettingStore()
   const { fetchMarks, marks } = useMarkStore()
   const { currentTag } = useTagStore()
   const { setActiveFilePath, loadFileTree, readArticle, setCurrentArticle, setSkipSyncOnSave, setAiGeneratingFilePath, setAiTerminateFn } = useArticleStore()
@@ -134,7 +134,16 @@ export const OrganizeNotes = forwardRef<{ openOrganize: () => void }, OrganizeNo
       return
     }
 
-    if (!primaryModel) return
+    // Validate AI config by reading directly from Tauri Store
+    // (Zustand primaryModel may not be loaded yet)
+    const aiConfig = await getAISettings('primaryModel')
+    if (!aiConfig) {
+      toast({
+        description: tMark('toolbar.organizeError'),
+        variant: 'destructive',
+      })
+      return
+    }
 
     organizingRef.current = true
     setOpen(false)
@@ -393,8 +402,9 @@ export const OrganizeNotes = forwardRef<{ openOrganize: () => void }, OrganizeNo
     } catch (error: any) {
       if (error.name !== 'AbortError') {
         console.error('Organize error:', error)
+        const errMsg = error instanceof Error ? error.message : String(error)
         toast({
-          description: tMark('toolbar.organizeError'),
+          description: `${tMark('toolbar.organizeError')}: ${errMsg}`,
           variant: 'destructive',
         })
       }
@@ -412,7 +422,7 @@ export const OrganizeNotes = forwardRef<{ openOrganize: () => void }, OrganizeNo
         targetFilePath: filePath
       })
     }
-  }, [primaryModel, categorizedMarks, selectedTemplate, inputValue, fetchMarks, loadFileTree, setActiveFilePath, setLeftSidebarTab, setCurrentArticle, readArticle, tMark, loading])
+  }, [categorizedMarks, selectedTemplate, inputValue, fetchMarks, loadFileTree, setActiveFilePath, setLeftSidebarTab, setCurrentArticle, readArticle, tMark, loading])
 
   useImperativeHandle(ref, () => ({
     openOrganize

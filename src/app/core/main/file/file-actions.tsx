@@ -22,7 +22,7 @@ export function FileActions() {
   const debounceNewFile = debounce(newFile, 200)
   const debounceNewFolder = debounce(newFolder, 200)
 
-  // 递归复制文件夹中的所有 markdown 文件和图片
+  // 遞迴複製資料夾中的所有 markdown 檔案和圖片
   async function copyMarkdownFilesRecursively(
     sourceDir: string,
     targetDir: string,
@@ -34,7 +34,7 @@ export function FileActions() {
       const entries = await readDir(sourceDir)
       
       for (const entry of entries) {
-        // 跳过隐藏文件和文件夹
+        // 跳過隱藏檔案和資料夾
         if (entry.name.startsWith('.')) {
           continue
         }
@@ -44,7 +44,7 @@ export function FileActions() {
         const targetPath = await join(targetDir, newRelativePath)
         
         if (entry.isDirectory) {
-          // 递归处理子文件夹
+          // 遞迴處理子資料夾
           const subDirCopied = await copyMarkdownFilesRecursively(
             sourcePath,
             targetDir,
@@ -52,18 +52,18 @@ export function FileActions() {
           )
           copiedCount += subDirCopied
         } else if (entry.isFile) {
-          // 检查是否是 markdown 文件或图片文件
+          // 檢查是否是 markdown 檔案或圖片檔案
           const isMd = entry.name.endsWith('.md')
           const isImage = /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(entry.name)
           
           if (isMd || isImage) {
-            // 确保目标文件夹存在
+            // 確保目標資料夾存在
             const targetDirPath = relativePath ? await join(targetDir, relativePath) : targetDir
             if (!(await exists(targetDirPath))) {
               await mkdir(targetDirPath, { recursive: true })
             }
             
-            // 复制文件
+            // 複製檔案
             await copyFile(sourcePath, targetPath)
             copiedCount++
           }
@@ -81,7 +81,7 @@ export function FileActions() {
     try {
       setIsImporting(true)
       
-      // 打开文件夹选择对话框
+      // 開啟資料夾選擇對話方塊
       const selectedPath = await openDialog({
         directory: true,
         multiple: false,
@@ -93,17 +93,17 @@ export function FileActions() {
         return
       }
       
-      // 获取工作区路径
+      // 獲取工作區路徑
       const workspace = await getWorkspacePath()
       const targetDir = workspace.isCustom ? workspace.path : await join(await import('@tauri-apps/api/path').then(m => m.appDataDir()), 'article')
       
-      // 递归复制所有 markdown 文件和图片
+      // 遞迴複製所有 markdown 檔案和圖片
       const copiedCount = await copyMarkdownFilesRecursively(selectedPath as string, targetDir)
       
-      // 刷新文件树
+      // 重新整理檔案樹
       await loadFileTree()
       
-      // 显示成功提示
+      // 顯示成功提示
       toast({
         title: t('importSuccess'),
         description: t('importSuccessDesc', { count: copiedCount })

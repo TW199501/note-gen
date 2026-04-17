@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "NoteGen",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "identifier": "com.codexu.NoteGen",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -32,7 +32,7 @@
   },
   "bundle": {
     "active": true,
-    "createUpdaterArtifacts": false,
+    "createUpdaterArtifacts": true,
     "targets": "all",
     "resources": [
       "icons"
@@ -57,9 +57,11 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "",
-      "endpoints": [],
-      "createUpdaterArtifacts": false,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDY1REM1REM5ODIxMjY0RjIKUldUeVpCS0N5VjNjWlJaeU4rdWd6ajJ5U3FoRldTQ2swZFlLSlFScWR4L3Jub3NUS3BnNjhFTkwK",
+      "endpoints": [
+        "https://github.com/TW199501/note-gen/releases/latest/download/latest.json"
+      ],
+      "createUpdaterArtifacts": true,
       "dangerousInsecureTransportProtocol": false
     }
   }

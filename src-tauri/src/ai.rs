@@ -140,16 +140,104 @@ fn build_headers(config: &AiConfigPayload, include_json_content_type: bool) -> R
     Ok(headers)
 }
 
+/// Sanitize all invalid escape sequences in JSON strings so serde_json can parse them.
+///
+/// JSON only allows: `\"`, `\\`, `\/`, `\b`, `\f`, `\n`, `\r`, `\t`, `\uXXXX`.
+/// Some AI providers return non-standard escapes like `\x1b` or truncated `\u00`.
+/// This function converts them to valid JSON escapes.
+fn sanitize_json_escapes(text: &str) -> String {
+    let mut result = String::with_capacity(text.len());
+    let mut chars = text.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if ch == '\\' {
+            match chars.peek() {
+                // \xNN → \u00NN
+                Some(&'x') => {
+                    chars.next(); // consume 'x'
+                    let mut hex = String::new();
+                    for _ in 0..2 {
+                        if let Some(&c) = chars.peek() {
+                            if c.is_ascii_hexdigit() {
+                                hex.push(c);
+                                chars.next();
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                    if hex.len() == 2 {
+                        result.push_str(&format!("\\u00{hex}"));
+                    } else {
+                        // incomplete \x escape → escape the backslash
+                        result.push_str("\\\\x");
+                        result.push_str(&hex);
+                    }
+                }
+                // \uXXXX — validate it has exactly 4 hex digits
+                Some(&'u') => {
+                    chars.next(); // consume 'u'
+                    let mut hex = String::new();
+                    for _ in 0..4 {
+                        if let Some(&c) = chars.peek() {
+                            if c.is_ascii_hexdigit() {
+                                hex.push(c);
+                                chars.next();
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                    if hex.len() == 4 {
+                        // valid \uXXXX
+                        result.push_str(&format!("\\u{hex}"));
+                    } else {
+                        // truncated \u escape → pad with zeros
+                        let padded = format!("{:0>4}", hex);
+                        result.push_str(&format!("\\u{padded}"));
+                    }
+                }
+                // valid single-character escapes — pass through
+                Some(&'"') | Some(&'\\') | Some(&'/') |
+                Some(&'b') | Some(&'f') | Some(&'n') | Some(&'r') | Some(&'t') => {
+                    result.push('\\');
+                    result.push(chars.next().unwrap());
+                }
+                // any other \? is invalid JSON — escape the backslash
+                Some(_) => {
+                    result.push_str("\\\\");
+                }
+                // trailing backslash at end of string
+                None => {
+                    result.push_str("\\\\");
+                }
+            }
+        } else {
+            result.push(ch);
+        }
+    }
+    result
+}
+
 async fn read_response_json(response: reqwest::Response) -> Result<Value, String> {
     let status = response.status();
     if !status.is_success() {
         let error_text = response.text().await.unwrap_or_default();
         return Err(format!("Request failed: {status} {error_text}"));
     }
-    response
-        .json::<Value>()
+    let text = response
+        .text()
         .await
-        .map_err(|error| format!("Failed to parse JSON response: {error}"))
+        .map_err(|error| format!("Failed to read response text: {error}"))?;
+
+    // Try parsing as-is first, then sanitize invalid escapes if needed
+    match serde_json::from_str::<Value>(&text) {
+        Ok(value) => Ok(value),
+        Err(_) => {
+            let sanitized = sanitize_json_escapes(&text);
+            serde_json::from_str::<Value>(&sanitized)
+                .map_err(|error| format!("Failed to parse JSON response: {error}"))
+        }
+    }
 }
 
 async fn run_json_request(
@@ -420,18 +508,24 @@ pub async fn ai_chat_completion_stream(
                 return Ok(());
             }
 
-            match serde_json::from_str::<Value>(&message) {
-                Ok(value) => {
-                    let _ = on_event.send(AiStreamEvent::Chunk(value));
+            // Try parsing as-is, then sanitize invalid escapes if needed
+            let parsed = match serde_json::from_str::<Value>(&message) {
+                Ok(value) => value,
+                Err(_) => {
+                    let sanitized = sanitize_json_escapes(&message);
+                    match serde_json::from_str::<Value>(&sanitized) {
+                        Ok(value) => value,
+                        Err(error) => {
+                            let _ = on_event.send(AiStreamEvent::Error(format!(
+                                "Failed to parse stream chunk: {error}"
+                            )));
+                            manager.finish(&request.request_id).await;
+                            return Err(format!("Failed to parse stream chunk: {error}"));
+                        }
+                    }
                 }
-                Err(error) => {
-                    let _ = on_event.send(AiStreamEvent::Error(format!(
-                        "Failed to parse stream chunk: {error}"
-                    )));
-                    manager.finish(&request.request_id).await;
-                    return Err(format!("Failed to parse stream chunk: {error}"));
-                }
-            }
+            };
+            let _ = on_event.send(AiStreamEvent::Chunk(parsed));
         }
     }
 
@@ -450,7 +544,7 @@ pub async fn cancel_ai_request(
 
 #[cfg(test)]
 mod tests {
-    use super::SseDecoder;
+    use super::{SseDecoder, sanitize_json_escapes};
 
     #[test]
     fn parses_split_sse_chunks() {
@@ -467,5 +561,45 @@ mod tests {
         let mut decoder = SseDecoder::new();
         let messages = decoder.push(b"data: hello\r\ndata: world\r\n\r\n");
         assert_eq!(messages, vec!["hello\nworld".to_string()]);
+    }
+
+    #[test]
+    fn sanitize_hex_escape() {
+        // \x1b → \u001b
+        assert_eq!(sanitize_json_escapes(r#"\x1b"#), r#"\u001b"#);
+    }
+
+    #[test]
+    fn sanitize_truncated_unicode_escape() {
+        // \u00 (only 2 hex digits) → \u0000 (padded)
+        assert_eq!(sanitize_json_escapes(r#"\u00"#), r#"\u0000"#);
+        // \u0 → \u0000
+        assert_eq!(sanitize_json_escapes(r#"\u0"#), r#"\u0000"#);
+    }
+
+    #[test]
+    fn sanitize_valid_escapes_unchanged() {
+        assert_eq!(sanitize_json_escapes(r#"\n\t\r\"\\"#), r#"\n\t\r\"\\"#);
+        assert_eq!(sanitize_json_escapes(r#"\u0041"#), r#"\u0041"#);
+    }
+
+    #[test]
+    fn sanitize_incomplete_hex_escape() {
+        // \x followed by non-hex → escape the backslash
+        assert_eq!(sanitize_json_escapes(r#"\xZZ"#), r#"\\xZZ"#);
+    }
+
+    #[test]
+    fn sanitize_invalid_escape_char() {
+        // \a is not valid JSON → escape the backslash
+        assert_eq!(sanitize_json_escapes(r#"\a"#), r#"\\a"#);
+    }
+
+    #[test]
+    fn sanitize_full_json_with_hex() {
+        let input = r#"{"content":"hello\x1b[0mworld"}"#;
+        let output = sanitize_json_escapes(input);
+        // Should be parseable by serde_json now
+        assert!(serde_json::from_str::<serde_json::Value>(&output).is_ok());
     }
 }
