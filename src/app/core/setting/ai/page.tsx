@@ -32,7 +32,6 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { OpenBroswer } from "@/components/open-broswer";
-import DefaultModelsSection from "./default-models";
 import ModelCard from "./model-card";
 import CreateConfig from "./create";
 import { getCachedProviderTemplates, getProviderTemplateMatch, loadProviderTemplates } from "@/lib/ai/provider-templates-runtime";
@@ -338,9 +337,6 @@ export default function AiPage() {
         </TabsList>
 
         <TabsContent value="provider">
-      {/* 当没有用户自定义模型时显示默认模型区域 */}
-      {userCustomModels.length === 0 && <DefaultModelsSection />}
-
       <CreateConfig
         hasCustomModels={userCustomModels.length > 0}
         onConfigCreated={(configId) => {

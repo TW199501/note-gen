@@ -4,7 +4,6 @@ import { getVersion } from '@tauri-apps/api/app'
 import { AiConfig } from '@/app/core/setting/config'
 import { GitlabInstanceType } from '@/lib/sync/gitlab.types'
 import { GiteaInstanceType } from '@/lib/sync/gitea.types'
-import { noteGenDefaultModels, noteGenModelKeys } from '@/app/model-config'
 
 import { CustomThemeColors } from '@/types/theme'
 import { applyThemeColors, removeThemeColors } from '@/lib/theme-utils'
@@ -304,71 +303,8 @@ const useSettingStore = create<SettingState>((set, get) => ({
       set({ browserHomepage: savedBrowserHomepage })
     }
 
-    // 初始化默认的NoteGen模型配置
-    const existingAiModelList = (await store.get('aiModelList') as AiConfig[]) || []
-    const hasNoteGenModels = existingAiModelList.some(config => 
-      config.key === 'note-gen-free' || 
-      noteGenModelKeys.includes(config.key) ||
-      config.models?.some(model => noteGenModelKeys.includes(model.id))
-    )
-    
-    let finalAiModelList = existingAiModelList
-    if (!hasNoteGenModels) {
-      finalAiModelList = [...existingAiModelList, ...noteGenDefaultModels]
-      await store.set('aiModelList', finalAiModelList)
-      set({ aiModelList: finalAiModelList })
-    }
-
-    // 检查是否设置了主要模型，如果没有且存在note-gen-chat，则设置为主要模型
-    const currentPrimaryModel = await store.get('primaryModel') as string
-    const hasNoteGenChat = finalAiModelList.some(config => 
-      config.models?.some(model => model.id === 'note-gen-chat') || config.key === 'note-gen-chat'
-    )
-    
-    if (!currentPrimaryModel && hasNoteGenChat) {
-      const noteGenFreeConfig = finalAiModelList.find(config => config.key === 'note-gen-free')
-      if (noteGenFreeConfig?.models?.some(model => model.id === 'note-gen-chat')) {
-        await store.set('primaryModel', 'note-gen-chat')
-        set({ primaryModel: 'note-gen-chat' })
-      } else {
-        await store.set('primaryModel', 'note-gen-chat')
-        set({ primaryModel: 'note-gen-chat' })
-      }
-    }
-
-    // 检查是否设置了嵌入模型，如果没有且存在note-gen-embedding，则设置为默认嵌入模型
-    const currentEmbeddingModel = await store.get('embeddingModel') as string
-    const hasNoteGenEmbedding = finalAiModelList.some(config => 
-      config.models?.some(model => model.id === 'note-gen-embedding') || config.key === 'note-gen-embedding'
-    )
-    
-    if (!currentEmbeddingModel && hasNoteGenEmbedding) {
-      const noteGenFreeConfig = finalAiModelList.find(config => config.key === 'note-gen-free')
-      if (noteGenFreeConfig?.models?.some(model => model.id === 'note-gen-embedding')) {
-        await store.set('embeddingModel', 'note-gen-embedding')
-        set({ embeddingModel: 'note-gen-embedding' })
-      } else {
-        await store.set('embeddingModel', 'note-gen-embedding')
-        set({ embeddingModel: 'note-gen-embedding' })
-      }
-    }
-
-    // 检查是否设置了视觉语言模型，如果没有且存在note-gen-vlm，则设置为默认视觉语言模型
-    const currentImageMethodModel = await store.get('imageMethodModel') as string
-    const hasNoteGenVlm = finalAiModelList.some(config => 
-      config.models?.some(model => model.id === 'note-gen-vlm') || config.key === 'note-gen-vlm'
-    )
-    
-    if (!currentImageMethodModel && hasNoteGenVlm) {
-      const noteGenFreeConfig = finalAiModelList.find(config => config.key === 'note-gen-free')
-      if (noteGenFreeConfig?.models?.some(model => model.id === 'note-gen-vlm')) {
-        await store.set('imageMethodModel', 'note-gen-vlm')
-        set({ imageMethodModel: 'note-gen-vlm' })
-      } else {
-        await store.set('imageMethodModel', 'note-gen-vlm')
-        set({ imageMethodModel: 'note-gen-vlm' })
-      }
-    }
+    // 讀取使用者已設定的 AI 模型清單
+    const finalAiModelList = (await store.get('aiModelList') as AiConfig[]) || []
 
     // 检查是否设置了TTS模型，如果没有且存在note-gen-tts，则设置为默认TTS模型
     const currentAudioModel = await store.get('audioModel') as string
@@ -474,7 +410,7 @@ const useSettingStore = create<SettingState>((set, get) => ({
         if (key === 'templateList') {
           // templateList needs a two-phase update (clear then set) for UI reactivity
           templateListValue = res as GenTemplate[]
-        } else if (key === 'aiModelList' && hasNoteGenModels) {
+        } else if (key === 'aiModelList') {
           batch[key] = res as AiConfig[]
         } else if (key === 'recordToolbarConfig') {
           const storedConfig = res as RecordToolbarItem[]
