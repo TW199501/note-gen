@@ -267,6 +267,11 @@ interface SettingState {
   setKeepLatestCount: (count: number) => Promise<void>
   condenseMaxLength: number
   setCondenseMaxLength: (length: number) => Promise<void>
+
+  modelStatusMap: Record<string, 'idle' | 'checking' | 'ok' | 'error'>
+  modelStatusErrors: Record<string, string>
+  setModelStatus: (key: string, status: 'idle' | 'checking' | 'ok' | 'error', error?: string) => void
+  checkAllModelStatus: () => Promise<void>
 }
 
 export interface ChatToolbarItem {
@@ -525,6 +530,11 @@ const useSettingStore = create<SettingState>((set, get) => ({
         set({ templateList: templateListValue })
       }, 0)
     }
+
+    // Background check all model connection status (don't block UI)
+    setTimeout(() => {
+      void get().checkAllModelStatus()
+    }, 2000)
   },
 
   version: '',
@@ -1216,6 +1226,49 @@ const useSettingStore = create<SettingState>((set, get) => ({
     const store = await Store.load('store.json')
     await store.set('browserHomepage', browserHomepage)
     await store.save()
+  },
+
+  modelStatusMap: {},
+  modelStatusErrors: {},
+  setModelStatus: (key, status, error) => {
+    set((state) => ({
+      modelStatusMap: { ...state.modelStatusMap, [key]: status },
+      modelStatusErrors: error
+        ? { ...state.modelStatusErrors, [key]: error }
+        : (() => { const next = { ...state.modelStatusErrors }; delete next[key]; return next })(),
+    }))
+  },
+  checkAllModelStatus: async () => {
+    const { getAISettings } = await import('@/lib/ai/utils')
+    const { checkModelConnection } = await import('@/lib/ai/check-status')
+
+    const assignments = [
+      'primaryModel', 'completionModel', 'commitModel', 'markDescModel',
+      'embeddingModel', 'rerankingModel', 'imageMethodModel',
+      'audioModel', 'sttModel', 'condenseModel', 'inspirationModel', 'organizeModel',
+    ]
+
+    const checks = assignments.map(async (storeKey) => {
+      const aiConfig = await getAISettings(storeKey)
+      if (!aiConfig || !aiConfig.model) return
+
+      get().setModelStatus(storeKey, 'checking')
+
+      const modelConfig = {
+        id: storeKey,
+        model: aiConfig.model,
+        modelType: (aiConfig.modelType || 'chat') as any,
+        temperature: aiConfig.temperature,
+        topP: aiConfig.topP,
+        voice: aiConfig.voice,
+        enableStream: aiConfig.enableStream,
+      }
+
+      const result = await checkModelConnection(aiConfig, modelConfig)
+      get().setModelStatus(storeKey, result.ok ? 'ok' : 'error', result.error)
+    })
+
+    await Promise.allSettled(checks)
   },
 }))
 
