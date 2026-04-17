@@ -60,6 +60,8 @@ export interface AudioSpeechRequest {
   input: string
   voice?: string
   speed?: number
+  pitch?: number
+  style?: string
 }
 
 export interface AudioSpeechResponse {
@@ -123,7 +125,7 @@ export async function fetchAudioSpeech(text: string, customVoice?: string, custo
     throw new Error('Audio model configuration not found')
   }
 
-  if (!audioConfig.baseURL || !audioConfig.apiKey) {
+  if (!audioConfig.baseURL) {
     throw new Error('Audio model configuration is incomplete')
   }
 

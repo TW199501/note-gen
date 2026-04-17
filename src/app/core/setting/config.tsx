@@ -114,6 +114,8 @@ export interface ModelConfig {
   temperature?: number
   topP?: number
   voice?: string
+  pitch?: number
+  style?: string
   enableStream?: boolean
 }
 
