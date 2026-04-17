@@ -1298,6 +1298,10 @@
           "title": "Read Aloud",
           "desc": "Used for text-to-speech read aloud"
         }
+      },
+      "status": {
+        "ok": "Connected",
+        "error": "Connection failed"
       }
     },
     "ocr": {

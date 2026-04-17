@@ -1260,6 +1260,10 @@
           "title": "Leitura em Voz Alta",
           "desc": "Usado para a função de leitura em voz alta"
         }
+      },
+      "status": {
+        "ok": "Conectado",
+        "error": "Falha na conexão"
       }
     },
     "ocr": {

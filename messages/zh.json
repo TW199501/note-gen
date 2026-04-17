@@ -1272,6 +1272,10 @@
           "desc": "用于 Markdown 编辑器的 AI 内联补全，类似 GitHub Copilot，快速生成续写内容"
         },
         "poweredBy": "由 SiliconFlow 提供技术支持"
+      },
+      "status": {
+        "ok": "连接正常",
+        "error": "连接异常"
       }
     },
     "imageMethod": {
