@@ -212,14 +212,39 @@ export default function ModelCard({ modelConfig, aiConfig, onUpdate, onDelete }:
 
         {/* TTS模型的特殊配置 */}
         {modelConfig.modelType === 'tts' && (
-          <div className="space-y-2">
-            <Label>{t('voice')}</Label>
-            <Input
-              value={modelConfig.voice || ''}
-              onChange={(e) => onUpdate(modelConfig.id, 'voice', e.target.value)}
-              placeholder={t('voicePlaceholder')}
-            />
-          </div>
+          <>
+            <div className="space-y-2">
+              <Label>{t('voice')}</Label>
+              <Input
+                value={modelConfig.voice || ''}
+                onChange={(e) => onUpdate(modelConfig.id, 'voice', e.target.value)}
+                placeholder={t('voicePlaceholder')}
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>{t('pitch')}</Label>
+                <span className="text-xs text-muted-foreground">
+                  {modelConfig.pitch !== undefined ? modelConfig.pitch : 0}
+                </span>
+              </div>
+              <Slider
+                value={[modelConfig.pitch !== undefined ? modelConfig.pitch : 0]}
+                onValueChange={(v) => onUpdate(modelConfig.id, 'pitch', v[0])}
+                min={-50}
+                max={50}
+                step={1}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('style')}</Label>
+              <Input
+                value={modelConfig.style || ''}
+                onChange={(e) => onUpdate(modelConfig.id, 'style', e.target.value)}
+                placeholder={t('stylePlaceholder')}
+              />
+            </div>
+          </>
         )}
       </AccordionContent>
     </AccordionItem>
