@@ -1,6 +1,7 @@
 import type OpenAI from 'openai';
 import useSettingStore from '@/stores/setting';
-import { createOpenAIClient } from './utils';
+import { createOpenAIClient, getAISettings } from './utils';
+import type { AiConfig } from '@/app/core/setting/config';
 
 export interface QuickPrompt {
   id: string
@@ -9,31 +10,29 @@ export interface QuickPrompt {
 
 /**
  * 获取灵感模型配置
- * @returns 灵感模型配置，如果未配置则返回 null
+ * 先找 inspirationModel，若未配置則 fallback 到 primaryModel。
+ * @returns 灵感模型配置，如果都未配置则返回 null
  */
-async function getInspirationModelConfig() {
+async function getInspirationModelConfig(): Promise<AiConfig | null> {
   const settingStore = useSettingStore.getState()
   const inspirationModelId = settingStore.inspirationModel
 
   // 从 AI 模型列表中查找配置的灵感模型
-  const aiModelList = settingStore.aiModelList
-  for (const config of aiModelList) {
-    if (config.models) {
-      const model = config.models.find(m => m.id === inspirationModelId || `${config.key}-${m.id}` === inspirationModelId)
-      if (model) {
-        return config
+  if (inspirationModelId) {
+    const aiModelList = settingStore.aiModelList
+    for (const config of aiModelList) {
+      if (config.models) {
+        const model = config.models.find(m => m.id === inspirationModelId || `${config.key}-${m.id}` === inspirationModelId)
+        if (model) {
+          return config
+        }
       }
     }
   }
 
-  // 如果没找到配置的灵感模型，使用默认的 NoteGen 聊天模型作为 fallback
-  const { noteGenDefaultModels } = await import('@/app/model-config')
-  const noteGenChat = noteGenDefaultModels[0]?.models?.find(m => m.modelType === 'chat')
-  if (noteGenChat) {
-    return noteGenDefaultModels[0]
-  }
-
-  return null
+  // Fallback：使用 primaryModel
+  const primaryConfig = await getAISettings('primaryModel')
+  return primaryConfig ?? null
 }
 
 /**
@@ -43,15 +42,8 @@ async function getInspirationModelConfig() {
  */
 export async function fetchAiPlaceholder(text: string): Promise<string | false> {
   try {
-    // 动态导入 model-config 以获取默认模型配置
-    const { noteGenDefaultModels } = await import('@/app/model-config')
-
-    // 使用第一个默认模型配置（NoteGen Free）
-    const defaultConfig = noteGenDefaultModels[0]
-    const chatModel = defaultConfig.models?.find(m => m.modelType === 'chat')
-
-    if (!defaultConfig || !chatModel) {
-      console.error('No default chat model found in noteGenDefaultModels')
+    const aiConfig = await getAISettings('primaryModel')
+    if (!aiConfig || !aiConfig.model) {
       return false
     }
 
@@ -77,13 +69,13 @@ export async function fetchAiPlaceholder(text: string): Promise<string | false> 
       { role: 'user', content: placeholderPrompt }
     ]
 
-    const openai = await createOpenAIClient(defaultConfig)
+    const openai = await createOpenAIClient(aiConfig)
 
     const completion = await openai.chat.completions.create({
-      model: chatModel.model || '',
+      model: aiConfig.model,
       messages: messages,
-      temperature: chatModel.temperature || 1,
-      top_p: chatModel.topP || 1,
+      temperature: aiConfig.temperature ?? 1,
+      top_p: aiConfig.topP ?? 1,
     })
 
     const result = completion.choices[0]?.message?.content || ''
