@@ -1,6 +1,8 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useTranslations } from 'next-intl'
+import useSettingStore from '@/stores/setting'
 import {
   Item,
   ItemGroup,
@@ -26,6 +28,7 @@ import {
   AudioLines,
 } from 'lucide-react'
 import { ModelSelect } from '../components/model-select'
+import { ModelStatusDot } from '../components/model-status-dot'
 
 interface ModelItem {
   modelKey: string
@@ -41,6 +44,11 @@ interface ModelGroup {
 
 export function ModelAssignment() {
   const t = useTranslations('settings')
+  const { checkAllModelStatus } = useSettingStore()
+
+  useEffect(() => {
+    void checkAllModelStatus()
+  }, [])
 
   const groups: ModelGroup[] = [
     {
@@ -96,6 +104,7 @@ export function ModelAssignment() {
           <ItemGroup className="gap-2">
             {group.items.map((item) => (
               <Item key={item.modelKey} className="max-md:flex-col max-md:items-start" variant="outline">
+                <ModelStatusDot modelKey={item.modelKey} />
                 <ItemMedia variant="icon">{item.icon}</ItemMedia>
                 <ItemContent>
                   <ItemTitle>{t(item.titleKey)}</ItemTitle>
