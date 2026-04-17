@@ -1202,6 +1202,9 @@
       "voice": "Tipo de Voz",
       "voiceDesc": "Especifique o tipo de voz para modelos de áudio, como 'alloy', 'echo', 'fable', etc.",
       "voicePlaceholder": "Insira o tipo de voz, ex: alloy",
+      "pitch": "Tom",
+      "style": "Estilo",
+      "stylePlaceholder": "ex: general, cheerful, sad",
       "defaultModels": {
         "title": "Modelos Gratuitos Padrão",
         "desc": "O NoteGen fornece serviços de modelo de IA gratuitos para usuários, permitindo funcionalidade básica sem configuração.",

@@ -1244,6 +1244,9 @@
       "voice": "Voice Type",
       "voiceDesc": "Specify the voice type for audio models, such as 'alloy', 'echo', 'fable', etc.",
       "voicePlaceholder": "Enter voice type, e.g.: alloy",
+      "pitch": "Pitch",
+      "style": "Style",
+      "stylePlaceholder": "e.g. general, cheerful, sad",
       "defaultModels": {
         "title": "Default Free Models",
         "desc": "NoteGen provides free AI model services for users, enabling basic functionality without configuration.",
