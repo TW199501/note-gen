@@ -1264,6 +1264,10 @@
       "status": {
         "ok": "Conectado",
         "error": "Falha na conexão"
+      },
+      "note": {
+        "title": "Notas de Configuração",
+        "placeholder": "Escreva suas anotações sobre a configuração dos modelos..."
       }
     },
     "ocr": {

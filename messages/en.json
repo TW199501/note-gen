@@ -1302,6 +1302,10 @@
       "status": {
         "ok": "Connected",
         "error": "Connection failed"
+      },
+      "note": {
+        "title": "Model Config Notes",
+        "placeholder": "Write your notes about model configuration here..."
       }
     },
     "ocr": {

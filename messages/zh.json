@@ -1276,6 +1276,10 @@
       "status": {
         "ok": "连接正常",
         "error": "连接异常"
+      },
+      "note": {
+        "title": "模型配置笔记",
+        "placeholder": "在这里记录你的模型配置说明..."
       }
     },
     "imageMethod": {

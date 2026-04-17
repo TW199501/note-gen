@@ -1174,6 +1174,10 @@
       "status": {
         "ok": "連線正常",
         "error": "連線異常"
+      },
+      "note": {
+        "title": "模型配置筆記",
+        "placeholder": "在這裡記錄你的模型配置說明..."
       }
     },
     "imageMethod": {

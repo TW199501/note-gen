@@ -22,7 +22,15 @@ import { SettingType, FormItem } from "../components/setting-base";
 import { AiConfig, ModelConfig, builtinProviderTemplates } from "../config";
 import useSettingStore from "@/stores/setting";
 import { noteGenModelKeys } from "@/app/model-config";
-import { BotMessageSquare, Copy, Eye, EyeOff, LoaderCircle, Plus, Server, Settings2, Trash2, X } from "lucide-react";
+import { BotMessageSquare, BookOpen, Copy, Eye, EyeOff, LoaderCircle, Plus, Server, Settings2, Trash2, X } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { OpenBroswer } from "@/components/open-broswer";
 import DefaultModelsSection from "./default-models";
 import ModelCard from "./model-card";
@@ -46,7 +54,23 @@ export default function AiPage() {
   const [expandedModels, setExpandedModels] = useState<string[]>([])
   const [providerTemplates, setProviderTemplates] = useState<AiConfig[]>([])
   const [loadingTemplates, setLoadingTemplates] = useState(true)
-  
+  const [aiNote, setAiNote] = useState('')
+  const [aiNoteOpen, setAiNoteOpen] = useState(false)
+
+  // 載入/儲存 AI 筆記
+  useEffect(() => {
+    Store.load('store.json').then(store => store.get<string>('aiConfigNote')).then(note => {
+      if (note) setAiNote(note)
+    })
+  }, [])
+
+  const saveAiNote = async (value: string) => {
+    setAiNote(value)
+    const store = await Store.load('store.json')
+    await store.set('aiConfigNote', value)
+    await store.save()
+  }
+
   // 使用 useLocalStorage 记录当前选择的AI配置
   const [selectedAiConfig, setSelectedAiConfig] = useLocalStorage<string>('ai-config-selected', '')
   
@@ -281,7 +305,26 @@ export default function AiPage() {
   }, [])
 
   return (
-    <SettingType id="ai" icon={<BotMessageSquare />} title={t('title')} desc={t('desc')}>
+    <SettingType id="ai" icon={<BotMessageSquare />} title={t('title')} desc={t('desc')} actions={
+      <Dialog open={aiNoteOpen} onOpenChange={setAiNoteOpen}>
+        <DialogTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-7 w-7">
+            <BookOpen className="size-4" />
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{t('note.title')}</DialogTitle>
+          </DialogHeader>
+          <Textarea
+            value={aiNote}
+            onChange={(e) => saveAiNote(e.target.value)}
+            placeholder={t('note.placeholder')}
+            className="min-h-[200px] resize-y"
+          />
+        </DialogContent>
+      </Dialog>
+    }>
       <Tabs defaultValue="provider" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="provider" className="flex items-center gap-1.5">
