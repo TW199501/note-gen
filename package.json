@@ -138,6 +138,7 @@
     "@tailwindcss/postcss": "^4.1.18",
     "@tailwindcss/vite": "^4.1.18",
     "@tauri-apps/cli": ">=2.0.0",
+    "@tw199501/specsnap-inspector-react": "^0.0.9",
     "@types/crypto-js": "^4.2.2",
     "@types/diff": "^6.0.0",
     "@types/lodash-es": "^4.17.12",

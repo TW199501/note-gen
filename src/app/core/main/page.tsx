@@ -17,8 +17,12 @@ import { getCurrentWindow } from "@tauri-apps/api/window"
 import emitter from '@/lib/emitter'
 import { useRouter } from 'next/navigation'
 
+// Bump this prefix whenever default layouts change so existing users pick
+// up the new defaults instead of staying on their stale localStorage value.
+const LAYOUT_STORAGE_PREFIX = 'react-resizable-panels:main-layout-v3'
+
 function getDefaultLayout(layoutKey: string) {
-  const storageKey = `react-resizable-panels:main-layout:${layoutKey}`
+  const storageKey = `${LAYOUT_STORAGE_PREFIX}:${layoutKey}`
   const layout = localStorage.getItem(storageKey);
   
   if (layout) {
@@ -37,16 +41,16 @@ function getDefaultLayout(layoutKey: string) {
     }
   }
   
-  // 根据布局组合返回默认值，但始终返回3个面板的尺寸
+  // 左侧目标约 350px（常见视窗 ~1700px 下约 20%）
   switch (layoutKey) {
     case 'left-center-right':
       return [20, 50, 30]
     case 'left-center':
-      return [30, 70, 0] // 右侧折叠
+      return [20, 80, 0] // 右侧折叠
     case 'center-right':
       return [0, 60, 40] // 左侧折叠
     case 'left-right':
-      return [50, 0, 50] // 中间折叠
+      return [20, 0, 80] // 中间折叠
     case 'left':
       return [100, 0, 0] // 只有左侧
     case 'center':
@@ -54,7 +58,7 @@ function getDefaultLayout(layoutKey: string) {
     case 'right':
       return [0, 0, 100] // 只有右侧
     default:
-      return [30, 40, 30] // 默认三等分
+      return [20, 50, 30]
   }
 }
 
@@ -158,14 +162,14 @@ function ResizableWrapper() {
     }
     
     // 如果保存的布局不是3个值，使用默认布局
-    return [30, 40, 30] // 左侧30%，中间40%，右侧30%
+    return [20, 50, 30] // 左侧 ~350px（20%）、中间 50%、右侧 30%
   }
   
   const actualLayout = getActualLayout()
   
   const onLayout = (sizes: number[]) => {
     // 保存当前面板布局
-    const storageKey = `react-resizable-panels:main-layout:${layoutKey}`
+    const storageKey = `${LAYOUT_STORAGE_PREFIX}:${layoutKey}`
     localStorage.setItem(storageKey, JSON.stringify(sizes));
   };
 

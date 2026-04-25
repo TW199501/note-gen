@@ -378,6 +378,9 @@ importers:
       '@tauri-apps/cli':
         specifier: '>=2.0.0'
         version: 2.6.2
+      '@tw199501/specsnap-inspector-react':
+        specifier: ^0.0.9
+        version: 0.0.9(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@types/crypto-js':
         specifier: ^4.2.2
         version: 4.2.2
@@ -2657,6 +2660,18 @@ packages:
   '@traptitech/markdown-it-katex@3.6.0':
     resolution: {integrity: sha512-CnJzTWxsgLGXFdSrWRaGz7GZ1kUUi8g3E9HzJmeveX1YwVJavrKYqysktfHZQsujdnRqV5O7g8FPKEA/aeTkOQ==}
 
+  '@tw199501/specsnap-core@0.0.9':
+    resolution: {integrity: sha512-Eutee+8Pp2+AMvQH6pcPKet/4Vy/wFmbRdrrWNdWfWPUtVGku11YRastVkvCG96a190w5Rh7KkBvdB56TPPcGg==}
+
+  '@tw199501/specsnap-inspector-core@0.0.9':
+    resolution: {integrity: sha512-CUqt7+wGACUpzQhEGJeLgqioTb6rv6P5KbmQh00yeYvEAL6x0bUqn4/ch3avEExTbrB+KzVNFSfJLt+OHQrrvw==}
+
+  '@tw199501/specsnap-inspector-react@0.0.9':
+    resolution: {integrity: sha512-Cc2S25e0x8bHIg4EycsG+iR1MThVV5/Vt6JaUqV8O9HoofJGoBGaEu+Ntn1lvgLOu4YYGQjzB6ImjJD/Z4nG0g==}
+    peerDependencies:
+      react: '>=18'
+      react-dom: '>=18'
+
   '@tybys/wasm-util@0.10.0':
     resolution: {integrity: sha512-VyyPYFlOMNylG45GoAe0xDoLwWuowvf92F9kySqzYh8vmYm7D2u4iUJKa1tOUpS70Ku13ASrOkS4ScXFsTaCNQ==}
 
@@ -3494,6 +3509,9 @@ packages:
   doctrine@2.1.0:
     resolution: {integrity: sha512-35mSku4ZXK0vfCuHEDAwt55dg2jNajHZ1odvF+8SSr82EsZY4QmXfuWso8oEd8zRhVObSN18aM0CjSdoBX7zIw==}
     engines: {node: '>=0.10.0'}
+
+  dom-to-image-more@3.7.2:
+    resolution: {integrity: sha512-uQf+pHv6eQhgfI8t2bFuinV0KsPyT8TZgCLwcSU8uBVgN9v6leb0mMpvp6HQAlAcplP3NCcGjxbdqef6pTzvmw==}
 
   dompurify@3.3.1:
     resolution: {integrity: sha512-qkdCKzLNtrgPFP1Vo+98FRzJnBRGe4ffyCea9IwHB1fyxPOeNTHpLKYGd4Uk9xvNoH0ZoOjwZxNptyMwqrId1Q==}
@@ -7239,6 +7257,20 @@ snapshots:
     dependencies:
       katex: 0.16.28
 
+  '@tw199501/specsnap-core@0.0.9':
+    dependencies:
+      dom-to-image-more: 3.7.2
+
+  '@tw199501/specsnap-inspector-core@0.0.9':
+    dependencies:
+      '@tw199501/specsnap-core': 0.0.9
+
+  '@tw199501/specsnap-inspector-react@0.0.9(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
+    dependencies:
+      '@tw199501/specsnap-inspector-core': 0.0.9
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
+
   '@tybys/wasm-util@0.10.0':
     dependencies:
       tslib: 2.8.1
@@ -8138,6 +8170,8 @@ snapshots:
   doctrine@2.1.0:
     dependencies:
       esutils: 2.0.3
+
+  dom-to-image-more@3.7.2: {}
 
   dompurify@3.3.1:
     optionalDependencies:
