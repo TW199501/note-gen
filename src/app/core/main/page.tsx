@@ -9,9 +9,9 @@ import { useSidebarStore } from "@/stores/sidebar"
 import useBrowserStore from "@/stores/browser"
 import useChatStore from "@/stores/chat"
 import { BrowserPanel } from "./browser"
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { Store } from '@tauri-apps/plugin-store'
-import { ImperativePanelHandle } from 'react-resizable-panels'
+import { ImperativePanelGroupHandle, ImperativePanelHandle } from 'react-resizable-panels'
 import { invoke } from "@tauri-apps/api/core"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import emitter from '@/lib/emitter'
@@ -19,36 +19,82 @@ import { useRouter } from 'next/navigation'
 
 // Bump this prefix whenever default layouts change so existing users pick
 // up the new defaults instead of staying on their stale localStorage value.
-const LAYOUT_STORAGE_PREFIX = 'react-resizable-panels:main-layout-v3'
+// v7: v6 accumulated stale values from past sessions where the old
+// onLayout-saves-on-every-reflow pattern was active (e.g. clamped
+// [23, 47, 30] from viewport-resize re-clamps). With v7 + Defense 1
+// (drag-end-only persist) + Defense 4 (constraint scaling), v6 victims
+// get fresh defaults and no new poisoning is possible going forward.
+const LAYOUT_STORAGE_PREFIX = 'react-resizable-panels:main-layout-v7'
+// One-time marker — when bumping LAYOUT_STORAGE_PREFIX, also bump this so we
+// re-force panel visibility (left/center/right) to all-visible. Panel sizes
+// and visibility are persisted separately, so a layout bump alone won't
+// surface hidden panels from a prior session.
+const LAYOUT_MIGRATION_MARKER = 'note-gen-layout-migration:v6'
+
+async function runLayoutMigrationOnce(): Promise<boolean> {
+  if (localStorage.getItem(LAYOUT_MIGRATION_MARKER) === 'done') return false
+
+  // Reset visibility flags in both persistence layers so all three panels
+  // come back even if the user previously toggled one off.
+  localStorage.setItem('leftSidebarVisible', 'true')
+  localStorage.setItem('centerPanelVisible', 'true')
+  localStorage.setItem('rightSidebarVisible', 'true')
+  try {
+    const store = await Store.load('store.json')
+    await store.set('leftSidebarVisible', true)
+    await store.set('centerPanelVisible', true)
+    await store.set('rightSidebarVisible', true)
+    await store.save()
+  } catch {
+    /* Tauri store unavailable in pure web preview — localStorage is enough */
+  }
+
+  localStorage.setItem(LAYOUT_MIGRATION_MARKER, 'done')
+  return true
+}
+
+// Reject layouts where any *visible* panel has near-zero size. Such values
+// come from the library collapsing a collapsible panel to satisfy minSize
+// during a viewport-resize reflow — they shouldn't have been persisted, but
+// if they were, we drop them here so the user recovers on next reload
+// without manual storage cleanup. Invisible panels are expected to be 0.
+function isLayoutSane(layout: number[], layoutKey: string): boolean {
+  if (!Array.isArray(layout) || layout.length !== 3) return false
+  const sum = layout.reduce((a, b) => a + b, 0)
+  if (Math.abs(sum - 100) >= 0.1) return false
+  if (layoutKey.includes('left') && layout[0] < 5) return false
+  if (layoutKey.includes('center') && layout[1] < 5) return false
+  if (layoutKey.includes('right') && layout[2] < 5) return false
+  return true
+}
 
 function getDefaultLayout(layoutKey: string) {
   const storageKey = `${LAYOUT_STORAGE_PREFIX}:${layoutKey}`
   const layout = localStorage.getItem(storageKey);
-  
+
   if (layout) {
     try {
       const parsed = JSON.parse(layout);
-      // 验证总和是否为 100
-      const sum = parsed.reduce((a: number, b: number) => a + b, 0);
-      if (Math.abs(sum - 100) < 0.1) {
+      if (isLayoutSane(parsed, layoutKey)) {
         return parsed;
       }
-      // 如果总和不是 100，清除这个无效的值
-      console.warn(`Invalid layout sum ${sum} for ${layoutKey}, using defaults`);
+      console.warn(`Invalid layout ${JSON.stringify(parsed)} for ${layoutKey}, using defaults`);
       localStorage.removeItem(storageKey);
     } catch (e) {
       console.error('Failed to parse layout:', e);
     }
   }
   
-  // 左侧目标约 350px（常见视窗 ~1700px 下约 20%）
+  // 比例來自 user 在 1707×979 viewport 手動拖到順手的位置(SpecSnap
+  // 2026-04-26 capture s-4nmv91): 笔记 318.9px / 編輯器 905.53px / 對話 480.91px
+  // 換算成扣掉 divider 後的百分比 = [18.70, 53.10, 28.20] → 取整 [19, 53, 28]。
   switch (layoutKey) {
     case 'left-center-right':
-      return [20, 50, 30]
+      return [19, 53, 28]
     case 'left-center':
       return [20, 80, 0] // 右侧折叠
     case 'center-right':
-      return [0, 60, 40] // 左侧折叠
+      return [0, 70, 30] // 左侧折叠
     case 'left-right':
       return [20, 0, 80] // 中间折叠
     case 'left':
@@ -58,7 +104,7 @@ function getDefaultLayout(layoutKey: string) {
     case 'right':
       return [0, 0, 100] // 只有右侧
     default:
-      return [20, 50, 30]
+      return [19, 53, 28]
   }
 }
 
@@ -82,15 +128,25 @@ function ResizableWrapper() {
     }
   }, [workspaceMode])
 
+  const panelGroupRef = useRef<ImperativePanelGroupHandle>(null)
   const leftPanelRef = useRef<ImperativePanelHandle>(null)
   const centerPanelRef = useRef<ImperativePanelHandle>(null)
   const rightPanelRef = useRef<ImperativePanelHandle>(null)
-  
-  const MIN_SIDEBAR_WIDTH_PX = 280
-  const MIN_EDITOR_WIDTH_PX = 400
-  const [minSidebarSize, setMinSidebarSize] = useState(20)
-  const [minEditorSize, setMinEditorSize] = useState(30)
-  
+
+  // Use a constant low minSize (5%). Any value lower than the design defaults
+  // ([19, 53, 28]) is fine — what we need to GUARANTEE is `defaultSize ≥ minSize`
+  // at all viewport widths, otherwise react-resizable-panels emits an "invalid
+  // configuration" warning AND clamps the panel up to minSize, leaving the
+  // panels stuck at clamped sizes even after the viewport enlarges.
+  //
+  // Previous attempts used a viewport-derived minSize (e.g. 280px / w * 100)
+  // capped at 40-50%. At small viewports that produced minSize > defaultSize
+  // → exactly the bug we're now fixing. The "minimum 280px sidebar" UX intent
+  // isn't actually achievable below ~1500px viewport anyway, so dropping the
+  // responsive minSize doesn't lose much in practice.
+  const minSidebarSize = 5
+  const minEditorSize = 5
+
   // 使用稳定的 layoutKey 用于存储，但不作为 React key
   const visiblePanels = [
     leftSidebarVisible && 'left',
@@ -98,23 +154,49 @@ function ResizableWrapper() {
     rightSidebarVisible && 'right'
   ].filter(Boolean)
   const layoutKey = visiblePanels.join('-')
-  
-  const calculateMinSizes = () => {
-    const windowWidth = window.innerWidth
-    const minSidebarPercent = Math.max(15, (MIN_SIDEBAR_WIDTH_PX / windowWidth) * 100)
-    const minEditorPercent = Math.max(25, (MIN_EDITOR_WIDTH_PX / windowWidth) * 100)
-    setMinSidebarSize(Math.min(minSidebarPercent, 40))
-    setMinEditorSize(Math.min(minEditorPercent, 50))
-  }
 
   // 初始化侧边栏状态
   useEffect(() => {
-    initSidebarState()
-    calculateMinSizes()
-    
-    window.addEventListener('resize', calculateMinSizes)
-    return () => window.removeEventListener('resize', calculateMinSizes)
+    let cancelled = false
+    ;(async () => {
+      // Apply the v4 migration BEFORE initSidebarState so when initSidebarState
+      // reads the Tauri store it picks up the just-reset all-visible values.
+      const migrated = await runLayoutMigrationOnce()
+      if (cancelled) return
+      if (migrated) {
+        // Push the freshly reset values into the live zustand store so the
+        // current render reflects them without needing a page reload.
+        useSidebarStore.setState({
+          leftSidebarVisible: true,
+          centerPanelVisible: true,
+          rightSidebarVisible: true,
+        })
+      }
+      await initSidebarState()
+    })()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
+
+  // Defense 5: when layoutKey changes (visibility toggle), force-restore the
+  // saved/default layout for the new key. setLayout is imperative (not a
+  // drag), so it bypasses Defense 1's persist path. Skip on first render —
+  // defaultSize props handle initial mount.
+  const initialRenderRef = useRef(true)
+  useEffect(() => {
+    if (initialRenderRef.current) {
+      initialRenderRef.current = false
+      return
+    }
+    if (panelGroupRef.current) {
+      const target = getDefaultLayout(layoutKey)
+      if (target.length === 3) {
+        panelGroupRef.current.setLayout(target)
+      }
+    }
+  }, [layoutKey])
 
   // 当面板可见性变化时，控制面板的折叠和展开
   useEffect(() => {
@@ -162,16 +244,27 @@ function ResizableWrapper() {
     }
     
     // 如果保存的布局不是3个值，使用默认布局
-    return [20, 50, 30] // 左侧 ~350px（20%）、中间 50%、右侧 30%
+    return [19, 53, 28] // 笔记 19% / 编辑器 53% / 右侧聊天 28%
   }
   
   const actualLayout = getActualLayout()
-  
-  const onLayout = (sizes: number[]) => {
-    // 保存当前面板布局
-    const storageKey = `${LAYOUT_STORAGE_PREFIX}:${layoutKey}`
-    localStorage.setItem(storageKey, JSON.stringify(sizes));
-  };
+
+  // Persist only on real drag-end transitions. onLayout was previously used
+  // here, but it fires on every reflow (viewport resize, minSize recompute,
+  // HMR transient render, programmatic collapse) — not just user drags — and
+  // any of those can write a clamped/collapsed layout into localStorage,
+  // permanently corrupting the saved value.
+  const isDraggingRef = useRef(false)
+  const handleDragging = (isDragging: boolean) => {
+    if (!isDragging && isDraggingRef.current) {
+      const sizes = panelGroupRef.current?.getLayout()
+      if (sizes && isLayoutSane(sizes, layoutKey)) {
+        const storageKey = `${LAYOUT_STORAGE_PREFIX}:${layoutKey}`
+        localStorage.setItem(storageKey, JSON.stringify(sizes))
+      }
+    }
+    isDraggingRef.current = isDragging
+  }
 
   // 根据可见面板数量动态构建布局
   const renderLayout = () => {
@@ -200,6 +293,7 @@ function ResizableWrapper() {
       <ResizableHandle
         key="handle-left-center"
         className={`${!shouldShowLeftHandle ? 'hidden' : ''}`}
+        onDragging={handleDragging}
       />
     )
 
@@ -223,6 +317,7 @@ function ResizableWrapper() {
       <ResizableHandle
         key="handle-center-right"
         className={`${!centerPanelVisible || !rightSidebarVisible ? 'hidden' : ''}`}
+        onDragging={handleDragging}
       />
     )
 
@@ -261,8 +356,8 @@ function ResizableWrapper() {
   // Notes mode: existing 3-panel layout
   return (
     <ResizablePanelGroup
+      ref={panelGroupRef}
       direction="horizontal"
-      onLayout={onLayout}
       className="h-full"
     >
       {renderLayout()}

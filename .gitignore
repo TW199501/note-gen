@@ -75,3 +75,12 @@ docs/.vitepress/cache
 
 # SpecSnap dev captures
 .specsnap/
+
+# Playwright MCP captures (snapshots, console logs, screenshots from debug sessions)
+.playwright-mcp/
+
+# Root-level debug screenshots (defense*, fix-step*, step*, stuck-state*)
+/defense*.png
+/fix-*.png
+/step[0-9]*-*.png
+/stuck-state-*.png
