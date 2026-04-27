@@ -17,7 +17,6 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { NotesToolbar } from './title-bar-notes'
 import { BrowserToolbar } from './title-bar-browser'
-import { SpecSnapToggleButton } from './specsnap/specsnap-toggle-button'
 
 type Platform = 'macos' | 'windows' | 'linux' | 'unknown'
 
@@ -164,8 +163,6 @@ export function TitleBar({ onSearchClick, onActivityClick, activityOpen = false 
               <p>{t('navigation.activity')}</p>
             </TooltipContent>
           </Tooltip>
-
-          <SpecSnapToggleButton />
 
           <SyncToggle />
 

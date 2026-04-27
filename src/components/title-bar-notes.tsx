@@ -31,6 +31,7 @@ import {
 } from '@dnd-kit/sortable'
 import { DraggableToolbarItem } from './draggable-toolbar-item'
 import { useToolbarShortcuts } from '@/hooks/use-toolbar-shortcuts'
+import { SpecSnapToggleButton } from './specsnap/specsnap-toggle-button'
 
 interface NotesToolbarProps {
   onSearchClick?: () => void
@@ -142,6 +143,10 @@ export function NotesToolbar({ onSearchClick }: NotesToolbarProps) {
               </div>
             </SortableContext>
           </DndContext>
+          {/* SpecSnap inspector toggle — placed after the draggable toolbar
+              items so it sits adjacent to the last (typically 代辦/todo) item
+              but isn't part of the user-reorderable set. */}
+          <SpecSnapToggleButton />
         </TooltipProvider>
       </div>
 

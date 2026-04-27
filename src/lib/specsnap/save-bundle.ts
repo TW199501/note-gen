@@ -7,7 +7,13 @@ export interface SaveBundleResult {
   captureId: string
 }
 
-const BASE_DIR_REL = '.specsnap'
+// Tauri's `resolve(relPath)` resolves against the Rust process CWD. During
+// `pnpm tauri dev`, that CWD is `src-tauri/`, not the project root — so a bare
+// '.specsnap' would create captures inside src-tauri/, where the developer
+// won't think to look. Going up one level lands them next to package.json,
+// which matches the convention in pure-web projects (no Tauri layer).
+// SpecSnap is gated by isDevMode(), so this path is never used in production.
+const BASE_DIR_REL = '../.specsnap'
 
 export async function saveSpecSnapBundle(
   bundle: SpecSnapBundle,
