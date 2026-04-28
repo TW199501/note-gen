@@ -27,9 +27,26 @@ const MIN_RENDER_INTERVAL_MS = 33;
 
 // 把「$ 緊接數字」(e.g. $666, $1,000, $9.99) 跳脫成 `\$`，避免 markdown-it-katex
 // 把整段中文當成 inline math content。真實數學 (e.g. $x^2$, $\pi$) 開頭通常不是數字，
-// 不受影響。$$...$$ display math 也保留 — lookbehind/lookahead 確保被前後是 $ 的不動。
+// 不受影響。$$ 連續兩個 dollar (display math 區塊) 也保留 — 只動「單一 $」緊接數字的情況。
+// 用 manual scan 取代 lookbehind regex 以求最大瀏覽器相容性。
 function escapePriceDollarSigns(text: string): string {
-  return text.replace(/(?<!\$)\$(?!\$)(?=\d)/g, '\\$');
+  if (!text || text.indexOf('$') === -1) return text
+  let out = ''
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i]
+    if (c === '$') {
+      const prev = i > 0 ? text[i - 1] : ''
+      const next = i + 1 < text.length ? text[i + 1] : ''
+      // 跳過 `$$` 區塊：前一字或後一字是 $ 都不動
+      // 只在「單 $ 後面緊接數字」時 escape
+      if (prev !== '$' && next !== '$' && next >= '0' && next <= '9') {
+        out += '\\$'
+        continue
+      }
+    }
+    out += c
+  }
+  return out
 }
 
 export default function ChatPreview({text, streaming = false}: ChatPreviewProps) {
