@@ -32,6 +32,36 @@ struct LoadingPayload {
     loading: bool,
 }
 
+#[derive(Serialize, Clone)]
+struct ContentExtractedPayload {
+    text: String,
+    title: String,
+    url: String,
+}
+
+#[derive(Serialize, Clone)]
+struct TitleChangedPayload {
+    title: String,
+}
+
+#[derive(Serialize, Clone)]
+struct FaviconChangedPayload {
+    favicon: String,
+}
+
+#[derive(Serialize, Clone)]
+struct ContextActionPayload {
+    action: String,
+    text: String,
+    url: String,
+    title: String,
+}
+
+#[derive(Serialize, Clone)]
+struct SelectedTextPayload {
+    text: String,
+}
+
 const BROWSER_LABEL: &str = "browser-webview";
 
 fn build_context_menu_js(labels: &HashMap<String, String>) -> String {
@@ -284,6 +314,41 @@ pub async fn browser_resize(
         .map_err(|e| e.to_string())?;
     Ok(())
 }
+
+// ---- Private bridge commands ---------------------------------------------------
+// 注入到 child webview 的 JS 透過 `window.__TAURI_INTERNALS__.invoke('__browser_*', ...)`
+// 把資料送回 host。這些 command 只是橋接 — 收到 JS 端 payload 後 emit 對應的
+// `browser-*` Tauri event 給 frontend 監聽。沒有這些 bridge，前端的所有 listen 都不會 fire。
+#[tauri::command]
+pub fn __browser_content_extracted(app: AppHandle, text: String, title: String, url: String) {
+    let _ = app.emit("browser-content-extracted", ContentExtractedPayload { text, title, url });
+}
+
+#[tauri::command]
+pub fn __browser_title_changed(app: AppHandle, title: String) {
+    let _ = app.emit("browser-title-changed", TitleChangedPayload { title });
+}
+
+#[tauri::command]
+pub fn __browser_favicon_changed(app: AppHandle, favicon: String) {
+    let _ = app.emit("browser-favicon-changed", FaviconChangedPayload { favicon });
+}
+
+#[tauri::command]
+pub fn __browser_context_action(app: AppHandle, action: String, text: String, url: String, title: String) {
+    let _ = app.emit("browser-context-action", ContextActionPayload { action, text, url, title });
+}
+
+#[tauri::command]
+pub fn __browser_title_result(app: AppHandle, title: String) {
+    let _ = app.emit("browser-title-changed", TitleChangedPayload { title });
+}
+
+#[tauri::command]
+pub fn __browser_selected_text(app: AppHandle, text: String) {
+    let _ = app.emit("browser-selected-text", SelectedTextPayload { text });
+}
+// ---- End private bridge commands -----------------------------------------------
 
 #[tauri::command]
 pub async fn browser_extract_text(app: AppHandle) -> Result<(), String> {
