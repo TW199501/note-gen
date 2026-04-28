@@ -367,9 +367,17 @@ export const ChatSend = forwardRef<{ sendChat: () => void }, ChatSendProps>(({ i
       // 相關的 context（article + RAG）以避免拿筆記內容 hallucinate 成「網頁分析」。
       const chatState = chatStoreApi.getState()
       const isBrowserMode = chatState.source === 'browser'
-      if (isBrowserMode && chatState.currentPageContext) {
-        const { title, url, content } = chatState.currentPageContext
-        context = `## 當前瀏覽的網頁\n標題: ${title}\nURL: ${url}\n\n內容（已截取，可能不完整）:\n${content}\n\n---\n\n` + context
+      if (isBrowserMode) {
+        // M1: browser-mode persona — 跟 notes mode 的「寫作/筆記助理」分開，
+        // 重新定位為「閱讀/研究助理」，明確告訴 AI 什麼來源可信、什麼是它要做的事。
+        const persona = `## 你的角色\n你是一位網頁閱讀與研究助理。使用者正在瀏覽網頁時跟你對話，請以下方「當前瀏覽的網頁」的實際內容為**唯一可信來源**回答 — 不要憑訓練資料臆測，也不要編造頁面沒寫的東西。\n\n如果使用者要求「總結 / 解釋 / 翻譯 / 比較 / 提問」，基於實際內容回答；如果頁面內容看起來不夠完整，主動告知使用者「我看到的內容截斷了 / 是動態載入的，可能漏掉部分」。\n\n如果頁面 context 為空（例如使用者切到網頁不到 2 秒就送訊息），請直接告訴使用者「目前還沒抓到網頁內容，請等一下重試或拔掉 📄 pill 走純對話」。\n\n---\n\n`
+        if (chatState.currentPageContext) {
+          const { title, url, content } = chatState.currentPageContext
+          context = persona + `## 當前瀏覽的網頁\n標題: ${title}\nURL: ${url}\n\n內容（已截取，可能不完整）:\n${content}\n\n---\n\n` + context
+        } else {
+          // browser mode 但還沒抽到 context — 讓 AI 知道狀況，不要亂猜
+          context = persona + `## 當前瀏覽的網頁\n（context 尚未抓取，請告知使用者）\n\n---\n\n` + context
+        }
       }
 
       // 1. 如果有当前打开的笔记，自动传入其内容（browser mode skip）
