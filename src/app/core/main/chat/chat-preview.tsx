@@ -25,6 +25,13 @@ type ChatPreviewProps = {
 
 const MIN_RENDER_INTERVAL_MS = 33;
 
+// 把「$ 緊接數字」(e.g. $666, $1,000, $9.99) 跳脫成 `\$`，避免 markdown-it-katex
+// 把整段中文當成 inline math content。真實數學 (e.g. $x^2$, $\pi$) 開頭通常不是數字，
+// 不受影響。$$...$$ display math 也保留 — lookbehind/lookahead 確保被前後是 $ 的不動。
+function escapePriceDollarSigns(text: string): string {
+  return text.replace(/(?<!\$)\$(?!\$)(?=\d)/g, '\\$');
+}
+
 export default function ChatPreview({text, streaming = false}: ChatPreviewProps) {
   const previewRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme()
@@ -70,7 +77,10 @@ export default function ChatPreview({text, streaming = false}: ChatPreviewProps)
       }
     }).use(katex, {
       throwOnError: false,
-      errorColor: '#cc0000'
+      errorColor: '#cc0000',
+      // 'ignore' 讓 KaTeX 遇到中文等 unicode 文字在 math mode 時靜默處理，不再噴 console。
+      // 視覺修正靠下方 escapePriceDollarSigns — 把 "$666" 之類價格當文字，不解析成 math。
+      strict: 'ignore' as const,
     });
 
     md.current.renderer.rules.link_open = function (tokens, idx, options, _env, self) {
@@ -80,11 +90,16 @@ export default function ChatPreview({text, streaming = false}: ChatPreviewProps)
     }
 
     if (displayedTextRef.current) {
-      setHtmlContent(md.current.render(displayedTextRef.current));
+      setHtmlContent(md.current.render(escapePriceDollarSigns(displayedTextRef.current)));
     } else {
       setHtmlContent('');
     }
   }, [mdTheme]);
+
+  // Pre-process: AI 經常寫 "售價 $666" 這類價格，markdown-it-katex 預設把單個 `$` 當 inline math
+  // 開頭，導致從 "$666" 一路把後面中文都當 math content（KaTeX 噴 unicodeTextInMathMode 警告
+  // 並把中文 render 成數學斜體）。這裡把「$ 後面緊接數字」的 case 跳脫成 `\$`，讓 markdown-it
+  // 當文字。真實 math 表達式（$x^2$, $\frac{1}{2}$）開頭通常不是數字，不受影響。
 
   const renderDisplayedText = useCallback((nextText: string, force = false) => {
     displayedTextRef.current = nextText;
@@ -101,7 +116,7 @@ export default function ChatPreview({text, streaming = false}: ChatPreviewProps)
 
     setDisplayedText(nextText);
     if (md.current) {
-      setHtmlContent(md.current.render(nextText));
+      setHtmlContent(md.current.render(escapePriceDollarSigns(nextText)));
     } else {
       setHtmlContent(nextText);
     }
