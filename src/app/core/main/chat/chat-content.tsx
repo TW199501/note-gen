@@ -7,7 +7,6 @@ import { Chat } from '@/db/chats'
 import ChatPreview from './chat-preview'
 import './chat.css'
 import { NoteOutput } from './message-control/note-output'
-import { MarkText } from './message-control/mark-text'
 import { ChatClipboard } from './chat-clipboard'
 import MessageControl from './message-control'
 import ChatEmpty from './chat-empty'
@@ -471,7 +470,7 @@ const Message = React.memo(function Message({ chat }: { chat: Chat }) {
             <ChatThinking chat={chat} />
             <ChatPreview text={content || ''} streaming={loading && isActiveAgentMessage} />
             <MessageControl chat={chat}>
-              <MarkText chat={chat} />
+              <NoteOutput chat={chat} />
             </MessageControl>
           </div>
         ) : (

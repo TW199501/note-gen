@@ -20,15 +20,17 @@ import { BaseDirectory, readDir, writeTextFile } from "@tauri-apps/plugin-fs"
 import { Store } from "@tauri-apps/plugin-store"
 import { SquarePen, TriangleAlert } from "lucide-react"
 import { useEffect, useState } from "react"
-import { redirect } from 'next/navigation'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Chat } from "@/db/chats"
 import { useTranslations } from "next-intl"
 import useArticleStore from "@/stores/article"
+import useBrowserStore from "@/stores/browser"
+import { toast } from "@/hooks/use-toast"
 
 export function NoteOutput({chat}: {chat: Chat}) {
   const { deleteTag, currentTagId } = useTagStore()
   const { loadFileTree } = useArticleStore()
+  const { workspaceMode } = useBrowserStore()
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('')
   const [path, setPath] = useState('/')
@@ -41,16 +43,25 @@ export function NoteOutput({chat}: {chat: Chat}) {
     // 统一处理：将空格替换为下划线，确保本地和远程文件名一致
     const sanitizedTitle = title.replace(/\s+/g, '_')
     const writePath = `${path}/${sanitizedTitle}`
-    
+
     // Use workspace functions instead of directly using BaseDirectory.AppData
     const pathOptions = await getFilePathOptions(writePath)
-    if (pathOptions.baseDir) {
-      await writeTextFile(pathOptions.path, content, { baseDir: pathOptions.baseDir })
-    } else {
-      // Handle custom workspace (direct path, no baseDir)
-      await writeTextFile(pathOptions.path, content)
+    try {
+      if (pathOptions.baseDir) {
+        await writeTextFile(pathOptions.path, content, { baseDir: pathOptions.baseDir })
+      } else {
+        // Handle custom workspace (direct path, no baseDir)
+        await writeTextFile(pathOptions.path, content)
+      }
+    } catch (err) {
+      toast({
+        title: '儲存失敗',
+        description: (err as Error)?.message ?? String(err),
+        variant: 'destructive',
+      })
+      return
     }
-    
+
     const store = await Store.load('store.json');
     await store.set('activeFilePath', title)
     if (isRemove) {
@@ -58,7 +69,16 @@ export function NoteOutput({chat}: {chat: Chat}) {
     }
     setOpen(false)
     await loadFileTree()
-    redirect('/core/article')
+
+    // 寫完顯示 toast。Browser 模式下保持原位 (使用者還在看網頁/對話)，notes 模式維持原本
+    // 「跳到剛存的筆記」直覺路徑 — 這在「整理筆記後想立刻看結果」場景比較順手。
+    toast({
+      title: '已存為筆記',
+      description: `${path === '/' ? '' : path + '/'}${sanitizedTitle}`,
+    })
+    if (workspaceMode === 'notes') {
+      window.location.href = '/core/article'
+    }
   }
 
   async function readArticleDir() {
