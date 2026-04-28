@@ -186,6 +186,47 @@ pub async fn browser_create(
         tauri::WebviewUrl::External(initial_url.parse().map_err(|e| format!("Invalid URL '{}': {}", initial_url, e))?),
     )
     .auto_resize()
+    // Force same-window navigation: rewrite target="_blank" anchors and override
+    // window.open() so links that would spawn a new browser window stay inside
+    // this single child webview (Tauri 2 multi-webview is still unstable).
+    // Runs before page JS on every navigation.
+    .initialization_script(r#"(function(){
+        if (window.__notegenSameWindowPatched) return;
+        window.__notegenSameWindowPatched = true;
+        window.open = function(url) {
+            try { if (url) window.location.href = String(url); } catch(e) {}
+            return null;
+        };
+        function strip(a) {
+            try {
+                if (a.getAttribute && a.getAttribute('target') === '_blank') a.removeAttribute('target');
+                if (a.getAttribute && a.getAttribute('rel')) a.removeAttribute('rel');
+            } catch(e) {}
+        }
+        var run = function() {
+            try {
+                document.querySelectorAll('a[target="_blank"]').forEach(strip);
+                if (document.body) {
+                    var mo = new MutationObserver(function(muts){
+                        muts.forEach(function(m){
+                            m.addedNodes && m.addedNodes.forEach(function(n){
+                                if (n && n.nodeType === 1) {
+                                    if (n.tagName === 'A') strip(n);
+                                    if (n.querySelectorAll) n.querySelectorAll('a[target="_blank"]').forEach(strip);
+                                }
+                            });
+                        });
+                    });
+                    mo.observe(document.body, { childList: true, subtree: true });
+                }
+            } catch(e) {}
+        };
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', run);
+        } else {
+            run();
+        }
+    })();"#)
     .on_page_load(move |wv, payload| {
         match payload.event() {
             tauri::webview::PageLoadEvent::Started => {
