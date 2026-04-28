@@ -26,6 +26,7 @@ import { useTranslations } from "next-intl"
 import useArticleStore from "@/stores/article"
 import useBrowserStore from "@/stores/browser"
 import { toast } from "@/hooks/use-toast"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 export function NoteOutput({chat}: {chat: Chat}) {
   const { deleteTag, currentTagId } = useTagStore()
@@ -106,9 +107,19 @@ export function NoteOutput({chat}: {chat: Chat}) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <a className="cursor-pointer flex items-center gap-1 hover:underline">
-          <SquarePen className="size-4" />
-        </a>
+        {/* size="icon" + ghost matches CopyControl/ReadAloudControl so the four toolbar
+            buttons have identical 40×32 hit-targets and even spacing. The previous
+            <a>-wrapped icon was visually crammed against its neighbour. */}
+        <TooltipProvider delayDuration={200}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label={t('note.convert')}>
+                <SquarePen className="size-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{t('note.convert')}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
