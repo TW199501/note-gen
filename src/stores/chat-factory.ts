@@ -30,6 +30,14 @@ export interface PendingQuote {
   articlePath: string
 }
 
+// M1: browser 模式下「當前網頁」context — 由 browser-webview 在頁面載入完成後 auto-extract
+// 寫進來，chat-send 送訊息時 prepend 到 system message。User 可在 chat-input pill 上 ✕ 拔掉。
+export interface CurrentPageContext {
+  url: string
+  title: string
+  content: string
+}
+
 // MCP 工具调用记录（临时，不保存到数据库）
 export interface McpToolCall {
   id: string
@@ -110,6 +118,10 @@ export interface ChatState {
   pendingQuote: PendingQuote | null
   setPendingQuote: (quote: PendingQuote | null) => void
   clearPendingQuote: () => void
+
+  // M1: 仅 browser store 使用 — 當前網頁 auto-extracted context（notes store 永远 null）
+  currentPageContext: CurrentPageContext | null
+  setCurrentPageContext: (ctx: CurrentPageContext | null) => void
 
   // 仅 notes store 使用（onboarding 流程是 notes-only）
   onboardingPromptDraft: string | null
@@ -320,6 +332,11 @@ export function createChatStore(opts: ChatStoreOptions): ChatStore {
     },
     clearPendingQuote: () => {
       set({ pendingQuote: null })
+    },
+
+    currentPageContext: null,
+    setCurrentPageContext: (currentPageContext: CurrentPageContext | null) => {
+      set({ currentPageContext })
     },
 
     onboardingPromptDraft: null,

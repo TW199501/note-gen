@@ -6,6 +6,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window'
 import { useTranslations } from 'next-intl'
 import useBrowserStore from '@/stores/browser'
 import useSettingStore from '@/stores/setting'
+import useBrowserChatStore from '@/stores/browser-chat'
 import emitter from '@/lib/emitter'
 
 export function BrowserWebView() {
@@ -13,6 +14,12 @@ export function BrowserWebView() {
   const { browserReady, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserLoading, setBrowserFavicon, workspaceMode, overlayCount } = useBrowserStore()
   const { browserHomepage } = useSettingStore()
   const t = useTranslations('browser.contextMenu')
+  // M1: 區分 auto-extract（page load 觸發，寫進 currentPageContext）和 manual extract
+  // （user 按按鈕，當 quote 進 chat-input）。設為 true 時，下次 browser-content-extracted
+  // event 走 auto path 並 reset；false 時走原本的 quote emitter。
+  const pendingAutoExtractRef = useRef(false)
+  // M1: debounce 用，避免頁面 loading=false 後 SPA 再渲染又重抓
+  const autoExtractTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const injectContextMenu = useCallback(async () => {
     try {
@@ -76,12 +83,25 @@ export function BrowserWebView() {
     const listeners = [
       window.listen<{ url: string }>('browser-url-changed', (event) => {
         setBrowserUrl(event.payload.url)
+        // M1: URL 變了，舊頁的 extracted context 不再 valid — 立刻清，等 loading=false 後重新 extract
+        useBrowserChatStore.getState().setCurrentPageContext(null)
       }),
       window.listen<{ title: string }>('browser-title-changed', (event) => {
         setBrowserTitle(event.payload.title)
       }),
       window.listen<{ loading: boolean }>('browser-loading', (event) => {
         setBrowserLoading(event.payload.loading)
+        // M1: 頁面載入完成後 1.5s（讓 SPA 後續渲染穩定）→ 自動抽 text 寫進 currentPageContext
+        if (!event.payload.loading) {
+          if (autoExtractTimerRef.current) clearTimeout(autoExtractTimerRef.current)
+          autoExtractTimerRef.current = setTimeout(() => {
+            pendingAutoExtractRef.current = true
+            invoke('browser_extract_text').catch((err) => {
+              console.warn('[Browser] auto-extract failed:', err)
+              pendingAutoExtractRef.current = false
+            })
+          }, 1500)
+        }
       }),
       window.listen<{ favicon: string }>('browser-favicon-changed', (event) => {
         setBrowserFavicon(event.payload.favicon)
@@ -89,7 +109,19 @@ export function BrowserWebView() {
       // Handle extracted text from browser_extract_text command
       window.listen<{ text: string; title: string; url: string }>('browser-content-extracted', (event) => {
         const { text, title, url } = event.payload
-        if (text) {
+        if (!text) return
+        // M1: auto-extract 走 currentPageContext (寫進 BrowserChatStore，不污染 chat-input)；
+        // manual extract（user 按按鈕）走原本的 quote 流程 (text 進 chat-input pendingQuote)
+        if (pendingAutoExtractRef.current) {
+          pendingAutoExtractRef.current = false
+          // 從 store 讀 url/title（avoid stale closure value）
+          const browserState = useBrowserStore.getState()
+          useBrowserChatStore.getState().setCurrentPageContext({
+            url: url || browserState.browserUrl,
+            title: title || browserState.browserTitle || url || browserState.browserUrl,
+            content: text,
+          })
+        } else {
           emitter.emit('browser-quote-text' as any, { text, url, title })
         }
       }),

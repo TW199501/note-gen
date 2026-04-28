@@ -363,16 +363,28 @@ export const ChatSend = forwardRef<{ sendChat: () => void }, ChatSendProps>(({ i
       let ragSources: string[] = []
       let ragSourceDetails: RagSource[] = []
 
-      // 1. 如果有当前打开的笔记，自动传入其内容
-      const useArticleStore = (await import('@/stores/article')).default
-      const articleStore = useArticleStore.getState()
-
-      if (articleStore.activeFilePath && articleStore.currentArticle) {
-        context = `## 当前打开的笔记\n文件路径: ${articleStore.activeFilePath}\n\n内容:\n${articleStore.currentArticle}\n\n`
+      // M1: browser 模式 — 把 currentPageContext 當第一優先 context；同時 skip notes
+      // 相關的 context（article + RAG）以避免拿筆記內容 hallucinate 成「網頁分析」。
+      const chatState = chatStoreApi.getState()
+      const isBrowserMode = chatState.source === 'browser'
+      if (isBrowserMode && chatState.currentPageContext) {
+        const { title, url, content } = chatState.currentPageContext
+        context = `## 當前瀏覽的網頁\n標題: ${title}\nURL: ${url}\n\n內容（已截取，可能不完整）:\n${content}\n\n---\n\n` + context
       }
 
-      // 2. 如果启用 RAG，获取知识库相关上下文
-      if (isRagEnabled) {
+      // 1. 如果有当前打开的笔记，自动传入其内容（browser mode skip）
+      if (!isBrowserMode) {
+        const useArticleStore = (await import('@/stores/article')).default
+        const articleStore = useArticleStore.getState()
+
+        if (articleStore.activeFilePath && articleStore.currentArticle) {
+          context = `## 当前打开的笔记\n文件路径: ${articleStore.activeFilePath}\n\n内容:\n${articleStore.currentArticle}\n\n` + context
+        }
+      }
+
+      // 2. 如果启用 RAG，获取知识库相关上下文（browser mode skip — RAG 跑 notes embedding，
+      //    在 browser mode 下會把不相關的筆記當 context 餵給 AI，造成 hallucinate）
+      if (!isBrowserMode && isRagEnabled) {
         try {
           // 基于 TextRank 算法提取前 15 个关键词（增加数量以提高召回率）
           let keywords = await invoke<{text: string, weight: number}[]>('rank_keywords', { text: inputValue, topK: 15 })

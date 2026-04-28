@@ -115,6 +115,8 @@ export const ChatInput = React.memo(function ChatInput() {
     pendingQuote,
     setPendingQuote,
     clearPendingQuote,
+    currentPageContext,
+    setCurrentPageContext,
   } = useChatStoreFromContext()
   const { marks, trashState } = useMarkStore()
   const { activeFilePath } = useArticleStore()
@@ -752,6 +754,29 @@ ${previewLines.join('\n')}
         linkedResource={linkedResource}
         onFileRemove={removeLinkedFile}
       />
+      {/* M1: browser 模式下顯示「📄 當前網頁」pill。auto-extract 抽到的內容當下一次送訊息的 system context。
+          ✕ 拔掉就純對話（不帶 context），下次換頁載完會自動補回。 */}
+      {workspaceMode === 'browser' && currentPageContext && (
+        <div className="w-full flex items-center gap-2 px-3 py-1.5 mb-1 text-xs bg-muted/40 border rounded-md text-muted-foreground">
+          <span className="shrink-0">📄</span>
+          <span className="flex-1 truncate font-medium">
+            {currentPageContext.title || currentPageContext.url}
+          </span>
+          <span className="shrink-0 text-muted-foreground/60 truncate max-w-[180px]" title={currentPageContext.url}>
+            {(() => {
+              try { return new URL(currentPageContext.url).hostname } catch { return '' }
+            })()}
+          </span>
+          <button
+            type="button"
+            onClick={() => setCurrentPageContext(null)}
+            className="shrink-0 ml-1 px-1 rounded hover:bg-muted text-muted-foreground/60 hover:text-foreground"
+            title="移除網頁 context（純對話）"
+          >
+            ✕
+          </button>
+        </div>
+      )}
       <div className="group relative flex flex-col border rounded-xl z-10 gap-1 p-1 w-full bg-background focus-within:border-primary transition-colors overflow-hidden">
         {loading && (
           <ShineBorder
