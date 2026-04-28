@@ -4,7 +4,10 @@ import { appDataDir } from '@tauri-apps/api/path'
 import { getAllMarkdownFiles, MarkdownFile } from '@/lib/files'
 import { ensureSafeWorkspaceRelativePath, getFilePathOptions } from '@/lib/workspace'
 import useArticleStore from '@/stores/article'
-import useChatStore from '@/stores/chat'
+// note-tools 操作 notes workspace 的檔案 (read_markdown_file / batch_read 等)，
+// 語意上永遠對應 notes store。即使 browser-mode agent 觸發了這些工具，
+// linkedResource cache 也應參照 notes store 的狀態（畢竟工具在讀 notes 內容）。
+import useNotesChatStore from '@/stores/notes-chat'
 import { isLinkedFolder } from '@/lib/files'
 import emitter from '@/lib/emitter'
 import { getVectorDocumentKey } from '@/lib/vector-document-key'
@@ -163,8 +166,8 @@ export const readMarkdownFileTool: Tool = {
       const normalizedFilePath = await ensureSafeWorkspaceRelativePath(params.filePath)
 
       // 检查是否已关联该文件到对话中（避免重复读取）
-      const chatStore = useChatStore.getState()
-      const { linkedResource } = chatStore
+      const notesChatState = useNotesChatStore.getState()
+      const { linkedResource } = notesChatState
 
       // 如果有关联的文件（非文件夹），且路径匹配，则提示内容已在上下文中
       if (linkedResource && !isLinkedFolder(linkedResource)) {
@@ -730,7 +733,7 @@ export const readMarkdownFilesBatchTool: Tool = {
       const results = []
       const errors = []
       const skipped = []
-      const { linkedResource } = useChatStore.getState()
+      const { linkedResource } = useNotesChatStore.getState()
       const readPlan = linkedResource && !isLinkedFolder(linkedResource)
         ? getBatchLinkedFileReadPlan(params.filePaths, linkedResource)
         : { filesToRead: params.filePaths, skippedFiles: [] }

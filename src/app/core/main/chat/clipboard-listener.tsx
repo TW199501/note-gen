@@ -4,12 +4,12 @@ import { useEffect, useRef } from 'react';
 import { BaseDirectory, exists, mkdir, writeFile } from '@tauri-apps/plugin-fs';
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import { v4 as uuid } from "uuid";
-import useChatStore from "@/stores/chat";
+import { useChatStoreFromContext } from "./chat-store-context";
 import useTagStore from "@/stores/tag";
 import { Store } from "@tauri-apps/plugin-store";
 
 export function ClipboardListener() {
-  const { insert, chats, loading } = useChatStore()
+  const { insert, chats, loading } = useChatStoreFromContext()
   const chatsRef = useRef(chats)
   const { currentTagId } = useTagStore()
 

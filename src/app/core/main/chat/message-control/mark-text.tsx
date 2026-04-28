@@ -1,7 +1,7 @@
 import { TooltipButton } from "@/components/tooltip-button"
 import { Chat } from "@/db/chats"
 import { insertMark } from "@/db/marks"
-import useChatStore from "@/stores/chat"
+import { useChatStoreFromContext } from "../chat-store-context"
 import useMarkStore from "@/stores/mark"
 import useTagStore from "@/stores/tag"
 import { CheckCircle, Highlighter } from "lucide-react"
@@ -12,7 +12,7 @@ export function MarkText({chat}: {chat: Chat}) {
 
   const { currentTagId, fetchTags, getCurrentTag } = useTagStore()
   const { fetchMarks, marks } = useMarkStore()
-  const { updateInsert, chats } = useChatStore()
+  const { updateInsert, chats } = useChatStoreFromContext()
   const [isRecorded, setIsRecorded] = useState(chat.inserted)
   const t = useTranslations('record.queue')
 

@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { MessageSquarePlus, ChevronDown, Search, Trash2 } from "lucide-react"
 import { TooltipButton } from "@/components/tooltip-button"
-import useChatStore from "@/stores/chat"
+import { useChatStoreFromContext } from "./chat-store-context"
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -24,7 +24,7 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 export function ChatHeader() {
-  const { startNewConversation, conversations, currentConversationId, switchConversation, deleteConversation, loading } = useChatStore()
+  const { startNewConversation, conversations, currentConversationId, switchConversation, deleteConversation, loading } = useChatStoreFromContext()
   const t = useTranslations()
   const tEmpty = useTranslations('record.chat.empty')
 

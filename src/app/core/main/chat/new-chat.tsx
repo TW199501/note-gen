@@ -2,11 +2,11 @@
 import * as React from "react"
 import { MessageSquarePlus } from "lucide-react"
 import { TooltipButton } from "@/components/tooltip-button"
-import useChatStore from "@/stores/chat"
+import { useChatStoreFromContext } from "./chat-store-context"
 import { useTranslations } from 'next-intl'
 
 export function NewChat() {
-  const { startNewConversation, chats } = useChatStore()
+  const { startNewConversation, chats } = useChatStoreFromContext()
   const t = useTranslations()
 
   function newChatHandler() {

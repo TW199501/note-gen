@@ -1,5 +1,5 @@
 import { Chat } from "@/db/chats"
-import useChatStore from "@/stores/chat"
+import { useChatStoreFromContext } from "../chat-store-context"
 import { XIcon } from "lucide-react"
 import { clear, hasText, readText } from "tauri-plugin-clipboard-api"
 import { useState } from "react"
@@ -12,7 +12,7 @@ import { TooltipButton } from "@/components/tooltip-button"
 import { useTranslations } from 'next-intl';
 
 export default function MessageControl({chat, children}: {chat: Chat, children: React.ReactNode}) {
-  const { deleteChat } = useChatStore()
+  const { deleteChat } = useChatStoreFromContext()
   const [translatedContent, setTranslatedContent] = useState<string>('')
   const t = useTranslations('common')
   

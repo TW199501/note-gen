@@ -1,5 +1,7 @@
 import { getDb } from "./index"
 
+export type ConversationSource = 'notes' | 'browser'
+
 export interface Conversation {
   id: number
   title: string
@@ -7,6 +9,7 @@ export interface Conversation {
   updatedAt: number
   messageCount: number
   isPinned: boolean
+  source: ConversationSource
 }
 
 // 创建 conversations 表
@@ -19,7 +22,8 @@ export async function initConversationsDb() {
       createdAt integer not null,
       updatedAt integer not null,
       messageCount integer default 0,
-      isPinned integer default 0
+      isPinned integer default 0,
+      source text not null default 'notes'
     )
   `)
 
@@ -39,6 +43,30 @@ export async function initConversationsDb() {
   } catch {
     // 如果列已存在，忽略错误
   }
+
+  // M0: 加 source 欄位 (區分 notes / browser 模式) — 既有資料 backfill 為 notes
+  try {
+    await db.execute(`
+      alter table conversations add column source text not null default 'notes'
+    `)
+  } catch {
+    // 列已存在，忽略
+  }
+
+  // 防呆：明確 backfill 任何 NULL / 空字串的舊資料
+  try {
+    await db.execute(`
+      update conversations set source = 'notes' where source is null or source = ''
+    `)
+  } catch {
+    // 寫失敗不致命，DEFAULT 子句已涵蓋多數情境
+  }
+
+  // M0: 加 (source, isPinned, updatedAt) 複合索引給拆分後的 list query 用
+  await db.execute(`
+    create index if not exists idx_conversations_source_updated
+      on conversations(source, isPinned desc, updatedAt desc)
+  `)
 
   // 迁移现有数据到默认会话
   await migrateExistingChats()
@@ -79,12 +107,12 @@ async function migrateExistingChats() {
   let defaultConversationId: number
 
   if (existingConversations.length === 0) {
-    // 创建历史会话
+    // 创建历史会话 (legacy 資料一律標 source='notes')
     const firstChat = allChats[0]
     const lastChat = allChats[allChats.length - 1]
     const result = await db.execute(
-      "insert into conversations (title, createdAt, updatedAt, messageCount, isPinned) values ($1, $2, $3, $4, $5)",
-      ['历史对话', firstChat.createdAt, lastChat.createdAt, allChats.length, 0]
+      "insert into conversations (title, createdAt, updatedAt, messageCount, isPinned, source) values ($1, $2, $3, $4, $5, $6)",
+      ['历史对话', firstChat.createdAt, lastChat.createdAt, allChats.length, 0, 'notes']
     )
     defaultConversationId = result.lastInsertId as number
 
@@ -104,22 +132,22 @@ async function migrateExistingChats() {
 }
 
 // 创建新会话
-export async function createConversation(title: string): Promise<number> {
+export async function createConversation(title: string, source: ConversationSource): Promise<number> {
   const db = await getDb()
   const now = Date.now()
   const result = await db.execute(
-    "insert into conversations (title, createdAt, updatedAt, messageCount, isPinned) values ($1, $2, $3, $4, $5)",
-    [title, now, now, 0, 0]
+    "insert into conversations (title, createdAt, updatedAt, messageCount, isPinned, source) values ($1, $2, $3, $4, $5, $6)",
+    [title, now, now, 0, 0, source]
   )
   return result.lastInsertId as number
 }
 
-// 获取所有会话
-export async function getAllConversations(): Promise<Conversation[]> {
+// 获取所有会话 — 必須帶 source 參數，依模式區分
+export async function getAllConversations(source: ConversationSource): Promise<Conversation[]> {
   const db = await getDb()
   const result = await db.select<Conversation[]>(
-    "select * from conversations order by isPinned desc, updatedAt desc",
-    []
+    "select * from conversations where source = $1 order by isPinned desc, updatedAt desc",
+    [source]
   )
   return result
 }

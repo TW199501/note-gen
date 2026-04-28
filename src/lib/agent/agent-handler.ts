@@ -1,6 +1,6 @@
 import { ReActAgent, ReActConfig } from './react'
 import { ToolCall, ReActStep } from './types'
-import useChatStore from '@/stores/chat'
+import type { ChatStore } from '@/stores/chat-factory'
 import { skillManager } from '@/lib/skills'
 import { useSkillsStore } from '@/stores/skills'
 import { reloadMcpTools } from './tools'
@@ -24,14 +24,30 @@ export interface AgentHandlerConfig {
     to: number
     fullContent?: string
   }
+  // M0: 拆分 chat store 後，AgentHandler 必須知道要更新哪一個 store 的 agentState / mcpToolCalls。
+  // 不傳時 fallback 到 notes store (organize-notes 之類 notes-only 路徑安全)。
+  chatStore?: ChatStore
 }
 
 export class AgentHandler {
   private agent: ReActAgent | null = null
   private config: AgentHandlerConfig
+  private chatStore: ChatStore | null = null
 
   constructor(config: AgentHandlerConfig) {
     this.config = config
+  }
+
+  // 取得本次 agent run 要寫入的 chat store。第一次呼叫會 lazy load notes store fallback。
+  private async getChatStore(): Promise<ChatStore> {
+    if (this.chatStore) return this.chatStore
+    if (this.config.chatStore) {
+      this.chatStore = this.config.chatStore
+    } else {
+      const { default: useNotesChatStore } = await import('@/stores/notes-chat')
+      this.chatStore = useNotesChatStore
+    }
+    return this.chatStore
   }
 
   async execute(
@@ -39,7 +55,8 @@ export class AgentHandler {
     contextOrMessages?: string | OpenAI.Chat.ChatCompletionMessageParam[],
     imageUrls?: string[]
   ): Promise<string> {
-    const store = useChatStore.getState()
+    const chatStore = await this.getChatStore()
+    const store = chatStore.getState()
 
     store.resetAgentState()
     store.setAgentState({
@@ -77,7 +94,7 @@ export class AgentHandler {
       activeSkills,
       onIterationStart: () => {
         // 在新迭代开始时，将完整的 ReAct 循环保存到历史，然后清空当前状态
-        const currentState = useChatStore.getState()
+        const currentState = chatStore.getState()
         if (currentState.agentState.currentThought ||
             currentState.agentState.currentAction ||
             currentState.agentState.currentObservation) {
@@ -157,7 +174,7 @@ export class AgentHandler {
       },
       onToolCall: (toolCall: ToolCall) => {
         // 获取最新的 store 状态
-        const currentState = useChatStore.getState()
+        const currentState = chatStore.getState()
         const existingCall = currentState.agentState.toolCalls.find(c => c.id === toolCall.id)
         if (existingCall) {
           currentState.updateAgentToolCall(toolCall.id, toolCall)
@@ -176,6 +193,7 @@ export class AgentHandler {
       formatAutoFinalAnswer: this.config.formatAutoFinalAnswer,
       requestConfirmation: this.config.requestConfirmation,
       currentQuote: this.config.currentQuote,
+      chatStore,
     }
 
     // 在开始执行前设置当前步骤的开始时间（确保第一次思考也有耗时）

@@ -1,7 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import useChatStore from '@/stores/chat'
+import { useChatStoreFromContext } from "./chat-store-context"
 import { useMemo, useState, useEffect } from 'react'
 import { Trash2, FileEdit, FileText, Lightbulb, ArrowRight, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -26,7 +26,7 @@ export default function ChatEmpty() {
     currentConversationId,
     switchConversation,
     deleteConversation
-  } = useChatStore()
+  } = useChatStoreFromContext()
 
   const [aiPrompts, setAiPrompts] = useState<QuickPrompt[]>([])
 

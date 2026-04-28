@@ -1,5 +1,15 @@
 import OpenAI from 'openai';
 import { getAISettings, validateAIService, prepareMessages, createOpenAIClient, handleAIError, convertImageToBase64, isAnthropicProvider, createAnthropicClient, extractSystemForAnthropic, createChatCompletion } from './utils';
+import type { ChatStore } from '@/stores/chat-factory';
+
+// 取得用於 MCP tool call 紀錄的 chat store handle。
+// 如果 caller (AgentHandler / ReAct / chat-send) 顯式傳了 chatStore，就用那個；
+// 否則 fallback 到 notes store (organize-notes 之類 notes-only 呼叫端走這條路)。
+async function getChatStoreForMcp(override?: ChatStore): Promise<ChatStore> {
+  if (override) return override
+  const { default: useNotesChatStore } = await import('@/stores/notes-chat')
+  return useNotesChatStore
+}
 
 /**
  * 非流式方式获取AI结果
@@ -42,6 +52,9 @@ export async function fetchAi(
  * @param imageUrls 图片URL数组（可选）
  * @param onThinkingUpdate 每次收到思考内容时的回调函数（可选）
  * @param messages 消息数组（可选，如果提供则忽略 text 参数）
+ * @param modelType 模型类型（可选）
+ * @param chatStore 写入 MCP 工具呼叫紀錄的 chat store。M0 拆分後 caller (AgentHandler) 應顯式
+ *                  傳入；undefined 時 fallback 到 notes store 以保 backward compat
  */
 export async function fetchAiStream(
   text: string,
@@ -53,7 +66,8 @@ export async function fetchAiStream(
   imageUrls?: string[],
   onThinkingUpdate?: (thinking: string) => void,
   messages?: OpenAI.Chat.ChatCompletionMessageParam[],
-  modelType?: string
+  modelType?: string,
+  chatStore?: ChatStore
 ): Promise<string> {
   try {
 
@@ -204,12 +218,12 @@ export async function fetchAiStream(
 
               if (chatId) {
                 const { useMcpStore } = await import('@/stores/mcp')
-                const { default: useChatStore } = await import('@/stores/chat')
+                const cs = await getChatStoreForMcp(chatStore)
                 const mcpStore = useMcpStore.getState()
-                const chatStore = useChatStore.getState()
+                const csState = cs.getState()
                 const server = mcpStore.servers.find(s => s.id === serverId)
                 mcpToolCallId = `${tu.id}-${Date.now()}`
-                chatStore.addMcpToolCall({
+                csState.addMcpToolCall({
                   id: mcpToolCallId, chatId, toolName, serverId,
                   serverName: server?.name || serverId,
                   params: args, result: '', status: 'calling', timestamp: Date.now()
@@ -220,15 +234,15 @@ export async function fetchAiStream(
               const resultText = result.content.filter((c: any) => c.type === 'text').map((c: any) => c.text).join('\n')
 
               if (chatId && mcpToolCallId) {
-                const { default: useChatStore } = await import('@/stores/chat')
-                useChatStore.getState().updateMcpToolCall(mcpToolCallId, { result: resultText || 'Success', status: 'success' })
+                const cs = await getChatStoreForMcp(chatStore)
+                cs.getState().updateMcpToolCall(mcpToolCallId, { result: resultText || 'Success', status: 'success' })
               }
               toolResultContent.push({ type: 'tool_result', tool_use_id: tu.id, content: resultText || 'Success' })
             } catch (error) {
               const errorMsg = error instanceof Error ? error.message : 'Unknown error'
               if (chatId && mcpToolCallId) {
-                const { default: useChatStore } = await import('@/stores/chat')
-                useChatStore.getState().updateMcpToolCall(mcpToolCallId, { result: `Error: ${errorMsg}`, status: 'error' })
+                const cs = await getChatStoreForMcp(chatStore)
+                cs.getState().updateMcpToolCall(mcpToolCallId, { result: `Error: ${errorMsg}`, status: 'error' })
               }
               toolResultContent.push({ type: 'tool_result', tool_use_id: tu.id, content: `Error: ${errorMsg}`, is_error: true })
             }
@@ -420,13 +434,13 @@ export async function fetchAiStream(
             // 记录 MCP 工具调用（如果提供了 chatId）
             if (chatId) {
               const { useMcpStore } = await import('@/stores/mcp')
-              const { default: useChatStore } = await import('@/stores/chat')
+              const cs = await getChatStoreForMcp(chatStore)
               const mcpStore = useMcpStore.getState()
-              const chatStore = useChatStore.getState()
+              const csState = cs.getState()
               const server = mcpStore.servers.find(s => s.id === serverId)
-              
+
               mcpToolCallId = `${toolCall.id}-${Date.now()}`
-              chatStore.addMcpToolCall({
+              csState.addMcpToolCall({
                 id: mcpToolCallId,
                 chatId,
                 toolName,
@@ -450,9 +464,8 @@ export async function fetchAiStream(
             
             // 更新 MCP 工具调用状态为成功
             if (chatId && mcpToolCallId) {
-              const { default: useChatStore } = await import('@/stores/chat')
-              const chatStore = useChatStore.getState()
-              chatStore.updateMcpToolCall(mcpToolCallId, {
+              const cs = await getChatStoreForMcp(chatStore)
+              cs.getState().updateMcpToolCall(mcpToolCallId, {
                 result: resultText || 'Tool executed successfully',
                 status: 'success'
               })
@@ -469,10 +482,9 @@ export async function fetchAiStream(
             
             // 更新 MCP 工具调用状态为错误
             if (chatId && mcpToolCallId) {
-              const { default: useChatStore } = await import('@/stores/chat')
-              const chatStore = useChatStore.getState()
+              const cs = await getChatStoreForMcp(chatStore)
               const errorMsg = error instanceof Error ? error.message : 'Unknown error'
-              chatStore.updateMcpToolCall(mcpToolCallId, {
+              cs.getState().updateMcpToolCall(mcpToolCallId, {
                 result: `Error: ${errorMsg}`,
                 status: 'error'
               })

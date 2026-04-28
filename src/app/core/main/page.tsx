@@ -4,10 +4,12 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { LeftSidebar } from "./left-sidebar"
 import { EditorLayout } from './editor/editor-layout'
 import Chat from './chat'
+import { ChatStoreProvider } from './chat/chat-store-context'
 import dynamic from 'next/dynamic'
 import { useSidebarStore } from "@/stores/sidebar"
 import useBrowserStore from "@/stores/browser"
-import useChatStore from "@/stores/chat"
+import useNotesChatStore from "@/stores/notes-chat"
+import useBrowserChatStore from "@/stores/browser-chat"
 import { BrowserPanel } from "./browser"
 import { useEffect, useRef } from 'react'
 import { Store } from '@tauri-apps/plugin-store'
@@ -128,7 +130,7 @@ function ResizableWrapper() {
       invoke('browser_hide').catch(() => {})
     } else {
       invoke('browser_show').catch(() => {})
-      useChatStore.getState().startNewConversation()
+      useBrowserChatStore.getState().startNewConversation()
       emitter.emit('chat-input-reset', undefined)
     }
   }, [workspaceMode])
@@ -336,7 +338,9 @@ function ResizableWrapper() {
         collapsible={true}
         collapsedSize={0}
       >
-        <Chat />
+        <ChatStoreProvider store={useNotesChatStore}>
+          <Chat />
+        </ChatStoreProvider>
       </ResizablePanel>
     )
 
@@ -352,7 +356,9 @@ function ResizableWrapper() {
         </ResizablePanel>
         <ResizableHandle />
         <ResizablePanel defaultSize={30} minSize={20}>
-          <Chat />
+          <ChatStoreProvider store={useBrowserChatStore}>
+            <Chat />
+          </ChatStoreProvider>
         </ResizablePanel>
       </ResizablePanelGroup>
     )

@@ -1,7 +1,7 @@
 import { ReActStep, ToolCall, ToolResult } from './types'
 import { getToolByName, getToolDescriptions } from './tools'
 import { skillManager } from '@/lib/skills'
-import useChatStore from '@/stores/chat'
+import type { ChatStore } from '@/stores/chat-factory'
 import useArticleStore from '@/stores/article'
 import { isLinkedFolder } from '@/lib/files'
 import {
@@ -194,6 +194,9 @@ export interface ReActConfig {
     to: number
     fullContent?: string
   }
+  // M0: 拆分 chat store 後，ReActAgent 必須知道要更新哪一個 store。
+  // AgentHandler 永遠會傳，這裡的 optional 只給 ad-hoc 測試 / fallback 用。
+  chatStore?: ChatStore
 }
 
 export class ReActAgent {
@@ -830,7 +833,7 @@ Observation: ${step.observation}
             this.config.onThought?.(content)
             lastUpdateLength = content.length
           }
-        }, this.abortController?.signal, undefined, undefined, undefined, imagesForThisIteration, undefined, messagesForAI)
+        }, this.abortController?.signal, undefined, undefined, undefined, imagesForThisIteration, undefined, messagesForAI, undefined, this.config.chatStore)
 
         // 检查是否已终止
         if (this.stopped) {
@@ -918,7 +921,7 @@ ${buildIterationUserMessage(this.currentIteration, userInput, lastObservation)}`
           this.config.onThought?.(content)
           lastUpdateLength = content.length
         }
-      }, this.abortController?.signal, undefined, undefined, undefined, imagesForThisIteration)
+      }, this.abortController?.signal, undefined, undefined, undefined, imagesForThisIteration, undefined, undefined, undefined, this.config.chatStore)
       
       // 检查是否已终止
       if (this.stopped) {
@@ -1858,7 +1861,7 @@ ${skillsList.join('\n---\n\n')}
   ): { allowed: boolean; requiresConfirmation: boolean; reason?: string } {
     const folderPath = typeof params.folderPath === 'string' ? params.folderPath.trim() : ''
     const filePath = typeof params.filePath === 'string' ? params.filePath.trim() : ''
-    const { linkedResource } = useChatStore.getState()
+    const linkedResource = this.config.chatStore?.getState().linkedResource ?? null
     const articleStore = useArticleStore.getState()
 
     if (toolName === 'check_folder_exists' && /\.md$/i.test(folderPath)) {
@@ -1979,7 +1982,7 @@ ${skillsList.join('\n---\n\n')}
   }
 
   private isRedundantLinkedFileRead(toolName: string, params: Record<string, any>): boolean {
-    const { linkedResource } = useChatStore.getState()
+    const linkedResource = this.config.chatStore?.getState().linkedResource ?? null
 
     if (!linkedResource || isLinkedFolder(linkedResource)) {
       return false

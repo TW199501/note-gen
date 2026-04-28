@@ -3,12 +3,12 @@
 import React from "react"
 import { AlignVerticalJustifyCenter } from "lucide-react"
 import { TooltipButton } from "@/components/tooltip-button"
-import useChatStore from "@/stores/chat"
+import { useChatStoreFromContext } from "./chat-store-context"
 import useTagStore from "@/stores/tag"
 import { useTranslations } from 'next-intl'
 
 export function ClearContext() {
-  const { insert } = useChatStore()
+  const { insert } = useChatStoreFromContext()
   const { currentTagId } = useTagStore()
   const t = useTranslations('record.chat.input.clearContext')
 

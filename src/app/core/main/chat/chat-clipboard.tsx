@@ -12,7 +12,7 @@ import { CheckCircle, Highlighter, ImagePlus, LoaderCircle } from "lucide-react"
 import { Chat } from "@/db/chats";
 import { LocalImage } from '@/components/local-image';
 import MessageControl from './message-control';
-import useChatStore from '@/stores/chat';
+import { useChatStoreFromContext } from "./chat-store-context";
 import { Button } from '@/components/ui/button';
 import { useTranslations } from 'next-intl';
 import { uploadImage } from '@/lib/imageHosting';
@@ -25,7 +25,7 @@ export function ChatClipboard({chat}: { chat: Chat }) {
   const { currentTagId, fetchTags, getCurrentTag } = useTagStore()
   const { primaryModel, primaryImageMethod, enableImageRecognition } = useSettingStore()
   const { fetchMarks, addQueue, setQueue, removeQueue } = useMarkStore()
-  const { updateInsert, deleteChat } = useChatStore()
+  const { updateInsert, deleteChat } = useChatStoreFromContext()
   const t = useTranslations('record.queue')
   
   useEffect(() => {

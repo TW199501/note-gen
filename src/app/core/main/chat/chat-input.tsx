@@ -3,7 +3,7 @@ import * as React from "react"
 import { useEffect, useMemo, useRef, useState, useCallback } from "react"
 import useSettingStore from "@/stores/setting"
 import { Textarea } from "@/components/ui/textarea"
-import useChatStore from "@/stores/chat"
+import { useChatStoreFromContext } from "./chat-store-context"
 import useMarkStore from "@/stores/mark"
 import useArticleStore from "@/stores/article"
 import useBrowserStore from "@/stores/browser"
@@ -115,7 +115,7 @@ export const ChatInput = React.memo(function ChatInput() {
     pendingQuote,
     setPendingQuote,
     clearPendingQuote,
-  } = useChatStore()
+  } = useChatStoreFromContext()
   const { marks, trashState } = useMarkStore()
   const { activeFilePath } = useArticleStore()
   const { workspaceMode } = useBrowserStore()
@@ -767,7 +767,7 @@ ${previewLines.join('\n')}
         <div className="relative w-full flex items-start">
           <Textarea
             ref={textareaRef}
-            className="flex-1 p-2 relative border-none text-xs placeholder:text-sm md:placeholder:text-sm md:text-sm focus-visible:ring-0 shadow-none min-h-[36px] max-h-[240px] resize-none overflow-y-auto"
+            className="flex-1 p-2 relative border-none text-xs placeholder:text-sm md:placeholder:text-sm md:text-sm focus-visible:ring-0 shadow-none min-h-[72px] max-h-[240px] resize-none overflow-y-auto"
             rows={1}
             disabled={!primaryModel || loading}
             value={text}

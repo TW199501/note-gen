@@ -1,5 +1,5 @@
 import React from 'react'
-import useChatStore from '@/stores/chat'
+import { useChatStoreFromContext } from "./chat-store-context"
 import useTagStore from '@/stores/tag'
 import { ArrowDownToLine, X, Loader2, QuoteIcon } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -26,7 +26,7 @@ const USER_SCROLL_GRACE_MS = 300
 
 const ChatContent = React.memo(function ChatContent() {
   const t = useTranslations('record.chat')
-  const { chats, init, agentState, loading } = useChatStore()
+  const { chats, init, agentState, loading } = useChatStoreFromContext()
   const { currentTagId } = useTagStore()
   const [isOnBottom, setIsOnBottom] = useState(true)
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true)
@@ -254,7 +254,7 @@ const ChatContent = React.memo(function ChatContent() {
 ChatContent.displayName = 'ChatContent'
 
 const MessageWrapper = React.memo(function MessageWrapper({ chat, children }: { chat: Chat, children: React.ReactNode }) {
-  const { deleteChat } = useChatStore()
+  const { deleteChat } = useChatStoreFromContext()
   const [showDelete, setShowDelete] = useState(false)
   const isMobile = useIsMobile()
 
@@ -313,7 +313,7 @@ MessageWrapper.displayName = 'MessageWrapper'
 
 const Message = React.memo(function Message({ chat }: { chat: Chat }) {
   const t = useTranslations()
-  const { deleteChat, getMcpToolCallsByChatId, loading, agentState } = useChatStore()
+  const { deleteChat, getMcpToolCallsByChatId, loading, agentState } = useChatStoreFromContext()
   const content = chat.content
   const isActiveAgentMessage = chat.role === 'system' && agentState.activeChatId === chat.id
   const isLiveAgentVisible = isActiveAgentMessage && (agentState.isRunning || agentState.isFinalAnswerMode)

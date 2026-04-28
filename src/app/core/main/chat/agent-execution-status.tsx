@@ -1,5 +1,5 @@
 import * as React from "react"
-import useChatStore from "@/stores/chat"
+import { useChatStoreFromContext } from "./chat-store-context"
 import { AgentPanelWithRag } from "./agent-panel-with-rag"
 
 /**
@@ -13,7 +13,7 @@ export function AgentExecutionStatus() {
     currentConversationId,
     setAgentAutoApproveConversationId,
     setAgentAutoApproveRuntimeSkillId,
-  } = useChatStore()
+  } = useChatStoreFromContext()
 
   // Handle confirmation
   const handleConfirm = (scope: 'once' | 'conversation' = 'once') => {

@@ -1,7 +1,7 @@
 "use client"
 import { Send, Square } from "lucide-react"
 import useSettingStore from "@/stores/setting"
-import useChatStore from "@/stores/chat"
+import { useChatStoreFromContext, useChatStoreApiFromContext } from "./chat-store-context"
 import useTagStore from "@/stores/tag"
 import { TooltipButton } from "@/components/tooltip-button"
 import { useImperativeHandle, forwardRef, useRef, useEffect } from "react"
@@ -48,7 +48,10 @@ export const ChatSend = forwardRef<{ sendChat: () => void }, ChatSendProps>(({ i
     setAgentState,
     maybeCondense,
     linkedResourcePreview,
-  } = useChatStore()
+  } = useChatStoreFromContext()
+  // Capture store API to call .getState() inside callbacks/intervals where the
+  // hook itself can't be called. Stable across renders since it's the StoreApi instance.
+  const chatStoreApi = useChatStoreApiFromContext()
   const { isRagEnabled } = useVectorStore()
   const abortControllerRef = useRef<AbortController | null>(null)
   const agentHandlerRef = useRef<AgentHandler | null>(null)
@@ -171,7 +174,7 @@ export const ChatSend = forwardRef<{ sendChat: () => void }, ChatSendProps>(({ i
     const sessionApprovalScope = getSessionApprovalScope(toolName, tool, params)
     const canApproveForSession = !!sessionApprovalScope
 
-    const currentChatState = useChatStore.getState()
+    const currentChatState = chatStoreApi.getState()
     const activeConversationId = currentChatState.currentConversationId
     const autoApproveConversationId = currentChatState.agentAutoApproveConversationId
     const autoApproveRuntimeSkillId = currentChatState.agentAutoApproveRuntimeSkillId
@@ -201,7 +204,7 @@ export const ChatSend = forwardRef<{ sendChat: () => void }, ChatSendProps>(({ i
       
       // 轮询检查用户是否已确认或取消
       const checkInterval = setInterval(() => {
-        const currentState = useChatStore.getState()
+        const currentState = chatStoreApi.getState()
         
         // 如果 pendingConfirmation 被清除，说明用户已操作
         if (!currentState.agentState.pendingConfirmation) {
@@ -255,7 +258,7 @@ export const ChatSend = forwardRef<{ sendChat: () => void }, ChatSendProps>(({ i
       formatAutoFinalAnswer: (key, values) => t(key as any, values),
       onComplete: async (result, steps, stopped) => {
         // 获取 Agent 执行历史，保存完整的 ReAct 步骤
-        const { agentState } = useChatStore.getState()
+        const { agentState } = chatStoreApi.getState()
         // 使用 agentState.completedSteps 而不是 steps 参数，因为 completedSteps 包含 duration 信息
         const agentHistory = {
           steps: agentState.completedSteps || [], // 保存完整的 ReAct 步骤（包含 thought, action, observation, duration）
@@ -289,7 +292,7 @@ export const ChatSend = forwardRef<{ sendChat: () => void }, ChatSendProps>(({ i
         finalContent = sanitizeAgentFinalContent(finalContent)
 
         // 获取当前消息状态，保留 ragSources 和 ragSourceDetails
-        const currentState = useChatStore.getState()
+        const currentState = chatStoreApi.getState()
         const currentMessage = currentState.chats.find(c => c.id === placeholderMessage.id)
 
         // 更新占位消息，保留 RAG 相关字段
@@ -321,7 +324,7 @@ export const ChatSend = forwardRef<{ sendChat: () => void }, ChatSendProps>(({ i
       },
       onError: async (error) => {
         // 获取当前消息状态，保留 ragSources 和 ragSourceDetails
-        const currentState = useChatStore.getState()
+        const currentState = chatStoreApi.getState()
         const currentMessage = currentState.chats.find(c => c.id === placeholderMessage.id)
 
         // 更新占位消息为错误信息，保留 RAG 相关字段
@@ -534,7 +537,7 @@ ${hasValidRange ? `**仅在用户明确要求修改/改写/补充/插入时才�
       }
 
       // 5. 构建消息数组，包含对话历史（使用压缩摘要替代已压缩的消息）
-      const { chats } = useChatStore.getState()
+      const { chats } = chatStoreApi.getState()
       const { buildMessagesWithHistory } = await import('@/lib/ai/condense')
 
       // 使用 buildMessagesWithHistory 构建完整的消息数组

@@ -2,12 +2,12 @@
 import * as React from "react"
 import { Eraser } from "lucide-react"
 import { TooltipButton } from "@/components/tooltip-button"
-import useChatStore from "@/stores/chat"
+import { useChatStoreFromContext } from "./chat-store-context"
 import useTagStore from "@/stores/tag"
 import { useTranslations } from 'next-intl'
 
 export function ClearChat() {
-  const { clearChats } = useChatStore()
+  const { clearChats } = useChatStoreFromContext()
   const { currentTagId } = useTagStore()
   const t = useTranslations()
 
