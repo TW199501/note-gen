@@ -3,8 +3,9 @@ import useSettingStore from "@/stores/setting";
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useTheme } from 'next-themes'
 import MarkdownIt from 'markdown-it';
-import katex from '@traptitech/markdown-it-katex';
-import 'katex/dist/katex.min.css';
+// Note: markdown-it-katex 拔掉了 — chat 場景幾乎不會有真實 LaTeX，但 AI 寫到 "$666" 之類
+// 價格 / "$x" 變數會觸發 KaTeX 把後面整段中文當 math 解析、噴 unicodeTextInMathMode 警告，
+// 視覺也會變數學斜體。Notes editor 那邊另有 KaTeX 渲染（math-extension.tsx），不受影響。
 import hljs from 'highlight.js/lib/core';
 import javascript from 'highlight.js/lib/languages/javascript';
 import typescript from 'highlight.js/lib/languages/typescript';
@@ -25,29 +26,6 @@ type ChatPreviewProps = {
 
 const MIN_RENDER_INTERVAL_MS = 33;
 
-// 把「$ 緊接數字」(e.g. $666, $1,000, $9.99) 跳脫成 `\$`，避免 markdown-it-katex
-// 把整段中文當成 inline math content。真實數學 (e.g. $x^2$, $\pi$) 開頭通常不是數字，
-// 不受影響。$$ 連續兩個 dollar (display math 區塊) 也保留 — 只動「單一 $」緊接數字的情況。
-// 用 manual scan 取代 lookbehind regex 以求最大瀏覽器相容性。
-function escapePriceDollarSigns(text: string): string {
-  if (!text || text.indexOf('$') === -1) return text
-  let out = ''
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i]
-    if (c === '$') {
-      const prev = i > 0 ? text[i - 1] : ''
-      const next = i + 1 < text.length ? text[i + 1] : ''
-      // 跳過 `$$` 區塊：前一字或後一字是 $ 都不動
-      // 只在「單 $ 後面緊接數字」時 escape
-      if (prev !== '$' && next !== '$' && next >= '0' && next <= '9') {
-        out += '\\$'
-        continue
-      }
-    }
-    out += c
-  }
-  return out
-}
 
 export default function ChatPreview({text, streaming = false}: ChatPreviewProps) {
   const previewRef = useRef<HTMLDivElement>(null);
@@ -92,12 +70,6 @@ export default function ChatPreview({text, streaming = false}: ChatPreviewProps)
           (md.current ? md.current.utils.escapeHtml(str) : str) +
           '</code></pre>';
       }
-    }).use(katex, {
-      throwOnError: false,
-      errorColor: '#cc0000',
-      // 'ignore' 讓 KaTeX 遇到中文等 unicode 文字在 math mode 時靜默處理，不再噴 console。
-      // 視覺修正靠下方 escapePriceDollarSigns — 把 "$666" 之類價格當文字，不解析成 math。
-      strict: 'ignore' as const,
     });
 
     md.current.renderer.rules.link_open = function (tokens, idx, options, _env, self) {
@@ -107,16 +79,11 @@ export default function ChatPreview({text, streaming = false}: ChatPreviewProps)
     }
 
     if (displayedTextRef.current) {
-      setHtmlContent(md.current.render(escapePriceDollarSigns(displayedTextRef.current)));
+      setHtmlContent(md.current.render(displayedTextRef.current));
     } else {
       setHtmlContent('');
     }
   }, [mdTheme]);
-
-  // Pre-process: AI 經常寫 "售價 $666" 這類價格，markdown-it-katex 預設把單個 `$` 當 inline math
-  // 開頭，導致從 "$666" 一路把後面中文都當 math content（KaTeX 噴 unicodeTextInMathMode 警告
-  // 並把中文 render 成數學斜體）。這裡把「$ 後面緊接數字」的 case 跳脫成 `\$`，讓 markdown-it
-  // 當文字。真實 math 表達式（$x^2$, $\frac{1}{2}$）開頭通常不是數字，不受影響。
 
   const renderDisplayedText = useCallback((nextText: string, force = false) => {
     displayedTextRef.current = nextText;
@@ -133,7 +100,7 @@ export default function ChatPreview({text, streaming = false}: ChatPreviewProps)
 
     setDisplayedText(nextText);
     if (md.current) {
-      setHtmlContent(md.current.render(escapePriceDollarSigns(nextText)));
+      setHtmlContent(md.current.render(nextText));
     } else {
       setHtmlContent(nextText);
     }

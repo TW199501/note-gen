@@ -41,9 +41,14 @@ export function NoteOutput({chat}: {chat: Chat}) {
 
   async function handleTransform() {
     const content = chat?.content || ''
-    // 统一处理：将空格替换为下划线，确保本地和远程文件名一致
+    // 統一處理：空格 → 底線，確保本地與遠端檔名一致
     const sanitizedTitle = title.replace(/\s+/g, '_')
-    const writePath = `${path}/${sanitizedTitle}`
+
+    // 構造 workspace-relative 路徑：path 開頭一定有 `/`（select option 包含），
+    // 直接 `${path}/${title}` 會在根目錄變成 `//filename` 雙斜線，下一步 prefix
+    // `article/` 就變成 `article//filename`，Tauri writeTextFile 會炸。
+    // 正確：根目錄就只用 filename；子目錄則去掉 path 開頭斜線後接 filename。
+    const writePath = path === '/' ? sanitizedTitle : `${path.replace(/^\/+/, '')}/${sanitizedTitle}`
 
     // Use workspace functions instead of directly using BaseDirectory.AppData
     const pathOptions = await getFilePathOptions(writePath)
@@ -55,6 +60,7 @@ export function NoteOutput({chat}: {chat: Chat}) {
         await writeTextFile(pathOptions.path, content)
       }
     } catch (err) {
+      console.error('[NoteOutput] writeTextFile failed', { writePath, pathOptions, err })
       toast({
         title: '儲存失敗',
         description: (err as Error)?.message ?? String(err),
