@@ -15,6 +15,9 @@ export interface Conversation {
 // 创建 conversations 表
 export async function initConversationsDb() {
   const db = await getDb()
+  // M0: source 欄位定義為 nullable + DEFAULT。SQLite 透過 ALTER TABLE ADD COLUMN
+  // 加上 NOT NULL DEFAULT 在某些 libsql/sqlx binding 上會失敗（詳見下方 ALTER），
+  // 改用 nullable + 應用層保證非空（DEFAULT 子句 + UPDATE backfill）以求 portability。
   await db.execute(`
     create table if not exists conversations (
       id integer primary key autoincrement,
@@ -23,7 +26,7 @@ export async function initConversationsDb() {
       updatedAt integer not null,
       messageCount integer default 0,
       isPinned integer default 0,
-      source text not null default 'notes'
+      source text default 'notes'
     )
   `)
 
@@ -44,29 +47,46 @@ export async function initConversationsDb() {
     // 如果列已存在，忽略错误
   }
 
-  // M0: 加 source 欄位 (區分 notes / browser 模式) — 既有資料 backfill 為 notes
+  // M0: 加 source 欄位 (區分 notes / browser 模式)。
+  // 不加 NOT NULL —— 部分 SQLite binding 對 ALTER TABLE ADD COLUMN ... NOT NULL DEFAULT
+  // 處理不一致，會 silently 失敗導致後續查詢 "no such column"。改成單純加欄位 +
+  // DEFAULT，配合下方 UPDATE 把所有舊資料補成 'notes'。
+  let sourceColumnAdded = true
   try {
     await db.execute(`
-      alter table conversations add column source text not null default 'notes'
+      alter table conversations add column source text default 'notes'
     `)
-  } catch {
-    // 列已存在，忽略
+  } catch (err) {
+    // 列已存在 -> 預期錯誤；其他錯誤 -> 還是繼續但 log 以利診斷
+    const msg = (err as Error)?.message ?? String(err)
+    if (!/duplicate column|already exists/i.test(msg)) {
+      console.warn('[conversations] alter add source column failed (will retry backfill):', msg)
+      sourceColumnAdded = false
+    }
   }
 
-  // 防呆：明確 backfill 任何 NULL / 空字串的舊資料
-  try {
-    await db.execute(`
-      update conversations set source = 'notes' where source is null or source = ''
-    `)
-  } catch {
-    // 寫失敗不致命，DEFAULT 子句已涵蓋多數情境
+  // 防呆：明確 backfill 任何 NULL / 空字串的舊資料；只在欄位確實存在時才跑（避免無欄位再炸一次）
+  if (sourceColumnAdded) {
+    try {
+      await db.execute(`
+        update conversations set source = 'notes' where source is null or source = ''
+      `)
+    } catch (err) {
+      console.warn('[conversations] backfill source failed:', (err as Error)?.message ?? err)
+    }
   }
 
   // M0: 加 (source, isPinned, updatedAt) 複合索引給拆分後的 list query 用
-  await db.execute(`
-    create index if not exists idx_conversations_source_updated
-      on conversations(source, isPinned desc, updatedAt desc)
-  `)
+  if (sourceColumnAdded) {
+    try {
+      await db.execute(`
+        create index if not exists idx_conversations_source_updated
+          on conversations(source, isPinned desc, updatedAt desc)
+      `)
+    } catch (err) {
+      console.warn('[conversations] create idx_conversations_source_updated failed:', (err as Error)?.message ?? err)
+    }
+  }
 
   // 迁移现有数据到默认会话
   await migrateExistingChats()
