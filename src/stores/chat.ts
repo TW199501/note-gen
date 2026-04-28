@@ -115,6 +115,14 @@ interface ChatState {
   currentConversationId: number | null
   conversations: Conversation[]
 
+  // 当 init() 在 Chat 元件重新 mount 时被呼叫（例如 workspace mode 切换造成
+  // page.tsx return 不同 JSX 树、Chat 整组 unmount/remount），原本的 auto-
+  // restore 逻辑会把刚被 startNewConversation 清掉的 currentConversationId
+  // 重新设回最近的对话——defeat 整个清空意图。
+  // startNewConversation 会把这个 flag 设成 true，init() 看到就跳过 auto-
+  // restore，并在自己跑完后把 flag 清回 false（一次性的）。
+  skipAutoRestore: boolean
+
   // 会话初始化和管理
   initConversations: () => Promise<void> // 初始化会话列表
   createConversation: (title?: string) => Promise<number> // 创建新会话
@@ -329,11 +337,16 @@ const useChatStore = create<ChatState>((set, get) => ({
     // 先初始化会话列表
     await get().initConversations()
 
-    const { currentConversationId, conversations } = get()
+    const { currentConversationId, conversations, skipAutoRestore } = get()
 
     // 如果没有当前会话
     if (!currentConversationId) {
-      if (conversations.length > 0) {
+      // 如果上一步是 startNewConversation 主动清空（例如切换 workspace mode
+      // 造成 Chat 重新 mount、init() 被呼叫），就不要 auto-restore，让画面
+      // 保持空状态。一次性 flag —— 这个 init() 完成后清回 false。
+      if (skipAutoRestore) {
+        set({ skipAutoRestore: false })
+      } else if (conversations.length > 0) {
         // 有历史会话，切换到第一个
         await get().switchConversation(conversations[0].id)
       }
@@ -687,6 +700,7 @@ const useChatStore = create<ChatState>((set, get) => ({
   // === 新增：会话管理方法 ===
   currentConversationId: null,
   conversations: [],
+  skipAutoRestore: false,
 
   initConversations: async () => {
     const { getAllConversations } = await import('@/db/conversations')
@@ -762,13 +776,17 @@ const useChatStore = create<ChatState>((set, get) => ({
   startNewConversation: async () => {
     const { currentConversationId } = get()
 
-    // 先立即清空 UI 状态，确保画面干净（同步操作）
+    // 先立即清空 UI 状态，确保画面干净（同步操作）。
+    // skipAutoRestore: true 是关键 —— 万一接下来 Chat 元件被 unmount/remount
+    // （workspace mode 切换会触发），mount 后 init() 不会把 currentConversationId
+    // 又自动 restore 到最近的对话。一次性 flag，init() 跑完会清回 false。
     set({
       currentConversationId: null,
       chats: [],
       pendingQuote: null,
       agentAutoApproveConversationId: null,
-      agentAutoApproveRuntimeSkillId: null
+      agentAutoApproveRuntimeSkillId: null,
+      skipAutoRestore: true
     })
     get().resetAgentState()
     get().clearMcpToolCalls()

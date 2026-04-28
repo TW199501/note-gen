@@ -117,14 +117,19 @@ function ResizableWrapper() {
   } = useSidebarStore()
   const { workspaceMode } = useBrowserStore()
 
-  // 切换模式时控制 WebView 显示/隐藏，并在进入浏览器模式时开启新对话
+  // 切换模式时控制 WebView 显示/隐藏，并在进入浏览器模式时开启新对话。
+  // ResizableWrapper 不会随 mode 切换 unmount，所以这个 useEffect 真的会
+  // 在 mode 改变时触发（不像 Chat 元件本身——它在 mode 切换时整个 unmount
+  // /remount，元件内的 ref-based transition 检测会失效）。
+  // startNewConversation 内会设 skipAutoRestore=true，避免 Chat remount 后
+  // 的 init() 自动把 currentConversationId 又 restore 回最近的对话。
   useEffect(() => {
     if (workspaceMode === 'notes') {
       invoke('browser_hide').catch(() => {})
     } else {
       invoke('browser_show').catch(() => {})
-      // 进入浏览器模式时，开启新对话以避免引用之前的笔记上下文
       useChatStore.getState().startNewConversation()
+      emitter.emit('chat-input-reset', undefined)
     }
   }, [workspaceMode])
 

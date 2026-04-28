@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea"
 import useChatStore from "@/stores/chat"
 import useMarkStore from "@/stores/mark"
 import useArticleStore from "@/stores/article"
+import useBrowserStore from "@/stores/browser"
 import { fetchAiQuickPrompts } from "@/lib/ai/placeholder"
 import { useTranslations } from 'next-intl'
 import { useLocalStorage } from 'react-use';
@@ -117,6 +118,7 @@ export const ChatInput = React.memo(function ChatInput() {
   } = useChatStore()
   const { marks, trashState } = useMarkStore()
   const { activeFilePath } = useArticleStore()
+  const { workspaceMode } = useBrowserStore()
   const [isComposing, setIsComposing] = useState(false)
   const [placeholder, setPlaceholder] = useState('')
   const t = useTranslations()
@@ -491,6 +493,18 @@ export const ChatInput = React.memo(function ChatInput() {
         setTimeout(() => textareaRef.current?.focus(), 50)
       }
     })
+    // Reset all input-local state (text draft, attached images, linked
+    // resource). Used when starting a fresh conversation context — e.g. on
+    // notes→browser workspace switch — since these states live in component
+    // local useState and aren't covered by store-level startNewConversation.
+    emitter.on('chat-input-reset', () => {
+      setText('')
+      setLinkedResource(null)
+      setChatLinkedResource(null)
+      setAttachedImages([])
+      setHistoryIndex(-1)
+      setTempInput('')
+    })
     return () => {
       onboardingTypingTimerRefs.current.forEach((timerId) => window.clearTimeout(timerId))
       onboardingTypingTimerRefs.current = []
@@ -502,8 +516,9 @@ export const ChatInput = React.memo(function ChatInput() {
       emitter.off('ai-placeholder-generated')
       emitter.off('browser-quote-text')
       emitter.off('browser-screenshot')
+      emitter.off('chat-input-reset')
     }
-  }, [debouncedGenPlaceholder, setPendingQuote])
+  }, [debouncedGenPlaceholder, setPendingQuote, setChatLinkedResource])
 
   useEffect(() => {
     if (!onboardingPromptDraft) {
@@ -620,6 +635,14 @@ ${previewLines.join('\n')}
   // 自动关联当前打开的 markdown 文件或文件夹
   useEffect(() => {
     async function linkCurrentResource() {
+      // browser 模式下 chat 應該對應網頁內容而不是 notes 工作區的 activeFilePath。
+      // 不在 browser 模式 link 任何 note 資源；切回 notes 時 deps 變化會重跑此 effect。
+      if (workspaceMode === 'browser') {
+        setLinkedResource(null)
+        setChatLinkedResource(null)
+        setLinkedResourcePreview(null)
+        return
+      }
       if (!activeFilePath) {
         setLinkedResource(null)
         setChatLinkedResource(null)
@@ -703,7 +726,7 @@ ${previewLines.join('\n')}
     }
 
     linkCurrentResource()
-  }, [activeFilePath])
+  }, [activeFilePath, workspaceMode])
 
   // 当关联文件变化时，触发防抖的 placeholder 重新生成
   useEffect(() => {

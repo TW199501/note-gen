@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { NotesToolbar } from './title-bar-notes'
 import { BrowserToolbar } from './title-bar-browser'
+import { SpecSnapToggleButton } from './specsnap/specsnap-toggle-button'
 
 type Platform = 'macos' | 'windows' | 'linux' | 'unknown'
 
@@ -99,6 +100,13 @@ export function TitleBar({ onSearchClick, onActivityClick, activityOpen = false 
 
         {/* 右側共用按鈕 */}
         <div className="flex items-center gap-0.5 px-2 shrink-0" data-tauri-drag-region="false">
+          {/* SpecSnap inspector toggle — only in browser mode (notes mode has
+              it in the record toolbar instead). Placed before the Mode
+              toggle so it appears as the leftmost utility icon. */}
+          {pathname === '/core/main' && workspaceMode === 'browser' && (
+            <SpecSnapToggleButton />
+          )}
+
           {/* Mode toggle - only on main page */}
           {pathname === '/core/main' && (
             <>
