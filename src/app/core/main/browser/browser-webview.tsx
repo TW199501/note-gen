@@ -90,11 +90,13 @@ export function BrowserWebView() {
         setBrowserTitle(event.payload.title)
       }),
       window.listen<{ loading: boolean }>('browser-loading', (event) => {
+        console.debug('[Browser] browser-loading event', event.payload)
         setBrowserLoading(event.payload.loading)
         // M1: 頁面載入完成後 1.5s（讓 SPA 後續渲染穩定）→ 自動抽 text 寫進 currentPageContext
         if (!event.payload.loading) {
           if (autoExtractTimerRef.current) clearTimeout(autoExtractTimerRef.current)
           autoExtractTimerRef.current = setTimeout(() => {
+            console.debug('[Browser] auto-extract: invoking browser_extract_text')
             pendingAutoExtractRef.current = true
             invoke('browser_extract_text').catch((err) => {
               console.warn('[Browser] auto-extract failed:', err)
@@ -109,6 +111,10 @@ export function BrowserWebView() {
       // Handle extracted text from browser_extract_text command
       window.listen<{ text: string; title: string; url: string }>('browser-content-extracted', (event) => {
         const { text, title, url } = event.payload
+        console.debug('[Browser] browser-content-extracted event', {
+          textLen: text?.length ?? 0, title, url,
+          autoMode: pendingAutoExtractRef.current,
+        })
         if (!text) return
         // M1: auto-extract 走 currentPageContext (寫進 BrowserChatStore，不污染 chat-input)；
         // manual extract（user 按按鈕）走原本的 quote 流程 (text 進 chat-input pendingQuote)
