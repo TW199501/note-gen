@@ -76,6 +76,15 @@ docs/.vitepress/cache
 # SpecSnap dev captures
 .specsnap/
 
+# Tauri signing keys must NEVER be committed. The literal "~/" folder below
+# catches the case where `pnpm tauri signer generate -w "~/.tauri/key"` was
+# run in PowerShell — PowerShell doesn't expand `~` and creates a literal
+# `~` folder inside the repo (we hit this once and the old key leaked for
+# 11 days before being rotated).
+/~/
+*.key
+*.key.pub
+
 # Playwright MCP captures (snapshots, console logs, screenshots from debug sessions)
 .playwright-mcp/
 
