@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { initialNavState, reduceNavState, canGoBack, canGoForward, type NavEventKind, type NavState } from '@/lib/browser/nav-state'
 
 export type WorkspaceMode = 'notes' | 'browser'
 
@@ -31,6 +32,14 @@ interface BrowserStore {
   overlayCount: number
   pushOverlay: () => void
   popOverlay: () => void
+
+  // R5: 上下頁狀態。Rust 端每次 page-load Finished 會 emit `browser-nav-event`
+  // 帶 kind，前端透過 reducer 推進 navState，UI 用 canGoBack/canGoForward 控制按鈕。
+  navState: NavState
+  canGoBack: boolean
+  canGoForward: boolean
+  applyNavEvent: (kind: NavEventKind) => void
+  resetNavState: () => void
 }
 
 const useBrowserStore = create<BrowserStore>((set) => ({
@@ -58,6 +67,21 @@ const useBrowserStore = create<BrowserStore>((set) => ({
   overlayCount: 0,
   pushOverlay: () => set((state) => ({ overlayCount: state.overlayCount + 1 })),
   popOverlay: () => set((state) => ({ overlayCount: Math.max(0, state.overlayCount - 1) })),
+
+  navState: initialNavState,
+  canGoBack: false,
+  canGoForward: false,
+  applyNavEvent: (kind) =>
+    set((state) => {
+      const next = reduceNavState(state.navState, kind)
+      return {
+        navState: next,
+        canGoBack: canGoBack(next),
+        canGoForward: canGoForward(next),
+      }
+    }),
+  resetNavState: () =>
+    set({ navState: initialNavState, canGoBack: false, canGoForward: false }),
 }))
 
 export default useBrowserStore

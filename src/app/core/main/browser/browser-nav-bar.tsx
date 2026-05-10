@@ -22,7 +22,7 @@ interface BrowserNavBarProps {
 export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick }: BrowserNavBarProps) {
   const t = useTranslations('browser')
   const tCommon = useTranslations('common')
-  const { browserUrl, browserTitle, browserLoading, browserFavicon, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserFavicon } = useBrowserStore()
+  const { browserUrl, browserTitle, browserLoading, browserFavicon, browserReady, canGoBack, canGoForward, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserFavicon, setBrowserAutoOpen, resetNavState } = useBrowserStore()
   const { browserHomepage } = useSettingStore()
   const [inputUrl, setInputUrl] = useState(browserUrl)
   const [bookmarked, setBookmarked] = useState(false)
@@ -36,6 +36,7 @@ export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick }:
       setBrowserUrl(browserHomepage)
       setBrowserTitle('')
       setBrowserFavicon('')
+      resetNavState()
       setConfirmClear(false)
       setSettingsOpen(false)
     } catch (error) {
@@ -67,7 +68,18 @@ export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick }:
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = 'https://' + url
     }
-    await invoke('browser_navigate', { url })
+    // 若使用者在 browser 還沒被 create 之前就在 URL 列按 Enter，
+    // 自動 lazy-mount：BrowserWebView 會在下個 tick 觀察到 browserAutoOpen=true 後 spawn webview。
+    // 但 browser_navigate 必須在 webview 存在後才呼叫，否則 Rust 端噴 "Browser not created"。
+    if (!browserReady) {
+      setBrowserAutoOpen(true)
+      return
+    }
+    try {
+      await invoke('browser_navigate', { url })
+    } catch (e) {
+      console.error('[Browser] navigate failed:', e)
+    }
   }
 
   async function handleToggleBookmark() {
@@ -88,7 +100,14 @@ export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick }:
       <div className="flex items-center gap-1 px-2 py-1.5 border-b bg-background">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => invoke('browser_go_back')}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              disabled={!canGoBack}
+              aria-label={t('back')}
+              onClick={() => { void invoke('browser_go_back').catch((e) => console.error('[Browser] go_back failed:', e)) }}
+            >
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
@@ -97,7 +116,14 @@ export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick }:
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => invoke('browser_go_forward')}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              disabled={!canGoForward}
+              aria-label={t('forward')}
+              onClick={() => { void invoke('browser_go_forward').catch((e) => console.error('[Browser] go_forward failed:', e)) }}
+            >
               <ArrowRight className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
@@ -106,7 +132,14 @@ export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick }:
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => invoke('browser_reload')}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              disabled={!browserReady}
+              aria-label={t('reload')}
+              onClick={() => { void invoke('browser_reload').catch((e) => console.error('[Browser] reload failed:', e)) }}
+            >
               <RotateCw className={`h-4 w-4 ${browserLoading ? 'animate-spin' : ''}`} />
             </Button>
           </TooltipTrigger>
@@ -115,7 +148,20 @@ export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick }:
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => invoke('browser_navigate', { url: browserHomepage })}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              aria-label={t('home')}
+              onClick={() => {
+                if (!browserReady) {
+                  setBrowserAutoOpen(true)
+                  return
+                }
+                void invoke('browser_navigate', { url: browserHomepage })
+                  .catch((e) => console.error('[Browser] home navigate failed:', e))
+              }}
+            >
               <Home className="h-4 w-4" />
             </Button>
           </TooltipTrigger>

@@ -56,7 +56,7 @@ export function HistoryDrawer({ open, onOpenChange }: HistoryDrawerProps) {
   const [entries, setEntries] = useState<BrowserHistoryEntry[]>([])
   const [query, setQuery] = useState('')
   const [confirmClear, setConfirmClear] = useState(false)
-  const { pushOverlay, popOverlay } = useBrowserStore()
+  const { pushOverlay, popOverlay, browserReady, setBrowserAutoOpen } = useBrowserStore()
 
   useEffect(() => {
     if (open) pushOverlay()
@@ -89,7 +89,16 @@ export function HistoryDrawer({ open, onOpenChange }: HistoryDrawerProps) {
   }
 
   async function handleNavigate(url: string) {
-    await invoke('browser_navigate', { url })
+    if (!browserReady) {
+      setBrowserAutoOpen(true)
+      onOpenChange(false)
+      return
+    }
+    try {
+      await invoke('browser_navigate', { url })
+    } catch (e) {
+      console.error('[Browser] history navigate failed:', e)
+    }
     onOpenChange(false)
   }
 

@@ -7,9 +7,31 @@ use tauri::{
 };
 use serde::Serialize;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum PendingNav {
+    Back,
+    Forward,
+    Navigate,
+    Reload,
+}
+
+impl PendingNav {
+    fn as_event_kind(self) -> &'static str {
+        match self {
+            PendingNav::Back => "back",
+            PendingNav::Forward => "forward",
+            PendingNav::Navigate => "navigate",
+            PendingNav::Reload => "reload",
+        }
+    }
+}
+
 pub struct BrowserState {
     webview_label: Mutex<Option<String>>,
     context_menu_labels: Mutex<Option<HashMap<String, String>>>,
+    // Latest user-initiated nav action awaiting the next page-load Finished event.
+    // Cleared on each Finished. Absent → in-page link click → treat as "navigate".
+    pending_nav: Mutex<Option<PendingNav>>,
 }
 
 impl BrowserState {
@@ -17,6 +39,7 @@ impl BrowserState {
         Self {
             webview_label: Mutex::new(None),
             context_menu_labels: Mutex::new(None),
+            pending_nav: Mutex::new(None),
         }
     }
 }
@@ -60,6 +83,11 @@ struct ContextActionPayload {
 #[derive(Serialize, Clone)]
 struct SelectedTextPayload {
     text: String,
+}
+
+#[derive(Serialize, Clone)]
+struct NavEventPayload {
+    kind: &'static str,
 }
 
 const BROWSER_LABEL: &str = "browser-webview";
@@ -234,6 +262,17 @@ pub async fn browser_create(
             }
             tauri::webview::PageLoadEvent::Finished => {
                 let _ = app_handle.emit("browser-loading", LoadingPayload { loading: false });
+                // Determine nav action: take pending flag if set, else treat as in-page link click.
+                let kind = if let Some(browser_state) = app_handle.try_state::<BrowserState>() {
+                    if let Ok(mut pending) = browser_state.pending_nav.lock() {
+                        pending.take().map(|p| p.as_event_kind()).unwrap_or("navigate")
+                    } else {
+                        "navigate"
+                    }
+                } else {
+                    "navigate"
+                };
+                let _ = app_handle.emit("browser-nav-event", NavEventPayload { kind });
                 // Get URL and title after load
                 if let Ok(url) = wv.url() {
                     let _ = app_handle.emit("browser-url-changed", UrlPayload { url: url.to_string() });
@@ -282,32 +321,55 @@ pub async fn browser_create(
     Ok(())
 }
 
+fn set_pending_nav(state: &tauri::State<'_, BrowserState>, action: PendingNav) {
+    if let Ok(mut pending) = state.pending_nav.lock() {
+        *pending = Some(action);
+    }
+}
+
 #[tauri::command]
-pub async fn browser_navigate(app: AppHandle, url: String) -> Result<(), String> {
+pub async fn browser_navigate(
+    app: AppHandle,
+    state: tauri::State<'_, BrowserState>,
+    url: String,
+) -> Result<(), String> {
     let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
     let parsed_url = url::Url::parse(&url).map_err(|e| e.to_string())?;
+    set_pending_nav(&state, PendingNav::Navigate);
     webview.navigate(parsed_url).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-pub async fn browser_go_back(app: AppHandle) -> Result<(), String> {
+pub async fn browser_go_back(
+    app: AppHandle,
+    state: tauri::State<'_, BrowserState>,
+) -> Result<(), String> {
     let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+    set_pending_nav(&state, PendingNav::Back);
     // Tauri's webview.eval() API injects JS into the webview context
     webview.eval("window.history.back()").map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-pub async fn browser_go_forward(app: AppHandle) -> Result<(), String> {
+pub async fn browser_go_forward(
+    app: AppHandle,
+    state: tauri::State<'_, BrowserState>,
+) -> Result<(), String> {
     let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+    set_pending_nav(&state, PendingNav::Forward);
     webview.eval("window.history.forward()").map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-pub async fn browser_reload(app: AppHandle) -> Result<(), String> {
+pub async fn browser_reload(
+    app: AppHandle,
+    state: tauri::State<'_, BrowserState>,
+) -> Result<(), String> {
     let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+    set_pending_nav(&state, PendingNav::Reload);
     webview.eval("window.location.reload()").map_err(|e| e.to_string())?; // existing code
     Ok(())
 }
@@ -501,6 +563,9 @@ pub async fn browser_clear_data(
     // Reset state so WebView can be recreated
     let mut label = state.webview_label.lock().map_err(|e| e.to_string())?;
     *label = None;
+    if let Ok(mut pending) = state.pending_nav.lock() {
+        *pending = None;
+    }
 
     Ok(())
 }

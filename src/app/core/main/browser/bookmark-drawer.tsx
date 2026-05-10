@@ -18,7 +18,7 @@ interface BookmarkDrawerProps {
 export function BookmarkDrawer({ open, onOpenChange, refreshTrigger }: BookmarkDrawerProps) {
   const t = useTranslations('browser.bookmark')
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([])
-  const { pushOverlay, popOverlay } = useBrowserStore()
+  const { pushOverlay, popOverlay, browserReady, setBrowserAutoOpen } = useBrowserStore()
 
   useEffect(() => {
     if (open) pushOverlay()
@@ -42,7 +42,16 @@ export function BookmarkDrawer({ open, onOpenChange, refreshTrigger }: BookmarkD
   }
 
   async function handleNavigate(url: string) {
-    await invoke('browser_navigate', { url })
+    if (!browserReady) {
+      setBrowserAutoOpen(true)
+      onOpenChange(false)
+      return
+    }
+    try {
+      await invoke('browser_navigate', { url })
+    } catch (e) {
+      console.error('[Browser] bookmark drawer navigate failed:', e)
+    }
     onOpenChange(false)
   }
 
