@@ -5,7 +5,7 @@
   "identifier": "com.codexu.NoteGen",
   "build": {
     "beforeDevCommand": "pnpm dev",
-    "devUrl": "http://localhost:3456",
+    "devUrl": "http://localhost:31415",
     "beforeBuildCommand": "pnpm build",
     "frontendDist": "../out"
   },

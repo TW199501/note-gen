@@ -11,7 +11,7 @@ import emitter from '@/lib/emitter'
 
 export function BrowserWebView() {
   const containerRef = useRef<HTMLDivElement>(null)
-  const { browserReady, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserLoading, setBrowserFavicon, workspaceMode, overlayCount } = useBrowserStore()
+  const { browserReady, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserLoading, setBrowserFavicon, workspaceMode, overlayCount, browserAutoOpen } = useBrowserStore()
   const { browserHomepage } = useSettingStore()
   const t = useTranslations('browser.contextMenu')
   // M1: 區分 auto-extract（page load 觸發，寫進 currentPageContext）和 manual extract
@@ -58,6 +58,10 @@ export function BrowserWebView() {
   useEffect(() => {
     async function init() {
       if (!containerRef.current) return
+      // Lazy-mount gate：browserAutoOpen=false 時不自動 spawn 子 WebView，
+      // 避免啟動就出現 about:blank#blocked 的空白視窗（v1.0.7 行為）。
+      // 使用者可呼叫 useBrowserStore.getState().setBrowserAutoOpen(true) 啟用。
+      if (!browserAutoOpen) return
       const rect = containerRef.current.getBoundingClientRect()
 
       try {
@@ -162,7 +166,7 @@ export function BrowserWebView() {
         unlisten()
       })
     }
-  }, [])
+  }, [browserAutoOpen])
 
   // Sync size on resize — observe both container and parent to catch sibling changes (e.g. BookmarkBar appearing)
   useEffect(() => {
