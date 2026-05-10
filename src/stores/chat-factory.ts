@@ -348,6 +348,11 @@ export function createChatStore(opts: ChatStoreOptions): ChatStore {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     init: async (_tagId: number) => {
       await initChatsDb()
+      // 防呆：確保 conversations 表存在再查。React effect 順序是 child→parent，
+      // 所以 chat-content 的 useEffect 會早於 core/layout 的 initAllDatabases，
+      // 若 DB 是首次建立會撞到 "no such table: conversations"。
+      const { initConversationsDb } = await import('@/db/conversations')
+      await initConversationsDb()
       await get().initConversations()
 
       const { currentConversationId, conversations, skipAutoRestore } = get()
