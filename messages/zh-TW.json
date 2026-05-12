@@ -2072,6 +2072,13 @@
       "title": "書籤",
       "empty": "尚無書籤"
     },
+    "find": {
+      "placeholder": "在頁面中尋找 (Ctrl/Cmd+F)",
+      "noMatch": "0/0",
+      "previous": "上一個 (Shift+Enter)",
+      "next": "下一個 (Enter)",
+      "close": "關閉 (Esc)"
+    },
     "contextMenu": {
       "back": "上一頁",
       "forward": "下一頁",

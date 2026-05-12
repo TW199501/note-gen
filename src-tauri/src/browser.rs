@@ -100,6 +100,17 @@ struct ZoomChangedPayload {
     level: f64,
 }
 
+#[derive(Serialize, Clone)]
+struct FindStatePayload {
+    count: usize,
+    index: i64,
+}
+
+#[derive(Serialize, Clone)]
+struct FindRequestedPayload {
+    initial_query: String,
+}
+
 const BROWSER_LABEL: &str = "browser-webview";
 
 fn build_context_menu_js(labels: &HashMap<String, String>) -> String {
@@ -264,6 +275,138 @@ pub async fn browser_create(
         } else {
             run();
         }
+    })();"#)
+    // R4: find-in-page. Helper functions installed on window; host invokes them via
+    // wv.eval. Highlights matches by wrapping text-node fragments in <mark class=
+    // "ng-find-hit">. Close() restores DOM by replacing marks with their text content.
+    // Skips script/style/our own marks via TreeWalker filter. Ctrl/Cmd+F is captured
+    // inside the WebView (host can't see child WebView keydown), forwarded via
+    // __browser_find_requested so host can show the find bar and steal focus.
+    .initialization_script(r#"(function(){
+        if (window.__noteGenFindPatched) return;
+        window.__noteGenFindPatched = true;
+        var STYLE_ID = 'ng-find-style';
+        var ATTR = 'data-ng-find';
+        var ACTIVE_ATTR = 'data-ng-find-active';
+        function ensureStyle(){
+            if (document.getElementById(STYLE_ID)) return;
+            var s = document.createElement('style');
+            s.id = STYLE_ID;
+            s.textContent = 'mark['+ATTR+']{background:#ffeb3b;color:#000;padding:0;border-radius:2px}mark['+ATTR+']['+ACTIVE_ATTR+']{background:#ff9800;outline:2px solid #f57c00}';
+            (document.head || document.documentElement).appendChild(s);
+        }
+        function closeFind(){
+            var hits = document.querySelectorAll('mark['+ATTR+']');
+            for (var i=0; i<hits.length; i++){
+                var m = hits[i];
+                var p = m.parentNode;
+                if (!p) continue;
+                while (m.firstChild) p.insertBefore(m.firstChild, m);
+                p.removeChild(m);
+                p.normalize();
+            }
+            window.__noteGenFindState = null;
+        }
+        function shouldSkipParent(el){
+            if (!el || !el.tagName) return true;
+            var tag = el.tagName.toUpperCase();
+            if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NOSCRIPT' || tag === 'TEXTAREA') return true;
+            if (el.hasAttribute && el.hasAttribute(ATTR)) return true;
+            return false;
+        }
+        function collectTextNodes(){
+            var out = [];
+            var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+                acceptNode: function(node){
+                    if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+                    if (shouldSkipParent(node.parentElement)) return NodeFilter.FILTER_REJECT;
+                    return NodeFilter.FILTER_ACCEPT;
+                }
+            });
+            var n;
+            while ((n = walker.nextNode())) out.push(n);
+            return out;
+        }
+        function startFind(query, caseSensitive){
+            closeFind();
+            if (!query) {
+                report(0, -1);
+                return;
+            }
+            ensureStyle();
+            var nodes = collectTextNodes();
+            var hits = [];
+            for (var i=0; i<nodes.length; i++){
+                var node = nodes[i];
+                var text = node.nodeValue;
+                var hay = caseSensitive ? text : text.toLowerCase();
+                var ndl = caseSensitive ? query : query.toLowerCase();
+                var positions = [];
+                var idx = 0;
+                while (idx <= hay.length - ndl.length){
+                    var found = hay.indexOf(ndl, idx);
+                    if (found === -1) break;
+                    positions.push(found);
+                    idx = found + ndl.length;
+                }
+                if (positions.length === 0) continue;
+                // Split text node and wrap matches
+                var parent = node.parentNode;
+                if (!parent) continue;
+                var cursor = 0;
+                var frag = document.createDocumentFragment();
+                for (var p=0; p<positions.length; p++){
+                    var pos = positions[p];
+                    if (pos > cursor) frag.appendChild(document.createTextNode(text.substring(cursor, pos)));
+                    var mark = document.createElement('mark');
+                    mark.setAttribute(ATTR, '');
+                    mark.textContent = text.substring(pos, pos + ndl.length);
+                    frag.appendChild(mark);
+                    hits.push(mark);
+                    cursor = pos + ndl.length;
+                }
+                if (cursor < text.length) frag.appendChild(document.createTextNode(text.substring(cursor)));
+                parent.replaceChild(frag, node);
+            }
+            window.__noteGenFindState = { hits: hits, index: hits.length ? 0 : -1, query: query, caseSensitive: !!caseSensitive };
+            if (hits.length) activate(0);
+            report(hits.length, hits.length ? 0 : -1);
+        }
+        function activate(idx){
+            var st = window.__noteGenFindState;
+            if (!st || !st.hits.length) return;
+            for (var i=0; i<st.hits.length; i++) st.hits[i].removeAttribute(ACTIVE_ATTR);
+            var n = ((idx % st.hits.length) + st.hits.length) % st.hits.length;
+            st.index = n;
+            var el = st.hits[n];
+            el.setAttribute(ACTIVE_ATTR, '');
+            try { el.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' }); } catch(e) {}
+        }
+        function nextFind(){
+            var st = window.__noteGenFindState;
+            if (!st || !st.hits.length) return;
+            activate(st.index + 1);
+            report(st.hits.length, st.index);
+        }
+        function prevFind(){
+            var st = window.__noteGenFindState;
+            if (!st || !st.hits.length) return;
+            activate(st.index - 1);
+            report(st.hits.length, st.index);
+        }
+        function report(count, index){
+            try { window.__TAURI_INTERNALS__.invoke('__browser_find_state', { count: count, index: index }); } catch(e) {}
+        }
+        window.__noteGenFind = { start: startFind, next: nextFind, prev: prevFind, close: closeFind };
+        // Ctrl/Cmd+F: forward to host so it can show find bar and focus its input.
+        window.addEventListener('keydown', function(e){
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')){
+                e.preventDefault();
+                var sel = '';
+                try { sel = String(window.getSelection() || ''); } catch(err) {}
+                try { window.__TAURI_INTERNALS__.invoke('__browser_find_requested', { initial_query: sel }); } catch(err) {}
+            }
+        }, true);
     })();"#)
     // R6: zoom keyboard shortcuts. Tauri child WebView keydown events do NOT bubble to
     // the host window, so the listener has to live inside the WebView itself. Each
@@ -505,7 +648,67 @@ pub fn __browser_selected_text(app: AppHandle, text: String) {
 pub fn __browser_zoom_changed(app: AppHandle, level: f64) {
     let _ = app.emit("browser-zoom-changed", ZoomChangedPayload { level });
 }
+
+#[tauri::command]
+pub fn __browser_find_state(app: AppHandle, count: usize, index: i64) {
+    let _ = app.emit("browser-find-state", FindStatePayload { count, index });
+}
+
+#[tauri::command]
+pub fn __browser_find_requested(app: AppHandle, initial_query: String) {
+    let _ = app.emit("browser-find-requested", FindRequestedPayload { initial_query });
+}
 // ---- End private bridge commands -----------------------------------------------
+
+fn escape_js_string(s: &str) -> String {
+    s.replace('\\', "\\\\")
+        .replace('\'', "\\'")
+        .replace('\n', "\\n")
+        .replace('\r', "\\r")
+}
+
+#[tauri::command]
+pub async fn browser_find_start(
+    app: AppHandle,
+    query: String,
+    case_sensitive: bool,
+) -> Result<(), String> {
+    let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+    let js = format!(
+        "(function(){{ if(window.__noteGenFind) window.__noteGenFind.start('{}', {}); }})();",
+        escape_js_string(&query),
+        case_sensitive
+    );
+    webview.eval(&js).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn browser_find_next(app: AppHandle) -> Result<(), String> {
+    let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+    webview
+        .eval("(function(){ if(window.__noteGenFind) window.__noteGenFind.next(); })();")
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn browser_find_prev(app: AppHandle) -> Result<(), String> {
+    let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+    webview
+        .eval("(function(){ if(window.__noteGenFind) window.__noteGenFind.prev(); })();")
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn browser_find_close(app: AppHandle) -> Result<(), String> {
+    let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+    webview
+        .eval("(function(){ if(window.__noteGenFind) window.__noteGenFind.close(); })();")
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
 
 #[tauri::command]
 pub async fn browser_set_zoom(app: AppHandle, level: f64) -> Result<f64, String> {

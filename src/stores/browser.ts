@@ -50,6 +50,16 @@ interface BrowserStore {
   // host 也可主動呼叫 browser_set_zoom 同步。Phase 1 為單分頁，存記憶體即可。
   zoomLevel: number
   setZoomLevel: (level: number) => void
+
+  // R4: find-in-page。Ctrl/Cmd+F 在 WebView 內被攔截後 emit browser-find-requested，
+  // host 顯示 FindBar 並 focus input；輸入查詢 → debounce → invoke browser_find_start。
+  findOpen: boolean
+  setFindOpen: (open: boolean) => void
+  findQuery: string
+  setFindQuery: (q: string) => void
+  findCount: number
+  findIndex: number  // -1 when no match
+  setFindState: (count: number, index: number) => void
 }
 
 const useBrowserStore = create<BrowserStore>((set) => ({
@@ -98,6 +108,14 @@ const useBrowserStore = create<BrowserStore>((set) => ({
 
   zoomLevel: 1.0,
   setZoomLevel: (zoomLevel) => set({ zoomLevel }),
+
+  findOpen: false,
+  setFindOpen: (findOpen) => set({ findOpen }),
+  findQuery: '',
+  setFindQuery: (findQuery) => set({ findQuery }),
+  findCount: 0,
+  findIndex: -1,
+  setFindState: (findCount, findIndex) => set({ findCount, findIndex }),
 }))
 
 export default useBrowserStore

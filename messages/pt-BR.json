@@ -2145,6 +2145,13 @@
       "title": "Favoritos",
       "empty": "Nenhum favorito ainda"
     },
+    "find": {
+      "placeholder": "Localizar na página (Ctrl/Cmd+F)",
+      "noMatch": "0/0",
+      "previous": "Anterior (Shift+Enter)",
+      "next": "Próximo (Enter)",
+      "close": "Fechar (Esc)"
+    },
     "contextMenu": {
       "back": "Voltar",
       "forward": "Avançar",

@@ -5,6 +5,7 @@ import { BrowserNavBar } from './browser-nav-bar'
 import { BrowserWebView } from './browser-webview'
 import { BrowserDrawer, type BrowserDrawerTab } from './browser-drawer'
 import { BookmarkBar } from './bookmark-bar'
+import { FindBar } from './find-bar'
 import { addBookmark, isBookmarked } from '@/db/bookmarks'
 import emitter from '@/lib/emitter'
 
@@ -43,6 +44,7 @@ export function BrowserPanel() {
         onHistoryClick={() => openDrawer('history')}
       />
       <BookmarkBar refreshTrigger={bookmarkRefresh} />
+      <FindBar />
       <BrowserWebView />
       <BrowserDrawer
         open={drawerOpen}

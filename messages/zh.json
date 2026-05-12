@@ -2027,6 +2027,13 @@
     "settings": "设置",
     "clearData": "清除浏览器数据",
     "clearDataConfirm": "这将清除所有浏览器缓存、Cookie 和历史记录。确定继续吗？",
+    "find": {
+      "placeholder": "在页面中查找 (Ctrl/Cmd+F)",
+      "noMatch": "0/0",
+      "previous": "上一个 (Shift+Enter)",
+      "next": "下一个 (Enter)",
+      "close": "关闭 (Esc)"
+    },
     "bookmark": {
       "add": "添加书签",
       "remove": "移除书签",

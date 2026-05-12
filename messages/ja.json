@@ -2086,6 +2086,13 @@
       "title": "ブックマーク",
       "empty": "ブックマークがありません"
     },
+    "find": {
+      "placeholder": "ページ内検索 (Ctrl/Cmd+F)",
+      "noMatch": "0/0",
+      "previous": "前へ (Shift+Enter)",
+      "next": "次へ (Enter)",
+      "close": "閉じる (Esc)"
+    },
     "contextMenu": {
       "back": "戻る",
       "forward": "進む",

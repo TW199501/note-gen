@@ -2090,6 +2090,13 @@
       "title": "Bookmarks",
       "empty": "No bookmarks yet"
     },
+    "find": {
+      "placeholder": "Find in page (Ctrl/Cmd+F)",
+      "noMatch": "0/0",
+      "previous": "Previous (Shift+Enter)",
+      "next": "Next (Enter)",
+      "close": "Close (Esc)"
+    },
     "contextMenu": {
       "back": "Back",
       "forward": "Forward",
