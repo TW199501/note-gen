@@ -95,6 +95,11 @@ struct DevtoolsStatePayload {
     open: bool,
 }
 
+#[derive(Serialize, Clone)]
+struct ZoomChangedPayload {
+    level: f64,
+}
+
 const BROWSER_LABEL: &str = "browser-webview";
 
 fn build_context_menu_js(labels: &HashMap<String, String>) -> String {
@@ -259,6 +264,38 @@ pub async fn browser_create(
         } else {
             run();
         }
+    })();"#)
+    // R6: zoom keyboard shortcuts. Tauri child WebView keydown events do NOT bubble to
+    // the host window, so the listener has to live inside the WebView itself. Each
+    // navigation gets a fresh window, so addEventListener once per page is safe — the
+    // idempotent guard prevents double-registering inside the same page via SPA hash
+    // changes (not strictly needed since hash changes don't trigger init_script, but
+    // cheap insurance).
+    .initialization_script(r#"(function(){
+        if (window.__noteGenZoomPatched) return;
+        window.__noteGenZoomPatched = true;
+        var ZMIN = 0.25, ZMAX = 5.0, ZSTEP = 0.1, ZDEF = 1.0;
+        function r2(v){ return Math.round(v * 100) / 100; }
+        function clamp(v){ return r2(Math.max(ZMIN, Math.min(ZMAX, v))); }
+        function apply(level){
+            var l = clamp(level);
+            try { document.documentElement.style.zoom = String(l); } catch(e) {}
+            window.__noteGenZoomLevel = l;
+            try { window.__TAURI_INTERNALS__.invoke('__browser_zoom_changed', { level: l }); } catch(e) {}
+            return l;
+        }
+        window.__noteGenZoomApply = apply;
+        window.addEventListener('keydown', function(e){
+            if (!(e.ctrlKey || e.metaKey)) return;
+            var cur = window.__noteGenZoomLevel || ZDEF;
+            if (e.key === '=' || e.key === '+') {
+                e.preventDefault(); apply(cur + ZSTEP);
+            } else if (e.key === '-') {
+                e.preventDefault(); apply(cur - ZSTEP);
+            } else if (e.key === '0') {
+                e.preventDefault(); apply(ZDEF);
+            }
+        }, true);
     })();"#)
     .on_page_load(move |wv, payload| {
         match payload.event() {
@@ -463,7 +500,25 @@ pub fn __browser_title_result(app: AppHandle, title: String) {
 pub fn __browser_selected_text(app: AppHandle, text: String) {
     let _ = app.emit("browser-selected-text", SelectedTextPayload { text });
 }
+
+#[tauri::command]
+pub fn __browser_zoom_changed(app: AppHandle, level: f64) {
+    let _ = app.emit("browser-zoom-changed", ZoomChangedPayload { level });
+}
 // ---- End private bridge commands -----------------------------------------------
+
+#[tauri::command]
+pub async fn browser_set_zoom(app: AppHandle, level: f64) -> Result<f64, String> {
+    let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+    // Defense in depth: clamp on Rust side even though frontend already clamps.
+    let clamped = level.max(0.25).min(5.0);
+    let js = format!(
+        "(function(){{ if(typeof window.__noteGenZoomApply==='function') window.__noteGenZoomApply({0}); else {{ try{{document.documentElement.style.zoom=String({0});}}catch(e){{}} window.__noteGenZoomLevel={0}; try{{window.__TAURI_INTERNALS__.invoke('__browser_zoom_changed',{{level:{0}}});}}catch(e){{}} }} }})();",
+        clamped
+    );
+    webview.eval(&js).map_err(|e| e.to_string())?;
+    Ok(clamped)
+}
 
 #[tauri::command]
 pub async fn browser_extract_text(app: AppHandle) -> Result<(), String> {

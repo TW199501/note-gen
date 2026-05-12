@@ -22,7 +22,7 @@ interface BrowserNavBarProps {
 export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick }: BrowserNavBarProps) {
   const t = useTranslations('browser')
   const tCommon = useTranslations('common')
-  const { browserUrl, browserTitle, browserLoading, browserFavicon, browserReady, canGoBack, canGoForward, devtoolsOpen, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserFavicon, setBrowserAutoOpen, resetNavState, setDevtoolsOpen } = useBrowserStore()
+  const { browserUrl, browserTitle, browserLoading, browserFavicon, browserReady, canGoBack, canGoForward, devtoolsOpen, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserFavicon, setBrowserAutoOpen, resetNavState, setDevtoolsOpen, setZoomLevel } = useBrowserStore()
   const { browserHomepage } = useSettingStore()
   const [inputUrl, setInputUrl] = useState(browserUrl)
   const [bookmarked, setBookmarked] = useState(false)
@@ -38,6 +38,7 @@ export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick }:
       setBrowserFavicon('')
       resetNavState()
       setDevtoolsOpen(false)
+      setZoomLevel(1.0)
       setConfirmClear(false)
       setSettingsOpen(false)
     } catch (error) {

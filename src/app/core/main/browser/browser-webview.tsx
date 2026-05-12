@@ -11,7 +11,7 @@ import emitter from '@/lib/emitter'
 
 export function BrowserWebView() {
   const containerRef = useRef<HTMLDivElement>(null)
-  const { browserReady, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserLoading, setBrowserFavicon, workspaceMode, overlayCount, browserAutoOpen, applyNavEvent, setDevtoolsOpen } = useBrowserStore()
+  const { browserReady, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserLoading, setBrowserFavicon, workspaceMode, overlayCount, browserAutoOpen, applyNavEvent, setDevtoolsOpen, setZoomLevel } = useBrowserStore()
   const { browserHomepage } = useSettingStore()
   const t = useTranslations('browser.contextMenu')
   // M1: 區分 auto-extract（page load 觸發，寫進 currentPageContext）和 manual extract
@@ -98,6 +98,14 @@ export function BrowserWebView() {
         setBrowserLoading(event.payload.loading)
         // M1: 頁面載入完成後 1.5s（讓 SPA 後續渲染穩定）→ 自動抽 text 寫進 currentPageContext
         if (!event.payload.loading) {
+          // R6: 新頁面的 window state 是空的，zoomLevel 會被重設為瀏覽器預設。
+          // 立刻把使用者之前選的 zoom 套回去（若非預設 1.0）。
+          const currentZoom = useBrowserStore.getState().zoomLevel
+          if (currentZoom !== 1.0) {
+            invoke('browser_set_zoom', { level: currentZoom }).catch((err) => {
+              console.warn('[Browser] zoom re-apply failed:', err)
+            })
+          }
           if (autoExtractTimerRef.current) clearTimeout(autoExtractTimerRef.current)
           autoExtractTimerRef.current = setTimeout(() => {
             console.debug('[Browser] auto-extract: invoking browser_extract_text')
@@ -119,6 +127,10 @@ export function BrowserWebView() {
       // R8: DevTools 開關狀態。Rust toggle 後 emit。
       window.listen<{ open: boolean }>('browser-devtools-state', (event) => {
         setDevtoolsOpen(event.payload.open)
+      }),
+      // R6: zoom 層級。WebView 內 keyboard handler 或 host browser_set_zoom 都會回報。
+      window.listen<{ level: number }>('browser-zoom-changed', (event) => {
+        setZoomLevel(event.payload.level)
       }),
       // Handle extracted text from browser_extract_text command
       window.listen<{ text: string; title: string; url: string }>('browser-content-extracted', (event) => {

@@ -45,6 +45,11 @@ interface BrowserStore {
   // 注意若使用者透過 DevTools 視窗本身關閉，本旗標會 drift。
   devtoolsOpen: boolean
   setDevtoolsOpen: (open: boolean) => void
+
+  // R6: zoom 層級（1.0 = 100%）。WebView 內部 keyboard handler 直接改 DOM 並回報，
+  // host 也可主動呼叫 browser_set_zoom 同步。Phase 1 為單分頁，存記憶體即可。
+  zoomLevel: number
+  setZoomLevel: (level: number) => void
 }
 
 const useBrowserStore = create<BrowserStore>((set) => ({
@@ -90,6 +95,9 @@ const useBrowserStore = create<BrowserStore>((set) => ({
 
   devtoolsOpen: false,
   setDevtoolsOpen: (devtoolsOpen) => set({ devtoolsOpen }),
+
+  zoomLevel: 1.0,
+  setZoomLevel: (zoomLevel) => set({ zoomLevel }),
 }))
 
 export default useBrowserStore
