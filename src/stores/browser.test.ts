@@ -4,6 +4,7 @@ import useBrowserStore from './browser'
 describe('useBrowserStore nav', () => {
   beforeEach(() => {
     useBrowserStore.getState().resetNavState()
+    useBrowserStore.getState().setDevtoolsOpen(false)
   })
 
   it('starts with both buttons disabled', () => {
@@ -56,5 +57,19 @@ describe('useBrowserStore nav', () => {
     expect(s.canGoBack).toBe(false)
     expect(s.canGoForward).toBe(false)
     expect(s.navState).toEqual({ index: 0, max: 0 })
+  })
+})
+
+describe('useBrowserStore devtools', () => {
+  it('starts closed', () => {
+    useBrowserStore.getState().setDevtoolsOpen(false)
+    expect(useBrowserStore.getState().devtoolsOpen).toBe(false)
+  })
+
+  it('setDevtoolsOpen updates flag', () => {
+    useBrowserStore.getState().setDevtoolsOpen(true)
+    expect(useBrowserStore.getState().devtoolsOpen).toBe(true)
+    useBrowserStore.getState().setDevtoolsOpen(false)
+    expect(useBrowserStore.getState().devtoolsOpen).toBe(false)
   })
 })

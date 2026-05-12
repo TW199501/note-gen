@@ -2042,7 +2042,8 @@
       "addBookmark": "添加到书签",
       "translate": "翻译选中文字",
       "print": "打印",
-      "devTools": "开发者工具"
+      "devTools": "开发者工具",
+      "devToolsClose": "关闭开发者工具"
     },
     "history": {
       "title": "历史记录",

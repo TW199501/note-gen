@@ -2154,7 +2154,8 @@
       "addBookmark": "Adicionar aos Favoritos",
       "translate": "Traduzir Seleção",
       "print": "Imprimir",
-      "devTools": "Ferramentas do Desenvolvedor"
+      "devTools": "Ferramentas do Desenvolvedor",
+      "devToolsClose": "Fechar Ferramentas do Desenvolvedor"
     },
     "history": {
       "title": "Histórico",

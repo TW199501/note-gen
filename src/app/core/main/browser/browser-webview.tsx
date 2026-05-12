@@ -11,7 +11,7 @@ import emitter from '@/lib/emitter'
 
 export function BrowserWebView() {
   const containerRef = useRef<HTMLDivElement>(null)
-  const { browserReady, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserLoading, setBrowserFavicon, workspaceMode, overlayCount, browserAutoOpen, applyNavEvent } = useBrowserStore()
+  const { browserReady, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserLoading, setBrowserFavicon, workspaceMode, overlayCount, browserAutoOpen, applyNavEvent, setDevtoolsOpen } = useBrowserStore()
   const { browserHomepage } = useSettingStore()
   const t = useTranslations('browser.contextMenu')
   // M1: 區分 auto-extract（page load 觸發，寫進 currentPageContext）和 manual extract
@@ -116,6 +116,10 @@ export function BrowserWebView() {
       window.listen<{ kind: 'navigate' | 'back' | 'forward' | 'reload' }>('browser-nav-event', (event) => {
         applyNavEvent(event.payload.kind)
       }),
+      // R8: DevTools 開關狀態。Rust toggle 後 emit。
+      window.listen<{ open: boolean }>('browser-devtools-state', (event) => {
+        setDevtoolsOpen(event.payload.open)
+      }),
       // Handle extracted text from browser_extract_text command
       window.listen<{ text: string; title: string; url: string }>('browser-content-extracted', (event) => {
         const { text, title, url } = event.payload
@@ -158,7 +162,7 @@ export function BrowserWebView() {
             emitter.emit('browser-translate-text' as any, { text })
             break
           case 'devtools':
-            invoke('browser_open_devtools').catch((err: unknown) => console.error('[Browser] DevTools failed:', err))
+            invoke('browser_toggle_devtools').catch((err: unknown) => console.error('[Browser] DevTools toggle failed:', err))
             break
         }
       }),

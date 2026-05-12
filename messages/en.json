@@ -2099,7 +2099,8 @@
       "addBookmark": "Add to Bookmarks",
       "translate": "Translate Selection",
       "print": "Print",
-      "devTools": "Developer Tools"
+      "devTools": "Developer Tools",
+      "devToolsClose": "Close Developer Tools"
     },
     "history": {
       "title": "History",

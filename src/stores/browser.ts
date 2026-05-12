@@ -40,6 +40,11 @@ interface BrowserStore {
   canGoForward: boolean
   applyNavEvent: (kind: NavEventKind) => void
   resetNavState: () => void
+
+  // R8: DevTools 開關狀態。Rust 端 toggle 後 emit `browser-devtools-state`；
+  // 注意若使用者透過 DevTools 視窗本身關閉，本旗標會 drift。
+  devtoolsOpen: boolean
+  setDevtoolsOpen: (open: boolean) => void
 }
 
 const useBrowserStore = create<BrowserStore>((set) => ({
@@ -82,6 +87,9 @@ const useBrowserStore = create<BrowserStore>((set) => ({
     }),
   resetNavState: () =>
     set({ navState: initialNavState, canGoBack: false, canGoForward: false }),
+
+  devtoolsOpen: false,
+  setDevtoolsOpen: (devtoolsOpen) => set({ devtoolsOpen }),
 }))
 
 export default useBrowserStore

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { useTranslations } from 'next-intl'
-import { ArrowLeft, ArrowRight, RotateCw, Home, Star, Settings2, Lock, History, Trash2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, RotateCw, Home, Star, Settings2, Lock, History, Trash2, Wrench } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -22,7 +22,7 @@ interface BrowserNavBarProps {
 export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick }: BrowserNavBarProps) {
   const t = useTranslations('browser')
   const tCommon = useTranslations('common')
-  const { browserUrl, browserTitle, browserLoading, browserFavicon, browserReady, canGoBack, canGoForward, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserFavicon, setBrowserAutoOpen, resetNavState } = useBrowserStore()
+  const { browserUrl, browserTitle, browserLoading, browserFavicon, browserReady, canGoBack, canGoForward, devtoolsOpen, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserFavicon, setBrowserAutoOpen, resetNavState, setDevtoolsOpen } = useBrowserStore()
   const { browserHomepage } = useSettingStore()
   const [inputUrl, setInputUrl] = useState(browserUrl)
   const [bookmarked, setBookmarked] = useState(false)
@@ -37,10 +37,23 @@ export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick }:
       setBrowserTitle('')
       setBrowserFavicon('')
       resetNavState()
+      setDevtoolsOpen(false)
       setConfirmClear(false)
       setSettingsOpen(false)
     } catch (error) {
       console.error('[Browser] Failed to clear data:', error)
+    }
+  }
+
+  async function handleToggleDevtools() {
+    if (!browserReady) return
+    try {
+      // Rust 端 toggle 後會回傳新狀態並 emit browser-devtools-state event；
+      // listener 會更新 store。這裡也直接設一次，避免 event 抵達前 UI 落後。
+      const newState = await invoke<boolean>('browser_toggle_devtools')
+      setDevtoolsOpen(newState)
+    } catch (e) {
+      console.error('[Browser] DevTools toggle failed:', e)
     }
   }
 
@@ -213,6 +226,18 @@ export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick }:
               <Button variant="ghost" size="sm" className="w-full justify-start text-xs gap-2" onClick={onMenuClick}>
                 <Star className="h-3.5 w-3.5" />
                 {t('bookmark.title')}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start text-xs gap-2"
+                onClick={handleToggleDevtools}
+                disabled={!browserReady}
+              >
+                <Wrench className={`h-3.5 w-3.5 ${devtoolsOpen ? 'text-primary' : ''}`} />
+                <span className={devtoolsOpen ? 'text-primary' : ''}>
+                  {t(devtoolsOpen ? 'contextMenu.devToolsClose' : 'contextMenu.devTools')}
+                </span>
               </Button>
               {confirmClear ? (
                 <div className="flex items-center gap-1 px-2 py-1">

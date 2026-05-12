@@ -2095,7 +2095,8 @@
       "addBookmark": "ブックマークに追加",
       "translate": "選択テキストを翻訳",
       "print": "印刷",
-      "devTools": "開発者ツール"
+      "devTools": "開発者ツール",
+      "devToolsClose": "開発者ツールを閉じる"
     },
     "history": {
       "title": "履歴",

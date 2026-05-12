@@ -90,6 +90,11 @@ struct NavEventPayload {
     kind: &'static str,
 }
 
+#[derive(Serialize, Clone)]
+struct DevtoolsStatePayload {
+    open: bool,
+}
+
 const BROWSER_LABEL: &str = "browser-webview";
 
 fn build_context_menu_js(labels: &HashMap<String, String>) -> String {
@@ -375,10 +380,17 @@ pub async fn browser_reload(
 }
 
 #[tauri::command]
-pub async fn browser_open_devtools(app: AppHandle) -> Result<(), String> {
+pub async fn browser_toggle_devtools(app: AppHandle) -> Result<bool, String> {
     let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
-    webview.open_devtools();
-    Ok(())
+    let is_open = webview.is_devtools_open();
+    if is_open {
+        webview.close_devtools();
+    } else {
+        webview.open_devtools();
+    }
+    let new_state = !is_open;
+    let _ = app.emit("browser-devtools-state", DevtoolsStatePayload { open: new_state });
+    Ok(new_state)
 }
 
 #[tauri::command]

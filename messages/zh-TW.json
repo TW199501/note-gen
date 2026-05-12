@@ -2081,7 +2081,8 @@
       "addBookmark": "加入書籤",
       "translate": "翻譯選取文字",
       "print": "列印",
-      "devTools": "開發者工具"
+      "devTools": "開發者工具",
+      "devToolsClose": "關閉開發者工具"
     },
     "history": {
       "title": "歷史紀錄",
