@@ -90,10 +90,15 @@ export async function installTauriMock(page: Page) {
         return undefined
       }
       if (cmd.startsWith('plugin:store|')) {
-        if (cmd.endsWith('|get')) return null
+        // plugin-store's Store.get destructures: const [value, exists] = await invoke(...)
+        // So returning the wrong shape breaks every store consumer.
+        if (cmd.endsWith('|get')) return [null, false]
+        if (cmd.endsWith('|has')) return false
         if (cmd.endsWith('|keys')) return []
         if (cmd.endsWith('|entries')) return []
         if (cmd.endsWith('|values')) return []
+        if (cmd.endsWith('|length')) return 0
+        if (cmd.endsWith('|load') || cmd.endsWith('|get_store')) return 1 // resource id
         return undefined
       }
       if (cmd.startsWith('plugin:path|')) return '/tmp/mock-path'
@@ -103,6 +108,23 @@ export async function installTauriMock(page: Page) {
         return undefined
       }
       if (cmd.startsWith('plugin:shell|') || cmd.startsWith('plugin:opener|')) return undefined
+      if (cmd.startsWith('plugin:app|')) {
+        if (cmd.endsWith('|version')) return '1.0.8'
+        if (cmd.endsWith('|name')) return 'NoteGen'
+        if (cmd.endsWith('|tauri_version')) return '2.6.2'
+        if (cmd.endsWith('|identifier')) return 'com.codexu.NoteGen'
+        return undefined
+      }
+      if (cmd.startsWith('plugin:http|')) {
+        // status must be in [200, 599] or Response throws. Body needs to be
+        // valid JSON to satisfy callers that always .json() the response.
+        // (cmd is plugin:http|fetch / fetch_send / fetch_read_body.)
+        if (cmd.endsWith('|fetch_read_body')) {
+          // Returns Uint8Array of body bytes.
+          return new TextEncoder().encode('{}')
+        }
+        return { status: 200, statusText: 'OK', headers: {}, url: '', body: '{}' }
+      }
       if (cmd.startsWith('plugin:os|')) {
         if (cmd.endsWith('|platform')) return 'macos'
         if (cmd.endsWith('|version')) return '14.0'
