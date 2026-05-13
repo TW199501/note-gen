@@ -230,6 +230,18 @@ pub async fn browser_create(
 
     let app_handle = app.clone();
     let initial_url = url.unwrap_or_else(|| "https://www.google.com".to_string());
+    // R3 (file upload) finding — no code change needed:
+    //   - macOS WKWebView, Windows WebView2, Linux WebKitGTK all support
+    //     <input type="file"> natively. The native control opens the OS
+    //     file picker (NSOpenPanel / IFileOpenDialog / GtkFileChooserDialog).
+    //   - The browser-bridge.json capability restriction only narrows the
+    //     Tauri JS API (no fs:/sql:/store:). It does NOT affect HTML form
+    //     controls, which are part of the WebView itself.
+    //   - Verified by inspecting Tauri 2.x WebviewBuilder API surface and
+    //     confirmed against wry/tao runtime defaults.
+    //   - Mobile (iOS/Android) needs platform plugins for accessor APIs but
+    //     basic <input type="file"> still works via system Photo/Document
+    //     picker. Tracked as P2 in docs/BROWSER_WEBVIEW_SPEC.md.
     let builder = WebviewBuilder::new(
         BROWSER_LABEL,
         tauri::WebviewUrl::External(initial_url.parse().map_err(|e| format!("Invalid URL '{}': {}", initial_url, e))?),

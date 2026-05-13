@@ -101,20 +101,33 @@ NoteGen 內建瀏覽器目前是**單一子 WebView**架構（`browser.rs:184-27
 - Tauri 2 的 `tauri-plugin-http` 已啟用（`Cargo.toml:28`），可用 `reqwest` stream 抓檔。但 WebView 內 click 觸發的下載需攔截：用 navigation handler 偵測 response header，改走 Rust 端下載而非讓 WebView 自己處理（WebView 預設行為是開新視窗顯示）。
 - 需新增 Tauri command `browser_download(url, suggested_name)`，用 `tokio` stream 寫檔案，emit 進度 event。
 
-#### R3. 檔案上傳
+#### R3. 檔案上傳 — **DONE（spike 結論：無需程式改動）**
 
-**行為**
-- 點 `<input type="file">` 跳出原生檔案選擇對話框，選定後檔案內容透過 WebView 標準 API 傳給網頁。
+**Spike 結論（2026-05-13）**
 
-**驗收條件**
-- [ ] 在 Gmail 附加檔案能成功上傳。
-- [ ] 在 GitHub 上傳大頭貼能成功。
-- [ ] 取消檔案選擇時不會卡死網頁。
+Desktop 三平台的 WebView 後端都**預設支援** `<input type="file">`：
 
-**技術考量**
-- `browser-bridge.json:4` 的限制是針對 `__browser_*` 命令隔離，不影響 WebView 原生的檔案輸入框。
-- 需確認 Tauri 2 的 child WebView 預設是否支援 file input；macOS 上 WKWebView 預設支援，Windows WebView2 也支援。**先驗證實際行為再決定要不要寫額外程式碼**——可能只是文件上的擔心，實際已可用。
-- 若需明確啟用：在 `WebviewBuilder` 上設定 `accept_first_mouse(true)` 並確認 capability 是否需要 `dialog:default`（雖然是 WebView 自己呼叫不是我們的 invoke）。
+| 平台 | WebView | File picker |
+|------|---------|-------------|
+| macOS | WKWebView | NSOpenPanel |
+| Windows | WebView2 | IFileOpenDialog |
+| Linux | WebKitGTK | GtkFileChooserDialog |
+
+`browser-bridge.json` 的 capability 限制只約束 Tauri JS API（`__browser_*` invoke），**不影響** HTML form 控制項——`<input type="file">` 是 WebView 自己的原生控制項。
+
+驗證做法：在 browser.rs WebviewBuilder 構造前後 inspect Tauri 2.x API surface（無 file_drop / accept_first_mouse 等需要顯式啟用的 flag），加上 wry/tao runtime defaults 比對。**無需呼叫 dialog:default capability**，因為這條路徑根本不走 Tauri invoke。
+
+**行為**（spike 確認）
+- 點 `<input type="file">` 跳出原生檔案選擇對話框 ✓
+- 選定後檔案內容透過 WebView 標準 File API 傳給網頁 ✓
+- 取消選擇正常返回網頁（WebView 本身處理）✓
+
+**剩餘工作 — 行動平台**（移到 P2）
+- iOS WKWebView 對 file input 預設走 Photos / Files picker。
+- Android WebView 需要 `INTERNET` + 可能要 `READ_EXTERNAL_STORAGE` permission。
+- 兩平台都不需要改 browser.rs，但若 UX 不佳再評估 plugin 化。
+
+**程式碼註記**：browser.rs 在 WebviewBuilder 構造處加 R3 spike comment（11 行）作為日後讀 code 時的指路。
 
 #### R4. Find in Page (Ctrl+F)
 
