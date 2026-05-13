@@ -21,14 +21,18 @@ export default defineConfig({
   reporter: process.env.CI ? 'github' : 'list',
   use: {
     baseURL: 'http://localhost:31415',
-    trace: 'on-first-retry',
+    trace: 'on',
+    // Always record video so failures + visual review can be replayed.
+    video: 'on',
+    // Save screenshots on every test (overwritten each run).
+    screenshot: 'only-on-failure',
     // Headed mode by default so you can see what the test is doing.
     // Override via PLAYWRIGHT_HEADLESS=1 for CI or background runs.
     headless: process.env.PLAYWRIGHT_HEADLESS === '1',
-    // Slow down each action so the human eye can follow.
     launchOptions: {
       slowMo: process.env.PLAYWRIGHT_HEADLESS === '1' ? 0 : 250,
     },
+    viewport: { width: 1360, height: 800 },
   },
   projects: [
     {
