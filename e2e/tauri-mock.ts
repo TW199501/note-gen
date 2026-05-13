@@ -28,7 +28,16 @@ export async function installTauriMock(page: Page) {
 
     // Canned return values per command. Keep this minimal — extend as tests demand.
     const cannedResponses: Record<string, (args: any) => any> = {
-      browser_tabs_list: () => ({ tabs: [], active_tab_id: null }),
+      browser_tabs_list: () => ({
+        // Pre-seed two tabs so the TabStrip renders. Real flow seeds the
+        // first tab after browser_create succeeds; in a mocked env the
+        // create path no-ops so we have to fake the list here.
+        tabs: [
+          { id: 'mock-tab-1', url: 'https://example.com', title: 'Example', favicon: '' },
+          { id: 'mock-tab-2', url: 'https://github.com', title: 'GitHub', favicon: '' },
+        ],
+        active_tab_id: 'mock-tab-1',
+      }),
       browser_tabs_new: () => 'mock-tab-id-' + Math.random().toString(36).slice(2, 8),
       browser_tabs_switch: () => undefined,
       browser_tabs_close: () => undefined,
@@ -59,11 +68,60 @@ export async function installTauriMock(page: Page) {
       plugin: () => undefined,
     }
 
+    // Default returns for whole plugin namespaces so getCurrentWindow().X(),
+    // SQL queries, Store.load(), Path APIs all resolve to something harmless
+    // instead of throwing. Specific commands above take precedence.
+    function defaultForNamespace(cmd: string) {
+      // plugin:window|is_maximized → false, plugin:window|listen → registers a no-op
+      if (cmd.startsWith('plugin:window|')) {
+        if (cmd.endsWith('|listen') || cmd.endsWith('|once')) return 1
+        if (cmd.includes('is_')) return false
+        if (cmd.includes('inner_size') || cmd.includes('outer_size')) return { width: 1360, height: 800 }
+        if (cmd.includes('inner_position') || cmd.includes('outer_position')) return { x: 0, y: 0 }
+        if (cmd.includes('scale_factor')) return 1
+        return undefined
+      }
+      if (cmd.startsWith('plugin:event|')) return 1
+      if (cmd.startsWith('plugin:webview|')) return undefined
+      if (cmd.startsWith('plugin:sql|')) {
+        if (cmd.endsWith('|load')) return 'sqlite:mock.db'
+        if (cmd.endsWith('|select')) return []
+        if (cmd.endsWith('|execute')) return [0, 0] // rowsAffected, lastInsertId
+        return undefined
+      }
+      if (cmd.startsWith('plugin:store|')) {
+        if (cmd.endsWith('|get')) return null
+        if (cmd.endsWith('|keys')) return []
+        if (cmd.endsWith('|entries')) return []
+        if (cmd.endsWith('|values')) return []
+        return undefined
+      }
+      if (cmd.startsWith('plugin:path|')) return '/tmp/mock-path'
+      if (cmd.startsWith('plugin:fs|')) {
+        if (cmd.endsWith('|exists')) return false
+        if (cmd.endsWith('|read_dir')) return []
+        return undefined
+      }
+      if (cmd.startsWith('plugin:shell|') || cmd.startsWith('plugin:opener|')) return undefined
+      if (cmd.startsWith('plugin:os|')) {
+        if (cmd.endsWith('|platform')) return 'macos'
+        if (cmd.endsWith('|version')) return '14.0'
+        if (cmd.endsWith('|family')) return 'unix'
+        if (cmd.endsWith('|os_type')) return 'Darwin'
+        if (cmd.endsWith('|arch')) return 'aarch64'
+        if (cmd.endsWith('|locale')) return 'en-US'
+        if (cmd.endsWith('|hostname')) return 'mock-host'
+        if (cmd.endsWith('|eol')) return '\n'
+        return undefined
+      }
+      return undefined
+    }
+
     function invoke(cmd: string, args?: unknown) {
       ;(w.__mockInvokeCalls as any[]).push({ cmd, args })
       const handler = cannedResponses[cmd]
       try {
-        const value = handler ? handler(args) : undefined
+        const value = handler ? handler(args) : defaultForNamespace(cmd)
         return Promise.resolve(value)
       } catch (e) {
         return Promise.reject(e)
@@ -77,6 +135,18 @@ export async function installTauriMock(page: Page) {
       runtime: 'web-mock',
       convertFileSrc: (filePath: string) => filePath,
       ipc: (_message: unknown) => {},
+    }
+
+    // plugin-os reads these as sync globals (not via invoke).
+    w.__TAURI_OS_PLUGIN_INTERNALS__ = {
+      platform: 'macos',
+      version: '14.0',
+      family: 'unix',
+      type: 'Darwin',
+      arch: 'aarch64',
+      locale: 'en-US',
+      hostname: 'mock-host',
+      eol: '\n',
     }
     w.__TAURI_PLUGIN_INTERNALS__ = {
       transformCallback,
