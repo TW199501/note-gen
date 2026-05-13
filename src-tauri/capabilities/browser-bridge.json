@@ -3,7 +3,8 @@
   "identifier": "browser-bridge",
   "description": "Minimal bridge capability for the in-app browser child webview. Allows ONLY the private __browser_* callback commands that injected scripts use to send DOM data (title, favicon, extracted text, context-menu actions) back to the host. Browser-webview MUST NOT have access to fs:/sql:/store: or any other Tauri API — it loads arbitrary external pages.",
   "webviews": [
-    "browser-webview"
+    "browser-webview",
+    "browser-tab-*"
   ],
   "permissions": [
     "core:webview:default"

@@ -629,6 +629,19 @@ pub async fn browser_create(
     ).map_err(|e| e.to_string())?;
 
     *label = Some(BROWSER_LABEL.to_string());
+
+    // R1 phase 2: register this webview against the active tab in tab_labels
+    // so active_webview_label resolves correctly. Frontend's browser_tabs_new
+    // seeds an "initial" tab right after browser_create succeeds; bind that
+    // tab id to BROWSER_LABEL here if we can see it.
+    if let Ok(active) = state.active_tab_id.lock() {
+        if let Some(id) = active.as_ref() {
+            if let Ok(mut labels) = state.tab_labels.lock() {
+                labels.entry(id.clone()).or_insert_with(|| BROWSER_LABEL.to_string());
+            }
+        }
+    }
+
     Ok(())
 }
 
@@ -1041,33 +1054,91 @@ pub async fn browser_tabs_list(
     snapshot_tabs(&state)
 }
 
+// R1 phase 2: spawn a new tab's WebView and move all previously-active tabs
+// off-screen. The first tab keeps BROWSER_LABEL (so legacy code paths using
+// `app.get_webview(BROWSER_LABEL)` keep finding the active tab during the
+// transition); subsequent tabs get unique labels.
+//
+// MVP limitation: new tabs do not yet inherit the same initialization_scripts
+// (find-in-page, zoom override, same-window patch) and on_page_load handlers
+// as the first tab. Phase 2b will extract `browser_create`'s ~300-line builder
+// config into a reusable factory so every tab gets full feature parity.
 #[tauri::command]
 pub async fn browser_tabs_new(
     app: AppHandle,
     state: tauri::State<'_, BrowserState>,
     url: Option<String>,
 ) -> Result<String, String> {
-    let url = url.unwrap_or_else(|| "about:blank".to_string());
+    let url_str = url.unwrap_or_else(|| "https://www.google.com".to_string());
     let id = uuid::Uuid::new_v4().to_string();
     let tab = Tab {
         id: id.clone(),
-        url: url.clone(),
+        url: url_str.clone(),
         title: String::new(),
         favicon: String::new(),
     };
-    {
+
+    // Decide label scheme: first tab reuses BROWSER_LABEL for backward compat,
+    // additional tabs get fresh labels.
+    let is_first = state.tabs.lock().map(|t| t.is_empty()).unwrap_or(true);
+    let webview_label = if is_first {
+        BROWSER_LABEL.to_string()
+    } else {
+        format!("browser-tab-{}", id)
+    };
+
+    // Record metadata BEFORE spawning so active_webview_label can resolve.
+    let previous_active = {
         let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
         tabs.push(tab);
+        let mut labels = state.tab_labels.lock().map_err(|e| e.to_string())?;
+        labels.insert(id.clone(), webview_label.clone());
         let mut active = state.active_tab_id.lock().map_err(|e| e.to_string())?;
+        let prev = active.clone();
         *active = Some(id.clone());
-    }
-    emit_tabs_changed(&app, &state)?;
-    // Navigate underlying WebView if it exists; otherwise the tab is just queued.
-    if let Some(webview) = app.get_webview(BROWSER_LABEL) {
-        if let Ok(parsed) = url::Url::parse(&url) {
-            let _ = webview.navigate(parsed);
+        prev
+    };
+
+    // For the first tab we let frontend's BrowserWebView.init() call
+    // browser_create which actually spawns. For subsequent tabs we spawn
+    // directly here with a minimal builder.
+    if !is_first {
+        let position = state
+            .last_position
+            .lock()
+            .ok()
+            .and_then(|p| *p)
+            .unwrap_or((0.0, 0.0, 800.0, 600.0));
+
+        let parsed_url = url::Url::parse(&url_str).map_err(|e| e.to_string())?;
+        let window = app.get_window("main").ok_or("Main window not found")?;
+        let builder = WebviewBuilder::new(&webview_label, tauri::WebviewUrl::External(parsed_url))
+            .auto_resize();
+        window
+            .add_child(
+                builder,
+                LogicalPosition::new(position.0, position.1),
+                LogicalSize::new(position.2, position.3),
+            )
+            .map_err(|e| e.to_string())?;
+
+        // Move the previously-active tab off-screen so the new one is visible.
+        if let Some(prev_id) = previous_active {
+            if let Some(prev_label) = state
+                .tab_labels
+                .lock()
+                .ok()
+                .and_then(|m| m.get(&prev_id).cloned())
+            {
+                if let Some(prev_wv) = app.get_webview(&prev_label) {
+                    let _ = prev_wv.set_position(LogicalPosition::new(OFFSCREEN_X, OFFSCREEN_Y));
+                    let _ = prev_wv.set_size(LogicalSize::new(0.0, 0.0));
+                }
+            }
         }
     }
+
+    emit_tabs_changed(&app, &state)?;
     Ok(id)
 }
 
@@ -1077,21 +1148,68 @@ pub async fn browser_tabs_switch(
     state: tauri::State<'_, BrowserState>,
     tab_id: String,
 ) -> Result<(), String> {
-    let url = {
+    // Find target tab + previous active.
+    let (target_url, target_label, previous_active_id) = {
         let tabs = state.tabs.lock().map_err(|e| e.to_string())?;
         let tab = tabs.iter().find(|t| t.id == tab_id).ok_or("Tab not found")?;
-        tab.url.clone()
+        let labels = state.tab_labels.lock().map_err(|e| e.to_string())?;
+        let label = labels
+            .get(&tab_id)
+            .cloned()
+            .unwrap_or_else(|| BROWSER_LABEL.to_string());
+        let active = state.active_tab_id.lock().map_err(|e| e.to_string())?;
+        (tab.url.clone(), label, active.clone())
     };
+
+    // No-op if already active.
+    if previous_active_id.as_deref() == Some(tab_id.as_str()) {
+        return Ok(());
+    }
+
+    // Update active pointer.
     {
         let mut active = state.active_tab_id.lock().map_err(|e| e.to_string())?;
-        *active = Some(tab_id);
+        *active = Some(tab_id.clone());
     }
-    emit_tabs_changed(&app, &state)?;
-    if let Some(webview) = app.get_webview(BROWSER_LABEL) {
-        if let Ok(parsed) = url::Url::parse(&url) {
-            let _ = webview.navigate(parsed);
+
+    // Move previous off-screen.
+    if let Some(prev_id) = previous_active_id {
+        if let Some(prev_label) = state
+            .tab_labels
+            .lock()
+            .ok()
+            .and_then(|m| m.get(&prev_id).cloned())
+        {
+            if let Some(prev_wv) = app.get_webview(&prev_label) {
+                let _ = prev_wv.set_position(LogicalPosition::new(OFFSCREEN_X, OFFSCREEN_Y));
+                let _ = prev_wv.set_size(LogicalSize::new(0.0, 0.0));
+            }
         }
     }
+
+    // Bring target into view at the last known container position.
+    let position = state
+        .last_position
+        .lock()
+        .ok()
+        .and_then(|p| *p)
+        .unwrap_or((0.0, 0.0, 800.0, 600.0));
+
+    if let Some(target_wv) = app.get_webview(&target_label) {
+        // Existing webview — just reposition. URL state already preserved.
+        let _ = target_wv.set_position(LogicalPosition::new(position.0, position.1));
+        let _ = target_wv.set_size(LogicalSize::new(position.2, position.3));
+    } else {
+        // Webview not yet created (e.g. lazy-mount race). Fall back to
+        // navigating BROWSER_LABEL for graceful degradation.
+        if let Some(wv) = app.get_webview(BROWSER_LABEL) {
+            if let Ok(parsed) = url::Url::parse(&target_url) {
+                let _ = wv.navigate(parsed);
+            }
+        }
+    }
+
+    emit_tabs_changed(&app, &state)?;
     Ok(())
 }
 
@@ -1101,33 +1219,76 @@ pub async fn browser_tabs_close(
     state: tauri::State<'_, BrowserState>,
     tab_id: String,
 ) -> Result<(), String> {
-    let next_active_url = {
+    // Close the webview for the tab being removed.
+    let closed_label = state
+        .tab_labels
+        .lock()
+        .ok()
+        .and_then(|m| m.get(&tab_id).cloned());
+
+    if let Some(label) = &closed_label {
+        if label != BROWSER_LABEL {
+            // Only close non-default webviews; BROWSER_LABEL is the durable
+            // first tab and we rebuild via browser_create if needed.
+            if let Some(wv) = app.get_webview(label) {
+                let _ = wv.close();
+            }
+        } else {
+            // For the default webview, move off-screen rather than close —
+            // browser_create can't easily re-spawn at the same label after
+            // close in some Tauri versions.
+            if let Some(wv) = app.get_webview(label) {
+                let _ = wv.set_position(LogicalPosition::new(OFFSCREEN_X, OFFSCREEN_Y));
+                let _ = wv.set_size(LogicalSize::new(0.0, 0.0));
+            }
+        }
+    }
+
+    let next_active = {
         let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
         let idx = tabs.iter().position(|t| t.id == tab_id).ok_or("Tab not found")?;
         tabs.remove(idx);
 
+        let mut labels = state.tab_labels.lock().map_err(|e| e.to_string())?;
+        labels.remove(&tab_id);
+
         let mut active = state.active_tab_id.lock().map_err(|e| e.to_string())?;
         if active.as_deref() == Some(tab_id.as_str()) {
-            // Pick neighbor as new active, prefer right then left then None.
             let new_active = tabs
                 .get(idx)
                 .or_else(|| tabs.get(idx.saturating_sub(1)))
                 .or_else(|| tabs.first())
                 .cloned();
             *active = new_active.as_ref().map(|t| t.id.clone());
-            new_active.map(|t| t.url)
+            new_active.map(|t| (t.id.clone(), t.url.clone()))
         } else {
             None
         }
     };
-    emit_tabs_changed(&app, &state)?;
-    if let Some(url) = next_active_url {
-        if let Some(webview) = app.get_webview(BROWSER_LABEL) {
-            if let Ok(parsed) = url::Url::parse(&url) {
-                let _ = webview.navigate(parsed);
-            }
+
+    // If we closed the active one, bring the new active into view.
+    if let Some((new_id, _new_url)) = next_active {
+        let new_label = state
+            .tab_labels
+            .lock()
+            .ok()
+            .and_then(|m| m.get(&new_id).cloned())
+            .unwrap_or_else(|| BROWSER_LABEL.to_string());
+
+        let position = state
+            .last_position
+            .lock()
+            .ok()
+            .and_then(|p| *p)
+            .unwrap_or((0.0, 0.0, 800.0, 600.0));
+
+        if let Some(wv) = app.get_webview(&new_label) {
+            let _ = wv.set_position(LogicalPosition::new(position.0, position.1));
+            let _ = wv.set_size(LogicalSize::new(position.2, position.3));
         }
     }
+
+    emit_tabs_changed(&app, &state)?;
     Ok(())
 }
 
