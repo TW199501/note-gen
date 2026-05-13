@@ -2117,6 +2117,15 @@
       "today": "今日",
       "yesterday": "昨日",
       "earlier": "それ以前"
+    },
+    "downloads": {
+      "title": "ダウンロード",
+      "empty": "ダウンロード履歴はありません",
+      "clearAll": "すべてクリア",
+      "failed": "失敗",
+      "open": "ファイルを開く",
+      "revealInFolder": "フォルダで表示",
+      "remove": "リストから削除"
     }
   },
   "navigation": {

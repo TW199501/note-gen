@@ -2121,6 +2121,15 @@
       "today": "Today",
       "yesterday": "Yesterday",
       "earlier": "Earlier"
+    },
+    "downloads": {
+      "title": "Downloads",
+      "empty": "No downloads yet",
+      "clearAll": "Clear all",
+      "failed": "Failed",
+      "open": "Open file",
+      "revealInFolder": "Show in folder",
+      "remove": "Remove from list"
     }
   },
   "navigation": {

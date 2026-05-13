@@ -2103,6 +2103,15 @@
       "today": "今天",
       "yesterday": "昨天",
       "earlier": "更早"
+    },
+    "downloads": {
+      "title": "下載",
+      "empty": "尚無下載紀錄",
+      "clearAll": "全部清除",
+      "failed": "失敗",
+      "open": "開啟檔案",
+      "revealInFolder": "在資料夾中顯示",
+      "remove": "從清單移除"
     }
   },
   "navigation": {

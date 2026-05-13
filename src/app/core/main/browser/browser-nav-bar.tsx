@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { useTranslations } from 'next-intl'
-import { ArrowLeft, ArrowRight, RotateCw, Home, Star, Settings2, Lock, History, Trash2, Wrench } from 'lucide-react'
+import { ArrowLeft, ArrowRight, RotateCw, Home, Star, Settings2, Lock, History, Trash2, Wrench, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -17,12 +17,13 @@ interface BrowserNavBarProps {
   onBookmarkToggle?: () => void
   onMenuClick?: () => void
   onHistoryClick?: () => void
+  onDownloadsClick?: () => void
 }
 
-export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick }: BrowserNavBarProps) {
+export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick, onDownloadsClick }: BrowserNavBarProps) {
   const t = useTranslations('browser')
   const tCommon = useTranslations('common')
-  const { browserUrl, browserTitle, browserLoading, browserFavicon, browserReady, canGoBack, canGoForward, devtoolsOpen, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserFavicon, setBrowserAutoOpen, resetNavState, setDevtoolsOpen, setZoomLevel, setFindOpen, setFindQuery, setFindState } = useBrowserStore()
+  const { browserUrl, browserTitle, browserLoading, browserFavicon, browserReady, canGoBack, canGoForward, devtoolsOpen, downloadInProgressCount, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserFavicon, setBrowserAutoOpen, resetNavState, setDevtoolsOpen, setZoomLevel, setFindOpen, setFindQuery, setFindState } = useBrowserStore()
   const { browserHomepage } = useSettingStore()
   const [inputUrl, setInputUrl] = useState(browserUrl)
   const [bookmarked, setBookmarked] = useState(false)
@@ -212,6 +213,29 @@ export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick }:
             </Button>
           </TooltipTrigger>
           <TooltipContent><p>{t('history.title')}</p></TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 relative"
+              onClick={onDownloadsClick}
+              aria-label={t('downloads.title')}
+            >
+              <Download className="h-4 w-4" />
+              {downloadInProgressCount > 0 && (
+                <span
+                  className="absolute -top-0.5 -right-0.5 inline-flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-medium text-white"
+                  aria-label={`${downloadInProgressCount} in progress`}
+                >
+                  {downloadInProgressCount}
+                </span>
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent><p>{t('downloads.title')}</p></TooltipContent>
         </Tooltip>
 
         <Popover open={settingsOpen} onOpenChange={(open) => { setSettingsOpen(open); if (!open) setConfirmClear(false) }}>
