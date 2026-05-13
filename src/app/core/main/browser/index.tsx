@@ -7,6 +7,7 @@ import { BrowserDrawer, type BrowserDrawerTab } from './browser-drawer'
 import { BookmarkBar } from './bookmark-bar'
 import { FindBar } from './find-bar'
 import { DownloadsDrawer } from './downloads-drawer'
+import { TabStrip } from './tab-strip'
 import { addBookmark, isBookmarked } from '@/db/bookmarks'
 import useBrowserStore from '@/stores/browser'
 import emitter from '@/lib/emitter'
@@ -43,6 +44,7 @@ export function BrowserPanel() {
 
   return (
     <div className="flex flex-col h-full">
+      <TabStrip />
       <BrowserNavBar
         onBookmarkToggle={() => setBookmarkRefresh((n) => n + 1)}
         onMenuClick={() => openDrawer('bookmarks')}

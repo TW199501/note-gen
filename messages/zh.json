@@ -2073,7 +2073,9 @@
       "open": "打开文件",
       "revealInFolder": "在文件夹中显示",
       "remove": "从列表移除"
-    }
+    },
+    "newTab": "新分页",
+    "closeTab": "关闭分页"
   },
   "navigation": {
     "chat": "对话",

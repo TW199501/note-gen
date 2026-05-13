@@ -2112,7 +2112,9 @@
       "open": "開啟檔案",
       "revealInFolder": "在資料夾中顯示",
       "remove": "從清單移除"
-    }
+    },
+    "newTab": "新分頁",
+    "closeTab": "關閉分頁"
   },
   "navigation": {
     "chat": "對話",

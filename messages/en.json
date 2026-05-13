@@ -2130,7 +2130,9 @@
       "open": "Open file",
       "revealInFolder": "Show in folder",
       "remove": "Remove from list"
-    }
+    },
+    "newTab": "New tab",
+    "closeTab": "Close tab"
   },
   "navigation": {
     "chat": "Chat",

@@ -67,6 +67,20 @@ interface BrowserStore {
   incrementDownloadCount: () => void
   decrementDownloadCount: () => void
   resetDownloadCount: () => void
+
+  // R1: 多分頁。tabs 是 ordered（左→右），activeTabId 指向目前 focused tab。
+  // Rust 端是 source of truth，前端透過 browser-tabs-changed event 同步。
+  // MVP：共用同一個 WebView，切換 tab 觸發 browser_navigate；後續會升級到 per-tab webview。
+  tabs: BrowserTab[]
+  activeTabId: string | null
+  applyTabsChanged: (tabs: BrowserTab[], activeTabId: string | null) => void
+}
+
+export interface BrowserTab {
+  id: string
+  url: string
+  title: string
+  favicon: string
 }
 
 const useBrowserStore = create<BrowserStore>((set) => ({
@@ -130,6 +144,10 @@ const useBrowserStore = create<BrowserStore>((set) => ({
   decrementDownloadCount: () =>
     set((state) => ({ downloadInProgressCount: Math.max(0, state.downloadInProgressCount - 1) })),
   resetDownloadCount: () => set({ downloadInProgressCount: 0 }),
+
+  tabs: [],
+  activeTabId: null,
+  applyTabsChanged: (tabs, activeTabId) => set({ tabs, activeTabId }),
 }))
 
 export default useBrowserStore

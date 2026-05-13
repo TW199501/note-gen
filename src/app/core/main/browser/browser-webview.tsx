@@ -75,6 +75,13 @@ export function BrowserWebView() {
         setBrowserReady(true)
         // Inject context menu after WebView is created
         await injectContextMenu()
+        // R1: seed the first tab if there are none yet so the strip shows.
+        const tabsNow = useBrowserStore.getState().tabs
+        if (tabsNow.length === 0) {
+          invoke('browser_tabs_new', { url: browserHomepage }).catch((e) =>
+            console.error('[Tabs] seed initial tab failed:', e),
+          )
+        }
       } catch (error) {
         console.error('[Browser] Failed to create WebView:', error)
       }
@@ -89,9 +96,18 @@ export function BrowserWebView() {
         setBrowserUrl(event.payload.url)
         // M1: URL 變了，舊頁的 extracted context 不再 valid — 立刻清，等 loading=false 後重新 extract
         useBrowserChatStore.getState().setCurrentPageContext(null)
+        // R1: 把新 URL 鏡像到當前 active tab 的 metadata。
+        const activeId = useBrowserStore.getState().activeTabId
+        if (activeId) {
+          invoke('browser_tabs_update_meta', { tabId: activeId, url: event.payload.url }).catch(() => {})
+        }
       }),
       window.listen<{ title: string }>('browser-title-changed', (event) => {
         setBrowserTitle(event.payload.title)
+        const activeId = useBrowserStore.getState().activeTabId
+        if (activeId) {
+          invoke('browser_tabs_update_meta', { tabId: activeId, title: event.payload.title }).catch(() => {})
+        }
       }),
       window.listen<{ loading: boolean }>('browser-loading', (event) => {
         console.debug('[Browser] browser-loading event', event.payload)
@@ -119,6 +135,10 @@ export function BrowserWebView() {
       }),
       window.listen<{ favicon: string }>('browser-favicon-changed', (event) => {
         setBrowserFavicon(event.payload.favicon)
+        const activeId = useBrowserStore.getState().activeTabId
+        if (activeId) {
+          invoke('browser_tabs_update_meta', { tabId: activeId, favicon: event.payload.favicon }).catch(() => {})
+        }
       }),
       // R5: 上下頁狀態。每個 page-load Finished Rust 端會 emit 此 event。
       window.listen<{ kind: 'navigate' | 'back' | 'forward' | 'reload' }>('browser-nav-event', (event) => {

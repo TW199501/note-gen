@@ -74,6 +74,42 @@ describe('useBrowserStore devtools', () => {
   })
 })
 
+describe('useBrowserStore tabs (R1)', () => {
+  beforeEach(() => {
+    useBrowserStore.getState().applyTabsChanged([], null)
+  })
+
+  it('starts with empty tabs and null active id', () => {
+    const s = useBrowserStore.getState()
+    expect(s.tabs).toEqual([])
+    expect(s.activeTabId).toBeNull()
+  })
+
+  it('applyTabsChanged hydrates from Rust payload', () => {
+    useBrowserStore.getState().applyTabsChanged(
+      [
+        { id: 'a', url: 'https://a', title: 'A', favicon: '' },
+        { id: 'b', url: 'https://b', title: 'B', favicon: '' },
+      ],
+      'b',
+    )
+    const s = useBrowserStore.getState()
+    expect(s.tabs).toHaveLength(2)
+    expect(s.activeTabId).toBe('b')
+    expect(s.tabs[1].title).toBe('B')
+  })
+
+  it('applyTabsChanged([], null) clears state', () => {
+    useBrowserStore.getState().applyTabsChanged([
+      { id: 'a', url: 'https://a', title: 'A', favicon: '' },
+    ], 'a')
+    useBrowserStore.getState().applyTabsChanged([], null)
+    const s = useBrowserStore.getState()
+    expect(s.tabs).toEqual([])
+    expect(s.activeTabId).toBeNull()
+  })
+})
+
 describe('useBrowserStore downloads', () => {
   beforeEach(() => {
     useBrowserStore.getState().resetDownloadCount()

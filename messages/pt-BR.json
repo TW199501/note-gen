@@ -2185,7 +2185,9 @@
       "open": "Abrir arquivo",
       "revealInFolder": "Mostrar na pasta",
       "remove": "Remover da lista"
-    }
+    },
+    "newTab": "Nova aba",
+    "closeTab": "Fechar aba"
   },
   "navigation": {
     "chat": "Conversa",

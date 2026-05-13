@@ -2126,7 +2126,9 @@
       "open": "ファイルを開く",
       "revealInFolder": "フォルダで表示",
       "remove": "リストから削除"
-    }
+    },
+    "newTab": "新規タブ",
+    "closeTab": "タブを閉じる"
   },
   "navigation": {
     "chat": "チャット",

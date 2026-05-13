@@ -26,12 +26,28 @@ impl PendingNav {
     }
 }
 
+// R1 (multi-tab): tab metadata stored in BrowserState so the frontend can
+// query/restore tabs after reload. The actual WebView is shared by all tabs
+// in this MVP — switching tabs just navigates the single webview. A future
+// commit will spin up one WebView per tab and wire active_tab_id into the
+// webview_label resolution.
+#[derive(Clone, Debug, Serialize)]
+pub struct Tab {
+    pub id: String,
+    pub url: String,
+    pub title: String,
+    pub favicon: String,
+}
+
 pub struct BrowserState {
     webview_label: Mutex<Option<String>>,
     context_menu_labels: Mutex<Option<HashMap<String, String>>>,
     // Latest user-initiated nav action awaiting the next page-load Finished event.
     // Cleared on each Finished. Absent → in-page link click → treat as "navigate".
     pending_nav: Mutex<Option<PendingNav>>,
+    // R1: tab list and the currently-focused tab id. tabs is ordered (left→right).
+    tabs: Mutex<Vec<Tab>>,
+    active_tab_id: Mutex<Option<String>>,
 }
 
 impl BrowserState {
@@ -40,8 +56,16 @@ impl BrowserState {
             webview_label: Mutex::new(None),
             context_menu_labels: Mutex::new(None),
             pending_nav: Mutex::new(None),
+            tabs: Mutex::new(Vec::new()),
+            active_tab_id: Mutex::new(None),
         }
     }
+}
+
+#[derive(Serialize, Clone)]
+pub struct TabsChangedPayload {
+    pub tabs: Vec<Tab>,
+    pub active_tab_id: Option<String>,
 }
 
 
@@ -942,4 +966,147 @@ pub async fn browser_capture(app: AppHandle) -> Result<String, String> {
 #[tauri::command]
 pub async fn browser_capture(_app: AppHandle) -> Result<String, String> {
     Err("Screenshot capture is not supported on mobile".to_string())
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// R1 (multi-tab): tab management commands
+//
+// MVP scope: tabs are metadata records (id/url/title/favicon) tracked in
+// BrowserState. There is still a single underlying WebView; switching tabs
+// navigates that WebView to the target tab's URL. A future commit will spin
+// up per-tab WebView instances so back/forward and scroll position survive
+// switching.
+//
+// All commands emit `browser-tabs-changed` after a mutation so the frontend
+// store stays in sync without polling.
+
+fn snapshot_tabs(state: &tauri::State<'_, BrowserState>) -> Result<TabsChangedPayload, String> {
+    let tabs = state.tabs.lock().map_err(|e| e.to_string())?.clone();
+    let active_tab_id = state.active_tab_id.lock().map_err(|e| e.to_string())?.clone();
+    Ok(TabsChangedPayload { tabs, active_tab_id })
+}
+
+fn emit_tabs_changed(app: &AppHandle, state: &tauri::State<'_, BrowserState>) -> Result<(), String> {
+    let payload = snapshot_tabs(state)?;
+    let _ = app.emit("browser-tabs-changed", payload);
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn browser_tabs_list(
+    state: tauri::State<'_, BrowserState>,
+) -> Result<TabsChangedPayload, String> {
+    snapshot_tabs(&state)
+}
+
+#[tauri::command]
+pub async fn browser_tabs_new(
+    app: AppHandle,
+    state: tauri::State<'_, BrowserState>,
+    url: Option<String>,
+) -> Result<String, String> {
+    let url = url.unwrap_or_else(|| "about:blank".to_string());
+    let id = uuid::Uuid::new_v4().to_string();
+    let tab = Tab {
+        id: id.clone(),
+        url: url.clone(),
+        title: String::new(),
+        favicon: String::new(),
+    };
+    {
+        let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+        tabs.push(tab);
+        let mut active = state.active_tab_id.lock().map_err(|e| e.to_string())?;
+        *active = Some(id.clone());
+    }
+    emit_tabs_changed(&app, &state)?;
+    // Navigate underlying WebView if it exists; otherwise the tab is just queued.
+    if let Some(webview) = app.get_webview(BROWSER_LABEL) {
+        if let Ok(parsed) = url::Url::parse(&url) {
+            let _ = webview.navigate(parsed);
+        }
+    }
+    Ok(id)
+}
+
+#[tauri::command]
+pub async fn browser_tabs_switch(
+    app: AppHandle,
+    state: tauri::State<'_, BrowserState>,
+    tab_id: String,
+) -> Result<(), String> {
+    let url = {
+        let tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+        let tab = tabs.iter().find(|t| t.id == tab_id).ok_or("Tab not found")?;
+        tab.url.clone()
+    };
+    {
+        let mut active = state.active_tab_id.lock().map_err(|e| e.to_string())?;
+        *active = Some(tab_id);
+    }
+    emit_tabs_changed(&app, &state)?;
+    if let Some(webview) = app.get_webview(BROWSER_LABEL) {
+        if let Ok(parsed) = url::Url::parse(&url) {
+            let _ = webview.navigate(parsed);
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn browser_tabs_close(
+    app: AppHandle,
+    state: tauri::State<'_, BrowserState>,
+    tab_id: String,
+) -> Result<(), String> {
+    let next_active_url = {
+        let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+        let idx = tabs.iter().position(|t| t.id == tab_id).ok_or("Tab not found")?;
+        tabs.remove(idx);
+
+        let mut active = state.active_tab_id.lock().map_err(|e| e.to_string())?;
+        if active.as_deref() == Some(tab_id.as_str()) {
+            // Pick neighbor as new active, prefer right then left then None.
+            let new_active = tabs
+                .get(idx)
+                .or_else(|| tabs.get(idx.saturating_sub(1)))
+                .or_else(|| tabs.first())
+                .cloned();
+            *active = new_active.as_ref().map(|t| t.id.clone());
+            new_active.map(|t| t.url)
+        } else {
+            None
+        }
+    };
+    emit_tabs_changed(&app, &state)?;
+    if let Some(url) = next_active_url {
+        if let Some(webview) = app.get_webview(BROWSER_LABEL) {
+            if let Ok(parsed) = url::Url::parse(&url) {
+                let _ = webview.navigate(parsed);
+            }
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn browser_tabs_update_meta(
+    app: AppHandle,
+    state: tauri::State<'_, BrowserState>,
+    tab_id: String,
+    url: Option<String>,
+    title: Option<String>,
+    favicon: Option<String>,
+) -> Result<(), String> {
+    {
+        let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+        if let Some(t) = tabs.iter_mut().find(|t| t.id == tab_id) {
+            if let Some(u) = url { t.url = u; }
+            if let Some(ti) = title { t.title = ti; }
+            if let Some(fa) = favicon { t.favicon = fa; }
+        } else {
+            return Err("Tab not found".to_string());
+        }
+    }
+    emit_tabs_changed(&app, &state)
 }
