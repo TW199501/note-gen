@@ -48,6 +48,14 @@ pub struct BrowserState {
     // R1: tab list and the currently-focused tab id. tabs is ordered (left→right).
     tabs: Mutex<Vec<Tab>>,
     active_tab_id: Mutex<Option<String>>,
+    // R1 phase 2: tab_id → webview label. First tab gets BROWSER_LABEL (backward
+    // compat); subsequent tabs get "browser-tab-{uuid}". Tracked separately from
+    // Tab so the metadata sent to frontend stays clean.
+    tab_labels: Mutex<HashMap<String, String>>,
+    // R1 phase 2: last visible position of the browser panel container.
+    // Used to position newly-spawned tab webviews and to move switched-in
+    // tabs back to view. Updated by browser_create and browser_resize.
+    last_position: Mutex<Option<(f64, f64, f64, f64)>>, // (x, y, w, h)
 }
 
 impl BrowserState {
@@ -58,8 +66,31 @@ impl BrowserState {
             pending_nav: Mutex::new(None),
             tabs: Mutex::new(Vec::new()),
             active_tab_id: Mutex::new(None),
+            tab_labels: Mutex::new(HashMap::new()),
+            last_position: Mutex::new(None),
         }
     }
+}
+
+// Off-screen coordinates used to hide non-active tab webviews. Tauri's
+// hide()/show() were unreliable across platforms (existing trick in
+// browser_hide); positioning offscreen is the proven workaround.
+const OFFSCREEN_X: f64 = -10000.0;
+const OFFSCREEN_Y: f64 = -10000.0;
+
+// Resolve the webview label of the currently-active tab. Falls back to the
+// legacy BROWSER_LABEL if no tab is registered yet (browser_create's first
+// call uses this path before the first tab is seeded).
+fn active_webview_label(state: &tauri::State<'_, BrowserState>) -> String {
+    let active_id = state.active_tab_id.lock().ok().and_then(|g| g.clone());
+    if let Some(id) = active_id {
+        if let Ok(labels) = state.tab_labels.lock() {
+            if let Some(label) = labels.get(&id) {
+                return label.clone();
+            }
+        }
+    }
+    BROWSER_LABEL.to_string()
 }
 
 #[derive(Serialize, Clone)]
@@ -255,6 +286,11 @@ pub async fn browser_create(
     height: f64,
     url: Option<String>,
 ) -> Result<(), String> {
+    // R1 phase 2: remember the container position for future tab spawns.
+    if let Ok(mut pos) = state.last_position.lock() {
+        *pos = Some((x, y, width, height));
+    }
+
     let mut label = state.webview_label.lock().map_err(|e| e.to_string())?;
 
     // If already exists, just show it
@@ -685,12 +721,18 @@ pub async fn browser_hide(app: AppHandle) -> Result<(), String> {
 #[tauri::command]
 pub async fn browser_resize(
     app: AppHandle,
+    state: tauri::State<'_, BrowserState>,
     x: f64,
     y: f64,
     width: f64,
     height: f64,
 ) -> Result<(), String> {
-    let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+    // R1 phase 2: record + apply to active tab's webview.
+    if let Ok(mut pos) = state.last_position.lock() {
+        *pos = Some((x, y, width, height));
+    }
+    let label = active_webview_label(&state);
+    let webview = app.get_webview(&label).ok_or("Browser not created")?;
     webview
         .set_position(LogicalPosition::new(x, y))
         .map_err(|e| e.to_string())?;
