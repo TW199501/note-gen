@@ -22,6 +22,13 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:31415',
     trace: 'on-first-retry',
+    // Headed mode by default so you can see what the test is doing.
+    // Override via PLAYWRIGHT_HEADLESS=1 for CI or background runs.
+    headless: process.env.PLAYWRIGHT_HEADLESS === '1',
+    // Slow down each action so the human eye can follow.
+    launchOptions: {
+      slowMo: process.env.PLAYWRIGHT_HEADLESS === '1' ? 0 : 250,
+    },
   },
   projects: [
     {
