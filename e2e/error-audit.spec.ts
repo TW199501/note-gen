@@ -27,6 +27,15 @@ test('audit /core/main runtime errors', async ({ page }) => {
   await page.waitForLoadState('networkidle')
   await page.waitForTimeout(3000)
 
+  // Also exercise switching to browser mode by clicking the Globe button in
+  // the title bar — this is where the 1 remaining "issue" shows up in the
+  // browser-panel screenshot run.
+  const globeBtn = page.locator('button:has(svg.lucide-globe)').first()
+  if (await globeBtn.count()) {
+    await globeBtn.click({ force: true }).catch(() => {})
+    await page.waitForTimeout(1500)
+  }
+
   // Write a deduped, grouped summary so it's readable.
   const grouped = new Map<string, { kind: string; text: string; count: number }>()
   for (const e of entries) {

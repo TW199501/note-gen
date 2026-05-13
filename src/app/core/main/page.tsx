@@ -282,6 +282,8 @@ function ResizableWrapper() {
     panels.push(
       <ResizablePanel
         key="left"
+        id="left"
+        order={1}
         ref={leftPanelRef}
         defaultSize={actualLayout[index++]}
         minSize={minSidebarSize}
@@ -308,6 +310,8 @@ function ResizableWrapper() {
     panels.push(
       <ResizablePanel
         key="center"
+        id="center"
+        order={2}
         ref={centerPanelRef}
         defaultSize={actualLayout[index++]}
         minSize={minEditorSize}
@@ -332,6 +336,8 @@ function ResizableWrapper() {
     panels.push(
       <ResizablePanel
         key="right"
+        id="right"
+        order={3}
         ref={rightPanelRef}
         defaultSize={actualLayout[index++]}
         minSize={minSidebarSize}
@@ -351,11 +357,11 @@ function ResizableWrapper() {
   if (workspaceMode === 'browser') {
     return (
       <ResizablePanelGroup direction="horizontal" className="h-full">
-        <ResizablePanel defaultSize={70} minSize={40} maxSize={80}>
+        <ResizablePanel id="browser-main" order={1} defaultSize={70} minSize={40} maxSize={80}>
           <BrowserPanel />
         </ResizablePanel>
         <ResizableHandle />
-        <ResizablePanel defaultSize={30} minSize={20}>
+        <ResizablePanel id="browser-chat" order={2} defaultSize={30} minSize={20}>
           <ChatStoreProvider store={useBrowserChatStore}>
             <Chat />
           </ChatStoreProvider>

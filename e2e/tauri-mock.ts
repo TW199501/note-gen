@@ -159,6 +159,12 @@ export async function installTauriMock(page: Page) {
       ipc: (_message: unknown) => {},
     }
 
+    // @tauri-apps/api/event reads this sync global to unregister listeners.
+    // Without it, every cleanup function NPEs on unmount.
+    w.__TAURI_EVENT_PLUGIN_INTERNALS__ = {
+      unregisterListener: (_event: string, _eventId: number) => {},
+    }
+
     // plugin-os reads these as sync globals (not via invoke).
     w.__TAURI_OS_PLUGIN_INTERNALS__ = {
       platform: 'macos',
