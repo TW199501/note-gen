@@ -11,7 +11,7 @@ import emitter from '@/lib/emitter'
 
 export function BrowserWebView() {
   const containerRef = useRef<HTMLDivElement>(null)
-  const { browserReady, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserLoading, setBrowserFavicon, workspaceMode, overlayCount, browserAutoOpen, applyNavEvent, setDevtoolsOpen, setZoomLevel } = useBrowserStore()
+  const { browserReady, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserLoading, setBrowserFavicon, workspaceMode, overlayCount, browserAutoOpen, applyNavEvent, setDevtoolsOpen, setZoomLevel, incrementDownloadCount, decrementDownloadCount } = useBrowserStore()
   const { browserHomepage } = useSettingStore()
   const t = useTranslations('browser.contextMenu')
   // M1: 區分 auto-extract（page load 觸發，寫進 currentPageContext）和 manual extract
@@ -131,6 +131,28 @@ export function BrowserWebView() {
       // R6: zoom 層級。WebView 內 keyboard handler 或 host browser_set_zoom 都會回報。
       window.listen<{ level: number }>('browser-zoom-changed', (event) => {
         setZoomLevel(event.payload.level)
+      }),
+      // R2: 下載事件。WebView 在 native HTTP 層觸發下載時 Rust 端 emit；
+      // 我們鏡像到 SQLite 並更新 in-progress 計數。
+      window.listen<{ url: string; filename: string; destination: string }>('browser-download-started', async (event) => {
+        const { url, filename, destination } = event.payload
+        try {
+          const { insertDownloadStarted } = await import('@/db/downloads')
+          await insertDownloadStarted(url, filename, destination)
+          incrementDownloadCount()
+        } catch (e) {
+          console.error('[Browser] download started insert failed:', e)
+        }
+      }),
+      window.listen<{ url: string; path: string | null; success: boolean }>('browser-download-finished', async (event) => {
+        const { url, path, success } = event.payload
+        try {
+          const { markDownloadFinished } = await import('@/db/downloads')
+          await markDownloadFinished(url, path, success)
+          decrementDownloadCount()
+        } catch (e) {
+          console.error('[Browser] download finished update failed:', e)
+        }
       }),
       // Handle extracted text from browser_extract_text command
       window.listen<{ text: string; title: string; url: string }>('browser-content-extracted', (event) => {

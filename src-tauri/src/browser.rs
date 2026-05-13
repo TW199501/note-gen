@@ -90,6 +90,21 @@ struct NavEventPayload {
     kind: &'static str,
 }
 
+// R2: download events
+#[derive(Serialize, Clone)]
+struct DownloadStartedPayload {
+    url: String,
+    filename: String,
+    destination: String,
+}
+
+#[derive(Serialize, Clone)]
+struct DownloadFinishedPayload {
+    url: String,
+    path: Option<String>,
+    success: bool,
+}
+
 #[derive(Serialize, Clone)]
 struct DevtoolsStatePayload {
     open: bool,
@@ -452,6 +467,45 @@ pub async fn browser_create(
             }
         }, true);
     })();"#)
+    // R2: download handling — Tauri's WebView fires a Requested event when a
+    // page triggers a download (Content-Disposition: attachment, <a download>,
+    // or unhandled MIME). We let the WebView's native download path proceed
+    // and just emit events so the host UI can show progress.
+    //
+    // Note: Tauri's on_download API only fires start/end events with no
+    // intermediate progress callback — that's a wry limitation. For showing
+    // bytes-progress we'd need to proxy through reqwest ourselves, which is
+    // tracked as Phase 2 follow-up.
+    .on_download({
+        let app_handle = app.clone();
+        move |_webview, event| {
+            match event {
+                tauri::webview::DownloadEvent::Requested { url, destination } => {
+                    let filename = destination
+                        .file_name()
+                        .and_then(|s| s.to_str())
+                        .unwrap_or("download")
+                        .to_string();
+                    let _ = app_handle.emit("browser-download-started", DownloadStartedPayload {
+                        url: url.to_string(),
+                        filename,
+                        destination: destination.to_string_lossy().to_string(),
+                    });
+                    // Return true to proceed with the download. WebView handles writing.
+                    true
+                }
+                tauri::webview::DownloadEvent::Finished { url, path, success } => {
+                    let _ = app_handle.emit("browser-download-finished", DownloadFinishedPayload {
+                        url: url.to_string(),
+                        path: path.map(|p| p.to_string_lossy().to_string()),
+                        success,
+                    });
+                    true
+                }
+                _ => true,
+            }
+        }
+    })
     .on_page_load(move |wv, payload| {
         match payload.event() {
             tauri::webview::PageLoadEvent::Started => {

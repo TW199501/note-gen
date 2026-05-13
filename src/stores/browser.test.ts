@@ -73,3 +73,35 @@ describe('useBrowserStore devtools', () => {
     expect(useBrowserStore.getState().devtoolsOpen).toBe(false)
   })
 })
+
+describe('useBrowserStore downloads', () => {
+  beforeEach(() => {
+    useBrowserStore.getState().resetDownloadCount()
+  })
+
+  it('starts at 0', () => {
+    expect(useBrowserStore.getState().downloadInProgressCount).toBe(0)
+  })
+
+  it('increment + decrement track in-progress count', () => {
+    const s = useBrowserStore.getState()
+    s.incrementDownloadCount()
+    s.incrementDownloadCount()
+    expect(useBrowserStore.getState().downloadInProgressCount).toBe(2)
+    s.decrementDownloadCount()
+    expect(useBrowserStore.getState().downloadInProgressCount).toBe(1)
+  })
+
+  it('decrement clamps at 0 (never goes negative)', () => {
+    useBrowserStore.getState().decrementDownloadCount()
+    useBrowserStore.getState().decrementDownloadCount()
+    expect(useBrowserStore.getState().downloadInProgressCount).toBe(0)
+  })
+
+  it('resetDownloadCount zeros out an in-progress count', () => {
+    useBrowserStore.getState().incrementDownloadCount()
+    useBrowserStore.getState().incrementDownloadCount()
+    useBrowserStore.getState().resetDownloadCount()
+    expect(useBrowserStore.getState().downloadInProgressCount).toBe(0)
+  })
+})

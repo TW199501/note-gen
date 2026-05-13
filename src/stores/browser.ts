@@ -60,6 +60,13 @@ interface BrowserStore {
   findCount: number
   findIndex: number  // -1 when no match
   setFindState: (count: number, index: number) => void
+
+  // R2: 進行中下載計數，用於 status bar 徽章 / chat 提示。
+  // 由 browser-download-started/finished 事件 listener 自增/自減。
+  downloadInProgressCount: number
+  incrementDownloadCount: () => void
+  decrementDownloadCount: () => void
+  resetDownloadCount: () => void
 }
 
 const useBrowserStore = create<BrowserStore>((set) => ({
@@ -116,6 +123,13 @@ const useBrowserStore = create<BrowserStore>((set) => ({
   findCount: 0,
   findIndex: -1,
   setFindState: (findCount, findIndex) => set({ findCount, findIndex }),
+
+  downloadInProgressCount: 0,
+  incrementDownloadCount: () =>
+    set((state) => ({ downloadInProgressCount: state.downloadInProgressCount + 1 })),
+  decrementDownloadCount: () =>
+    set((state) => ({ downloadInProgressCount: Math.max(0, state.downloadInProgressCount - 1) })),
+  resetDownloadCount: () => set({ downloadInProgressCount: 0 }),
 }))
 
 export default useBrowserStore
