@@ -8,7 +8,7 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
     include: ['src/**/*.{test,vitest}.{ts,tsx}'],
-    exclude: ['node_modules', '.next', 'out', 'src-tauri'],
+    exclude: ['node_modules', '.next', 'out', 'src-tauri', 'e2e'],
   },
   resolve: {
     alias: {

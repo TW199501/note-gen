@@ -87,6 +87,12 @@ docs/.vitepress/cache
 # Playwright MCP captures (snapshots, console logs, screenshots from debug sessions)
 .playwright-mcp/
 
+# Playwright e2e outputs
+/playwright-report/
+/test-results/
+/blob-report/
+/playwright/.cache/
+
 # Root-level debug screenshots (defense*, fix-step*, step*, stuck-state*)
 /defense*.png
 /fix-*.png
