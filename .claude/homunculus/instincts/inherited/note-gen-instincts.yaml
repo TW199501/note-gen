@@ -1,0 +1,673 @@
+# Instincts generated from https://github.com/TW199501/note-gen
+# Generated: 2026-05-14T16:06:17.865Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: note-gen-commit-conventional
+trigger: "when writing a commit message"
+confidence: 0.85
+domain: git
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Commit Conventional
+
+## Action
+
+Use conventional commit format with prefixes: feat, chore, fix, docs
+
+## Evidence
+
+- 22 commits analyzed
+- Detected conventional commit pattern
+- Examples: fix(chat): ensure conversations table exists before chat init query, docs(browser): add WebView enhancement spec covering 9 missing features
+
+---
+id: note-gen-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Commit Length
+
+## Action
+
+Write moderate-length commit messages (~67 characters)
+
+## Evidence
+
+- Average commit message length: 67 chars
+- Based on 22 commits
+
+---
+id: note-gen-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Naming Files
+
+## Action
+
+Use camelCase naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: camelCase
+
+---
+id: note-gen-import-alias
+trigger: "when importing modules"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Import Alias
+
+## Action
+
+Use path aliases (@/, ~/) instead of relative imports
+
+## Evidence
+
+- Import analysis shows alias pattern
+- Example: import { x } from '@/lib/x'
+
+---
+id: note-gen-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Export Style
+
+## Action
+
+Prefer mixed exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: mixed
+
+---
+id: note-gen-arch-type-based
+trigger: "when adding new code"
+confidence: 0.8
+domain: architecture
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Arch Type Based
+
+## Action
+
+Place code in the appropriate type folder (components/, services/, utils/, etc.)
+
+## Evidence
+
+- Type-based module organization detected
+- Folders: app, db, lib, stores
+
+---
+id: note-gen-test-colocate
+trigger: "when writing tests"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Test Colocate
+
+## Action
+
+Place test file next to the source file (e.g., Button.test.tsx next to Button.tsx)
+
+## Evidence
+
+- Colocated test pattern detected
+- Tests live alongside source files
+
+---
+id: note-gen-test-framework
+trigger: "when writing tests"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Test Framework
+
+## Action
+
+Use vitest as the test framework
+
+## Evidence
+
+- Test framework detected: vitest
+- File pattern: *.test.ts
+
+---
+id: note-gen-test-naming
+trigger: "when creating a test file"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Test Naming
+
+## Action
+
+Name test files using the pattern: *.test.ts
+
+## Evidence
+
+- File pattern: *.test.ts
+- Consistent across test files
+
+---
+id: note-gen-test-mocking
+trigger: "when mocking dependencies in tests"
+confidence: 0.75
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Test Mocking
+
+## Action
+
+Use vi.mock for mocking
+
+## Evidence
+
+- Mocking pattern detected: vi.mock
+- Consistent across test files
+
+---
+id: note-gen-test-types
+trigger: "when planning tests for a feature"
+confidence: 0.7
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Test Types
+
+## Action
+
+Write unit, e2e tests to match project standards
+
+## Evidence
+
+- Test types detected: unit, e2e
+- Coverage config: no
+
+---
+id: note-gen-workflow-feature-development
+trigger: "when implementing a new feature"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Workflow Feature Development
+
+## Action
+
+Follow the feature-development workflow:
+1. Add feature implementation
+2. Add tests for feature
+3. Update documentation
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~20x per month
+- Files: /*, src/app/core/main/browser/*, src/lib/browser/*
+
+---
+id: note-gen-workflow-browser-feature-development
+trigger: "when doing browser feature development"
+confidence: 0.7
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Workflow Browser Feature Development
+
+## Action
+
+Follow the browser-feature-development workflow:
+1. Add/modify Rust commands and event emitters in src-tauri/src/browser.rs (and sometimes src-tauri/src/lib.rs or src-tauri/src/main.rs)
+2. Update or create frontend React components in src/app/core/main/browser/*.tsx
+3. Update or add zustand store logic and tests in src/stores/browser.ts and src/stores/browser.test.ts
+4. Add/modify pure logic helpers and unit tests in src/lib/browser/*.ts and src/lib/browser/*.test.ts
+5. Update i18n keys in messages/*.json for new UI strings
+6. Update or create database helpers and tests in src/db/*.ts if persistent data is needed
+7. Update capability JSONs if new permissions are required (src-tauri/capabilities/*.json)
+8. Run and verify all tests (vitest, cargo, tsc, eslint, playwright)
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~4x per month
+- Files: src-tauri/src/browser.rs, src-tauri/src/lib.rs, src-tauri/src/main.rs
+
+---
+id: note-gen-workflow-test-infrastructure-upgrade
+trigger: "when doing test infrastructure upgrade"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Workflow Test Infrastructure Upgrade
+
+## Action
+
+Follow the test-infrastructure-upgrade workflow:
+1. Install or upgrade test runner dependencies in package.json and pnpm-lock.yaml
+2. Add or update test config files (e.g., vitest.config.ts, playwright.config.ts, vitest.setup.ts)
+3. Add or update .gitignore and ESLint config to handle new test artifacts
+4. Create or update test files (e2e/*.spec.ts, src/lib/**/*.test.ts, src/stores/**/*.test.ts)
+5. Verify tests run and pass (vitest, playwright, etc.)
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: package.json, pnpm-lock.yaml, vitest.config.ts
+
+---
+id: note-gen-workflow-i18n-keys-update
+trigger: "when doing i18n keys update"
+confidence: 0.65
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Workflow I18n Keys Update
+
+## Action
+
+Follow the i18n-keys-update workflow:
+1. Add new keys or update existing ones in messages/en.json
+2. Propagate changes to all other locale files (messages/zh.json, messages/zh-TW.json, messages/ja.json, messages/pt-BR.json)
+3. Reference new keys in React components or stores
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~3x per month
+- Files: messages/en.json, messages/zh.json, messages/zh-TW.json
+
+---
+id: note-gen-workflow-defensive-bugfix-and-mock-improvement
+trigger: "when doing defensive bugfix and mock improvement"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Workflow Defensive Bugfix And Mock Improvement
+
+## Action
+
+Follow the defensive-bugfix-and-mock-improvement workflow:
+1. Identify and fix the bug in the relevant TypeScript or Rust file (e.g., add null checks, use correct return values)
+2. Update or expand test mocks (e2e/tauri-mock.ts) to simulate missing plugin or runtime APIs
+3. Add or update error-audit or regression tests (e2e/error-audit.spec.ts)
+4. Verify error count is reduced or eliminated in test runs
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: src/db/*.ts, src/lib/*.ts, src/app/core/main/*.tsx
+
+---
+id: note-gen-camelcase-files
+trigger: "When creating or renaming a file in the codebase"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Camelcase Files
+
+## Action
+
+Name the file using camelCase (e.g., browserFeature.ts)
+
+## Evidence
+
+- Pattern in namingConventions.files
+- Examples in src/app/core/main/browser/*.tsx
+
+---
+id: note-gen-camelcase-functions
+trigger: "When defining a function"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Camelcase Functions
+
+## Action
+
+Name the function using camelCase
+
+## Evidence
+
+- Pattern in namingConventions.functions
+- Consistent usage in src/lib/*.ts
+
+---
+id: note-gen-pascalcase-classes
+trigger: "When defining a class"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Pascalcase Classes
+
+## Action
+
+Name the class using PascalCase
+
+## Evidence
+
+- Pattern in namingConventions.classes
+- Consistent usage in src/lib/*.ts
+
+---
+id: note-gen-screaming-constants
+trigger: "When defining a constant"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Screaming Constants
+
+## Action
+
+Name the constant using SCREAMING_SNAKE_CASE
+
+## Evidence
+
+- Pattern in namingConventions.constants
+
+---
+id: note-gen-alias-imports
+trigger: "When importing modules"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Alias Imports
+
+## Action
+
+Use alias import style instead of relative paths
+
+## Evidence
+
+- Pattern in importStyle: alias
+- Seen in src/app/core/main/browser/*.tsx
+
+---
+id: note-gen-mixed-exports
+trigger: "When exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Mixed Exports
+
+## Action
+
+Use both default and named exports as appropriate
+
+## Evidence
+
+- Pattern in exportStyle: mixed
+
+---
+id: note-gen-vitest-test-pattern
+trigger: "When writing a test file"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Vitest Test Pattern
+
+## Action
+
+Name the file with the pattern *.test.ts and use vitest as the test runner
+
+## Evidence
+
+- testing.filePattern: *.test.ts
+- testing.framework: vitest
+- Examples in src/lib/browser/*.test.ts
+
+---
+id: note-gen-vi-mock-usage
+trigger: "When mocking dependencies in tests"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Vi Mock Usage
+
+## Action
+
+Use vi.mock for mocking in vitest tests
+
+## Evidence
+
+- testing.mockingStyle: vi.mock
+- Examples in src/stores/browser.test.ts
+
+---
+id: note-gen-colocated-tests
+trigger: "When adding tests for a module"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Colocated Tests
+
+## Action
+
+Place test files next to the module (colocated)
+
+## Evidence
+
+- architecture.folderStructure.testLocation: colocated
+- Examples in src/lib/browser/*.test.ts
+
+---
+id: note-gen-conventional-commits
+trigger: "When writing a commit message"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Conventional Commits
+
+## Action
+
+Use conventional commit format: <type>(<scope>): <description>
+
+## Evidence
+
+- commits.type: conventional
+- Examples: fix(chat): ensure conversations table exists before chat init query
+
+---
+id: note-gen-commit-prefixes
+trigger: "When choosing a commit type"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Commit Prefixes
+
+## Action
+
+Use one of the allowed prefixes: feat, chore, fix, docs
+
+## Evidence
+
+- commits.prefixes
+- Examples: feat(browser): sync back/forward state...
+
+---
+id: note-gen-commit-length
+trigger: "When writing a commit message"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Commit Length
+
+## Action
+
+Keep the commit message concise (average length ~67 characters)
+
+## Evidence
+
+- commits.averageLength: 67
+
+---
+id: note-gen-browser-feature-workflow
+trigger: "When adding a new browser feature or capability"
+confidence: 0.98
+domain: workflow
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Browser Feature Workflow
+
+## Action
+
+Follow the browser-feature-development workflow: update Rust backend, React frontend, zustand store, logic helpers, i18n, DB, capabilities, and run all tests
+
+## Evidence
+
+- WORKFLOWS: browser-feature-development
+- Pattern in commit sequences and files
+
+---
+id: note-gen-test-infra-upgrade-workflow
+trigger: "When upgrading or adding test infrastructure"
+confidence: 0.92
+domain: workflow
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Test Infra Upgrade Workflow
+
+## Action
+
+Follow the test-infrastructure-upgrade workflow: update dependencies, config files, .gitignore, create/update test files, verify tests run
+
+## Evidence
+
+- WORKFLOWS: test-infrastructure-upgrade
+- Pattern in commit sequences and files
+
+---
+id: note-gen-i18n-keys-update-workflow
+trigger: "When adding or changing UI text that requires translation"
+confidence: 0.88
+domain: workflow
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen I18n Keys Update Workflow
+
+## Action
+
+Update messages/en.json, propagate to all locale files, and reference new keys in code
+
+## Evidence
+
+- WORKFLOWS: i18n-keys-update
+- Pattern in commit sequences and files
+
+---
+id: note-gen-defensive-bugfix-workflow
+trigger: "When a runtime error is detected in tests or manual audit"
+confidence: 0.85
+domain: workflow
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Defensive Bugfix Workflow
+
+## Action
+
+Fix the bug, update/expand mocks, add regression/error-audit tests, verify error count reduction
+
+## Evidence
+
+- WORKFLOWS: defensive-bugfix-and-mock-improvement
+- Pattern in commit sequences and files
+
