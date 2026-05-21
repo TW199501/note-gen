@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { useTranslations } from 'next-intl'
-import { ArrowLeft, ArrowRight, RotateCw, Home, Star, Settings2, Lock, History, Trash2, Wrench, Download } from 'lucide-react'
+import { ArrowLeft, ArrowRight, RotateCw, Home, Star, Settings2, Lock, History, Trash2, Wrench, Download, FileText, Camera } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -12,6 +12,7 @@ import useBrowserStore from '@/stores/browser'
 import useSettingStore from '@/stores/setting'
 import { isBookmarked, addBookmark, removeBookmarkByUrl } from '@/db/bookmarks'
 import { addHistoryEntry } from '@/db/browser-history'
+import emitter from '@/lib/emitter'
 
 interface BrowserNavBarProps {
   onBookmarkToggle?: () => void
@@ -24,11 +25,29 @@ export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick, o
   const t = useTranslations('browser')
   const tCommon = useTranslations('common')
   const { browserUrl, browserTitle, browserLoading, browserFavicon, browserReady, canGoBack, canGoForward, devtoolsOpen, downloadInProgressCount, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserFavicon, setBrowserAutoOpen, resetNavState, setDevtoolsOpen, setZoomLevel, setFindOpen, setFindQuery, setFindState } = useBrowserStore()
-  const { browserHomepage } = useSettingStore()
+  const { browserHomepage, imageMethodModel } = useSettingStore()
+  const hasVlm = !!imageMethodModel
   const [inputUrl, setInputUrl] = useState(browserUrl)
   const [bookmarked, setBookmarked] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+
+  async function handleExtractText() {
+    try {
+      await invoke('browser_extract_text')
+    } catch (error) {
+      console.error('[Browser] Failed to extract text:', error)
+    }
+  }
+
+  async function handleScreenshot() {
+    try {
+      const path = await invoke<string>('browser_capture')
+      emitter.emit('browser-screenshot' as any, { path })
+    } catch (error) {
+      console.error('[Browser] Failed to capture screenshot:', error)
+    }
+  }
 
   async function handleClearData() {
     try {
@@ -93,8 +112,32 @@ export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick, o
       setBrowserAutoOpen(true)
       return
     }
+    // Chrome 慣例：所有分頁都被關掉之後，URL 列 Enter / 首頁 / 任何導航操作
+    // 都應該開「一個新分頁」載入該 URL，而不是把已經被 browser_tabs_close
+    // 推到螢幕外（-10000, 0×0）的舊 BROWSER_LABEL webview 拿來用——那會讓
+    // 頁面在背景偷偷導航、URL 列更新、但畫面永遠是空白。
+    const { tabs, activeTabId } = useBrowserStore.getState()
     try {
-      await invoke('browser_navigate', { url })
+      if (tabs.length === 0) {
+        await invoke('browser_tabs_new', { url })
+      } else {
+        await invoke('browser_navigate', { url })
+        // Optimistic tab metadata sync. Non-first tabs (label != BROWSER_LABEL)
+        // don't currently have an on_page_load handler attached, so the usual
+        // browser-url-changed / browser-title-changed events won't fire and the
+        // tab strip would keep showing the previous URL/title forever. Push the
+        // new URL into tab metadata directly; clear title so TabStrip falls back
+        // to the URL until/unless a title event eventually arrives. (Phase 2b
+        // will give every tab its own on_page_load and this becomes redundant
+        // for BROWSER_LABEL, but harmless — it just re-writes the same URL.)
+        if (activeTabId) {
+          invoke('browser_tabs_update_meta', {
+            tabId: activeTabId,
+            url,
+            title: '',
+          }).catch(() => {})
+        }
+      }
     } catch (e) {
       console.error('[Browser] navigate failed:', e)
     }
@@ -171,13 +214,32 @@ export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick, o
               size="icon"
               className="h-7 w-7"
               aria-label={t('home')}
-              onClick={() => {
+              onClick={async () => {
                 if (!browserReady) {
                   setBrowserAutoOpen(true)
                   return
                 }
-                void invoke('browser_navigate', { url: browserHomepage })
-                  .catch((e) => console.error('[Browser] home navigate failed:', e))
+                // 比照 Chrome：分頁全關掉再按首頁時開一個新分頁載入首頁，
+                // 而不是讓 browser_navigate 跑在已經被推到螢幕外的舊 webview 上。
+                const { tabs, activeTabId } = useBrowserStore.getState()
+                try {
+                  if (tabs.length === 0) {
+                    await invoke('browser_tabs_new', { url: browserHomepage })
+                  } else {
+                    await invoke('browser_navigate', { url: browserHomepage })
+                    // 跟 handleNavigate 一樣：非第一個分頁沒 on_page_load handler，
+                    // 需要前端主動同步 tab metadata。
+                    if (activeTabId) {
+                      invoke('browser_tabs_update_meta', {
+                        tabId: activeTabId,
+                        url: browserHomepage,
+                        title: '',
+                      }).catch(() => {})
+                    }
+                  }
+                } catch (e) {
+                  console.error('[Browser] home failed:', e)
+                }
               }}
             >
               <Home className="h-4 w-4" />
@@ -196,6 +258,26 @@ export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick, o
             placeholder={t('urlPlaceholder')}
           />
         </div>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleExtractText} aria-label={t('extractText')}>
+              <FileText className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent><p>{t('extractText')}</p></TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleScreenshot} disabled={!hasVlm} aria-label={t('screenshot')}>
+                <Camera className="h-4 w-4" />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent><p>{hasVlm ? t('screenshot') : t('vlmRequired')}</p></TooltipContent>
+        </Tooltip>
 
         <Tooltip>
           <TooltipTrigger asChild>

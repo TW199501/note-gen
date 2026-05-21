@@ -644,8 +644,13 @@
       }
     },
     "readAloud": {
-      "title": "Ler em Voz Alta",
-      "desc": "Configure o comportamento da leitura em voz alta. As vozes do sistema são preferidas por padrão, e a voz de modelo funciona como aprimoramento.",
+      "title": "Leitura em voz alta",
+      "desc": "Aqui você pode configurar opções de leitura em voz alta para reproduzir o conteúdo do chat em áudio.",
+      "noModel": "Não usar modelo",
+      "alert": {
+        "title": "Você está usando a leitura do sistema",
+        "description": "Nenhum modelo de áudio foi configurado. Usando a leitura do próprio sistema."
+      },
       "options": {
         "mode": {
           "title": "Modo",
@@ -655,12 +660,12 @@
           "model": "Somente modelo"
         },
         "audioModel": {
-          "title": "Modelo de Leitura",
-          "desc": "Opcional. Configure um modelo para aprimorar o modo automático ou usar o modo somente modelo."
+          "title": "Modelo de áudio",
+          "desc": "Escolha o modelo de IA para texto-para-fala (TTS). Suporta diferentes vozes e parâmetros."
         },
         "speed": {
           "title": "Velocidade",
-          "desc": "Ajuste a velocidade da leitura entre 0.5x e 2x, com 1x como padrão."
+          "desc": "Ajuste a velocidade da voz (de 0,25× a 4×). O padrão é 1×."
         }
       }
     },
@@ -1388,32 +1393,6 @@
       "deleteSkillTitle": "Excluir Skill",
       "deleteSkillDesc": "Tem certeza de que deseja excluir esta Skill? Esta ação não pode ser desfeita.",
       "skillDeleted": "Skill excluída com sucesso"
-    },
-    "readAloud": {
-      "title": "Leitura em voz alta",
-      "desc": "Aqui você pode configurar opções de leitura em voz alta para reproduzir o conteúdo do chat em áudio.",
-      "noModel": "Não usar modelo",
-      "alert": {
-        "title": "Você está usando a leitura do sistema",
-        "description": "Nenhum modelo de áudio foi configurado. Usando a leitura do próprio sistema."
-      },
-      "options": {
-        "mode": {
-          "title": "Modo",
-          "desc": "O modo automático prefere as vozes do sistema e só tenta um modelo quando a fala local não está disponível.",
-          "auto": "Automático (Recomendado)",
-          "local": "Somente local",
-          "model": "Somente modelo"
-        },
-        "audioModel": {
-          "title": "Modelo de áudio",
-          "desc": "Escolha o modelo de IA para texto-para-fala (TTS). Suporta diferentes vozes e parâmetros."
-        },
-        "speed": {
-          "title": "Velocidade",
-          "desc": "Ajuste a velocidade da voz (de 0,25× a 4×). O padrão é 1×."
-        }
-      }
     }
   },
   "record": {
@@ -1900,7 +1879,8 @@
         },
         "clearChat": "Limpar Chat",
         "clearContext": {
-          "tooltip": "Limpar contexto"
+          "tooltip": "Limpar Contexto",
+          "message": "Contexto limpo. As conversas subsequentes conterão apenas o conteúdo após esta mensagem."
         },
         "mcp": {
           "tooltip": "Servidor MCP"
@@ -2017,10 +1997,6 @@
           "searchPlaceholder": "Pesquisar arquivos...",
           "noFiles": "Nenhum arquivo encontrado",
           "loading": "Carregando..."
-        },
-        "clearContext": {
-          "tooltip": "Limpar Contexto",
-          "message": "Contexto limpo. As conversas subsequentes conterão apenas o conteúdo após esta mensagem."
         },
         "stopped": "A conversa foi encerrada",
         "newChat": "Iniciar nova conversa"
@@ -2842,125 +2818,6 @@
   },
   "editor": {
     "placeholder": "Digite / para abrir o menu, ou comece a escrever...",
-    "aiNoSelection": "Nada para processar — selecione um trecho ou coloque o cursor em um parágrafo",
-    "syncingRemote": "Buscando arquivo remoto",
-    "pullingRemote": "Obtendo conteúdo mais recente do servidor remoto...",
-    "outline": {
-      "title": "Esboço",
-      "open": "Abrir Esboço",
-      "close": "Fechar Esboço"
-    },
-    "copySuccess": "Cópia Bem-sucedida",
-    "copySuccessDescription": "Copiado para a área de transferência",
-    "search": {
-      "placeholder": "Localizar no documento",
-      "replacePlaceholder": "Substituir por",
-      "caseSensitive": "Diferenciar maiúsculas e minúsculas",
-      "replace": "Substituir",
-      "replaceAll": "Substituir tudo",
-      "findPrev": "Anterior",
-      "findNext": "Próximo"
-    },
-    "floatbar": {
-      "readAloud": {
-        "start": "Ler em Voz Alta",
-        "stop": "Parar Leitura",
-        "loading": "Carregando..."
-      }
-    },
-    "toolbar": {
-      "mark": {
-        "title": "Registros",
-        "tooltip": "Registros",
-        "description": "Converta registros em conteúdo para inserir no artigo.",
-        "noRecords": "Nenhum registro",
-        "ocrNoContent": "OCR não reconheceu nenhum conteúdo"
-      },
-      "question": {
-        "tooltip": "Perguntas e Respostas",
-        "selectContent": "Por favor, selecione o conteúdo primeiro",
-        "promptTemplate": "Texto de referência: \n{content}\nCom base na pergunta: \n{question}\n, forneça diretamente o conteúdo da resposta."
-      },
-      "continue": {
-        "tooltip": "Continuar",
-        "promptTemplate": "Com base no texto anterior: \n{content}\n continue escrevendo e retorne um conteúdo que não exceda 100 palavras.\nVocê pode referenciar o seguinte texto: \n{endContent}\n, mas evite duplicar seu conteúdo."
-      },
-      "polish": {
-        "tooltip": "Polir",
-        "selectContent": "Por favor, selecione o conteúdo primeiro",
-        "promptTemplate": "Polir este texto: \n{content}\n, mantenha o idioma inalterado, corrija erros de digitação e gramaticais, retorne diretamente o resultado polido."
-      },
-      "eraser": {
-        "tooltip": "Simplificar",
-        "selectContent": "Por favor, selecione o conteúdo primeiro",
-        "promptTemplate": "Simplificar este texto: \n{content}\n, este texto está muito verboso, reduza a contagem de palavras pela metade, mantenha o idioma inalterado, retorne diretamente o resultado otimizado."
-      },
-      "expansion": {
-        "tooltip": "Expandir",
-        "selectContent": "Por favor, selecione o conteúdo primeiro",
-        "promptTemplate": "Expandir este texto: \n{content}\n, este texto está muito curto, aumente a contagem de palavras pela metade, mantenha o idioma inalterado, retorne diretamente o resultado expandido."
-      },
-      "translation": {
-        "tooltip": "Traduzir",
-        "description": "Traduzir o texto selecionado",
-        "selectContent": "Por favor, selecione o conteúdo primeiro",
-        "promptTemplate": "Traduzir este texto: \n{content}\n, para {language}, retorne diretamente o resultado traduzido.",
-        "fail": "Falha na tradução",
-        "failNoSelection": "Por favor, selecione o texto para traduzir",
-        "translating": "Traduzindo...",
-        "translatingTo": "Traduzindo para {language}...",
-        "success": "Tradução concluída",
-        "successTo": "Traduzido para {language}",
-        "customLanguageEmpty": "Por favor, digite o idioma de destino",
-        "customLanguageExample": "ex.: Inglês, Japonês, Francês, etc."
-      },
-      "quoteDisplay": {
-        "fromFile": "Citado de {fileName}",
-        "line": "Citado de {fileName} linha {line}",
-        "lines": "Citado de {fileName} linhas {start}-{end}",
-        "collapse": "Recolher",
-        "expand": "Expandir"
-      }
-    },
-    "upload": {
-      "error": "Falha no upload",
-      "needToken": "O upload de imagens precisa configurar o accessToken",
-      "uploading": "Enviando imagem"
-    }
-  },
-  "footer": {
-    "wordCount": "Palavras",
-    "sync": {
-      "push": "Push",
-      "pushed": "Enviado",
-      "syncing": "Enviando",
-      "syncFailed": "Falha no Push",
-      "checkNetworkOrToken": "Por favor, verifique a conexão de rede ou o token",
-      "quickSync": "Sincronização Rápida"
-    },
-    "history": {
-      "loadingHistory": "Carregando histórico",
-      "historyRecords": "Registros do Histórico",
-      "noHistory": "Nenhum Histórico",
-      "loading": "Carregando",
-      "recordsCount": "registros",
-      "filterQuickSync": "Filtrar Sincronizações Rápidas",
-      "committedAt": "enviado em",
-      "pull": "Pull",
-      "quickSync": "Sincronização Rápida"
-    },
-    "vectorCalc": {
-      "tooltip": "Cálculo Vetorial: Cálculo automático 30s após a edição, ou clique para calcular agora",
-      "calculating": "Calculando",
-      "pending": "Pendente {progress}%",
-      "synced": "Sincronizado"
-    }
-  },
-  "quickRecord": {
-    "description": "Clique para selecionar uma ferramenta de registro e criar registros rapidamente"
-  },
-  "editor": {
-    "placeholder": "Digite / para abrir o menu, ou comece a escrever...",
     "aiNoSelection": "Nenhum texto para processar, selecione o conteúdo ou coloque o cursor em um parágrafo",
     "outline": {
       "title": "Esboço",
@@ -3179,11 +3036,50 @@
       }
     }
   },
+  "footer": {
+    "wordCount": "Palavras",
+    "sync": {
+      "push": "Push",
+      "pushed": "Enviado",
+      "syncing": "Enviando",
+      "syncFailed": "Falha no Push",
+      "checkNetworkOrToken": "Por favor, verifique a conexão de rede ou o token",
+      "quickSync": "Sincronização Rápida"
+    },
+    "history": {
+      "loadingHistory": "Carregando histórico",
+      "historyRecords": "Registros do Histórico",
+      "noHistory": "Nenhum Histórico",
+      "loading": "Carregando",
+      "recordsCount": "registros",
+      "filterQuickSync": "Filtrar Sincronizações Rápidas",
+      "committedAt": "enviado em",
+      "pull": "Pull",
+      "quickSync": "Sincronização Rápida"
+    },
+    "vectorCalc": {
+      "tooltip": "Cálculo Vetorial: Cálculo automático 30s após a edição, ou clique para calcular agora",
+      "calculating": "Calculando",
+      "pending": "Pendente {progress}%",
+      "synced": "Sincronizado"
+    }
+  },
+  "quickRecord": {
+    "description": "Clique para selecionar uma ferramenta de registro e criar registros rapidamente"
+  },
   "tabContext": {
     "close": "Fechar",
     "closeOthers": "Fechar Outros",
     "closeAll": "Fechar Tudo",
     "closeLeft": "Fechar à Esquerda",
     "closeRight": "Fechar à Direita"
+  },
+  "appContextMenu": {
+    "cut": "Recortar",
+    "copy": "Copiar",
+    "paste": "Colar",
+    "print": "Imprimir",
+    "devTools": "Ferramentas do desenvolvedor",
+    "screenshotRegion": "Captura de tela de região"
   }
 }

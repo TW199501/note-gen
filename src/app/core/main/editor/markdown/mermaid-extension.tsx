@@ -266,12 +266,10 @@ export const MermaidDiagram = Node.create({
     },
   },
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   renderMarkdown(node, _helpers) {
     return `\n\`\`\`mermaid\n${node.attrs?.code ?? ''}\n\`\`\`\n`
   },
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   parseMarkdown(token, _helpers) {
     const code = token.content || ''
     const type = detectDiagramType(code)

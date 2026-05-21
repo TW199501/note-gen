@@ -9,7 +9,7 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 })
 
-export default [
+const eslintConfig = [
   {
     ignores: [
       "docs/**",
@@ -28,6 +28,13 @@ export default [
     rules: {
       "react-hooks/exhaustive-deps": "off",
       "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": ["warn", {
+        argsIgnorePattern: "^_",
+        varsIgnorePattern: "^_",
+        caughtErrorsIgnorePattern: "^_",
+      }],
     },
   },
 ]
+
+export default eslintConfig

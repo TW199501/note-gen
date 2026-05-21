@@ -43,7 +43,7 @@ export const MarkList = React.memo(function MarkList() {
       setVisibleMarkIds(ids)
     }
     return () => setVisibleMarkIds([])
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [filteredMarks])
 
   const view = (() => {

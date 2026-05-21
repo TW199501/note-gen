@@ -78,6 +78,21 @@ impl BrowserState {
 const OFFSCREEN_X: f64 = -10000.0;
 const OFFSCREEN_Y: f64 = -10000.0;
 
+// IMPORTANT: do NOT call .user_agent(...) on the WebviewBuilder. Per Microsoft
+// Learn's WebView2 docs (CoreWebView2Settings.UserAgent):
+//
+//   "Setting this property may clear User Agent Client Hints headers
+//    Sec-CH-UA-* and script values from navigator.userAgentData."
+//
+// macOS WKWebView and Linux WebKitGTK have the analogous behavior. The
+// platform-default UA is already a real, trusted browser (Safari on macOS,
+// Edge on Windows, WebKit on Linux) and it ships with the matching
+// Sec-CH-UA / userAgentData. Overriding the UA string creates a mismatch
+// (claims Chrome, missing Chrome client hints) which Google's anti-bot
+// pipeline reads as automation and serves /sorry/ reCAPTCHA — even for a
+// trivial search like "雅虎". Earlier rounds of this fix overrode the UA;
+// removing the override restores parity with the user's regular browser.
+
 // Resolve the webview label of the currently-active tab. Falls back to the
 // legacy BROWSER_LABEL if no tab is registered yet (browser_create's first
 // call uses this path before the first tab is seeded).
@@ -203,7 +218,13 @@ fn build_context_menu_js(labels: &HashMap<String, String>) -> String {
         style.textContent='#notegen-ctx-menu{{position:fixed;z-index:999999;background:var(--bg,#fff);border:1px solid var(--bd,#e0e0e0);border-radius:6px;padding:4px 0;box-shadow:0 2px 10px rgba(0,0,0,.18);font-family:system-ui,-apple-system,sans-serif;font-size:13px;min-width:200px;color:var(--fg,#222)}}#notegen-ctx-menu>div{{padding:7px 14px;cursor:pointer;display:flex;align-items:center;gap:8px}}#notegen-ctx-menu>div:hover{{background:var(--hv,#f0f0f0)}}#notegen-ctx-menu>.ctx-sep{{height:1px;background:var(--bd,#e0e0e0);margin:4px 8px;padding:0;cursor:default}}#notegen-ctx-menu>.ctx-sep:hover{{background:var(--bd,#e0e0e0)}}@media(prefers-color-scheme:dark){{#notegen-ctx-menu{{--bg:#2a2a2a;--bd:#444;--fg:#eee;--hv:#3a3a3a}}}}';
         document.head.appendChild(style);
         document.addEventListener('contextmenu',function(e){{
+            // Capture phase + stopImmediatePropagation: some sites (Yahoo News,
+            // etc.) attach their own contextmenu handlers that either show a
+            // custom menu or call preventDefault themselves, racing our handler.
+            // Running in capture and halting propagation ensures NoteGen's
+            // localized menu wins every time.
             e.preventDefault();
+            e.stopImmediatePropagation();
             var sel=window.getSelection().toString();
             var old=document.getElementById('notegen-ctx-menu');
             if(old)old.remove();
@@ -259,7 +280,7 @@ fn build_context_menu_js(labels: &HashMap<String, String>) -> String {
                 if(rect.bottom>window.innerHeight)m.style.top=(window.innerHeight-rect.height-4)+'px';
             }},0);
             document.addEventListener('click',function h(){{m.remove();document.removeEventListener('click',h);}},{{once:true}});
-        }});
+        }},true);
     }})();"#,
         back = back_label,
         forward = forward_label,
@@ -630,16 +651,57 @@ pub async fn browser_create(
 
     *label = Some(BROWSER_LABEL.to_string());
 
-    // R1 phase 2: register this webview against the active tab in tab_labels
-    // so active_webview_label resolves correctly. Frontend's browser_tabs_new
-    // seeds an "initial" tab right after browser_create succeeds; bind that
-    // tab id to BROWSER_LABEL here if we can see it.
+    // R1: seed the first tab atomically. We're still holding the
+    // webview_label Mutex (acquired at fn entry on line 294), so any
+    // concurrent browser_create returns early at line 297 — guaranteeing
+    // this seed runs at most once per session on every platform.
+    //
+    // Previously the frontend called browser_tabs_new after browser_create
+    // to do this, which raced under React 18 StrictMode's double-mount and
+    // produced duplicate tabs / WebViews (visible as e.g. two Google tabs
+    // racing the same homepage, triggering reCAPTCHA on rapid duplicate
+    // requests). Moving the seed into Rust kills the race regardless of
+    // how many times any caller — frontend, devtools, future automation —
+    // hits browser_create.
+    let seeded_tab_id = {
+        let mut tabs = state.tabs.lock().map_err(|e| e.to_string())?;
+        if tabs.is_empty() {
+            let id = uuid::Uuid::new_v4().to_string();
+            tabs.push(Tab {
+                id: id.clone(),
+                url: initial_url.clone(),
+                title: String::new(),
+                favicon: String::new(),
+            });
+            Some(id)
+        } else {
+            None
+        }
+    };
+
+    if let Some(id) = &seeded_tab_id {
+        if let Ok(mut labels) = state.tab_labels.lock() {
+            labels.insert(id.clone(), BROWSER_LABEL.to_string());
+        }
+        if let Ok(mut active) = state.active_tab_id.lock() {
+            *active = Some(id.clone());
+        }
+    }
+
+    // Existing fallback: if active_tab_id was somehow set by another code
+    // path before this point, make sure it maps to BROWSER_LABEL so
+    // active_webview_label resolves correctly. Harmless when the seed
+    // above just ran (entry already exists).
     if let Ok(active) = state.active_tab_id.lock() {
         if let Some(id) = active.as_ref() {
             if let Ok(mut labels) = state.tab_labels.lock() {
                 labels.entry(id.clone()).or_insert_with(|| BROWSER_LABEL.to_string());
             }
         }
+    }
+
+    if seeded_tab_id.is_some() {
+        emit_tabs_changed(&app, &state)?;
     }
 
     Ok(())
@@ -657,7 +719,13 @@ pub async fn browser_navigate(
     state: tauri::State<'_, BrowserState>,
     url: String,
 ) -> Result<(), String> {
-    let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+    // R1 phase 2 fix: target the currently-active tab's webview, not the
+    // hardcoded BROWSER_LABEL. Otherwise URL-bar Enter on tab 2+ silently
+    // navigates the offscreen first tab while the visible tab stays put,
+    // and the resulting page-load events from the wrong webview pollute
+    // the active tab's metadata (title becomes the navigated URL's title).
+    let label = active_webview_label(&state);
+    let webview = app.get_webview(&label).ok_or("Browser not created")?;
     let parsed_url = url::Url::parse(&url).map_err(|e| e.to_string())?;
     set_pending_nav(&state, PendingNav::Navigate);
     webview.navigate(parsed_url).map_err(|e| e.to_string())?;
@@ -669,7 +737,8 @@ pub async fn browser_go_back(
     app: AppHandle,
     state: tauri::State<'_, BrowserState>,
 ) -> Result<(), String> {
-    let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+    let label = active_webview_label(&state);
+    let webview = app.get_webview(&label).ok_or("Browser not created")?;
     set_pending_nav(&state, PendingNav::Back);
     // Tauri's webview.eval() API injects JS into the webview context
     webview.eval("window.history.back()").map_err(|e| e.to_string())?;
@@ -681,7 +750,8 @@ pub async fn browser_go_forward(
     app: AppHandle,
     state: tauri::State<'_, BrowserState>,
 ) -> Result<(), String> {
-    let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+    let label = active_webview_label(&state);
+    let webview = app.get_webview(&label).ok_or("Browser not created")?;
     set_pending_nav(&state, PendingNav::Forward);
     webview.eval("window.history.forward()").map_err(|e| e.to_string())?;
     Ok(())
@@ -692,9 +762,10 @@ pub async fn browser_reload(
     app: AppHandle,
     state: tauri::State<'_, BrowserState>,
 ) -> Result<(), String> {
-    let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
+    let label = active_webview_label(&state);
+    let webview = app.get_webview(&label).ok_or("Browser not created")?;
     set_pending_nav(&state, PendingNav::Reload);
-    webview.eval("window.location.reload()").map_err(|e| e.to_string())?; // existing code
+    webview.eval("window.location.reload()").map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -1099,21 +1170,52 @@ pub async fn browser_tabs_new(
         prev
     };
 
-    // For the first tab we let frontend's BrowserWebView.init() call
-    // browser_create which actually spawns. For subsequent tabs we spawn
-    // directly here with a minimal builder.
-    if !is_first {
-        let position = state
-            .last_position
-            .lock()
-            .ok()
-            .and_then(|p| *p)
-            .unwrap_or((0.0, 0.0, 800.0, 600.0));
+    // For the first tab we normally let frontend's BrowserWebView.init() call
+    // browser_create which actually spawns. But this command can also fire
+    // when the user closed all tabs (browser_tabs_close parked BROWSER_LABEL
+    // offscreen) and then re-opens — in that case we need to bring
+    // BROWSER_LABEL back on-screen and navigate it. For subsequent tabs we
+    // spawn a fresh webview directly.
+    let position = state
+        .last_position
+        .lock()
+        .ok()
+        .and_then(|p| *p)
+        .unwrap_or((0.0, 0.0, 800.0, 600.0));
+    let parsed_url = url::Url::parse(&url_str).map_err(|e| e.to_string())?;
 
-        let parsed_url = url::Url::parse(&url_str).map_err(|e| e.to_string())?;
+    if is_first {
+        // BROWSER_LABEL may already exist from a previous session that closed
+        // all tabs (browser_tabs_close moves it to OFFSCREEN with size 0×0
+        // rather than destroying it). Restore its on-screen position and
+        // navigate it to the new URL.
+        if let Some(wv) = app.get_webview(BROWSER_LABEL) {
+            let _ = wv.set_position(LogicalPosition::new(position.0, position.1));
+            let _ = wv.set_size(LogicalSize::new(position.2, position.3));
+            let _ = wv.navigate(parsed_url);
+        }
+        // If BROWSER_LABEL doesn't exist yet, frontend's BrowserWebView.init()
+        // → browser_create will spawn it. The tab metadata recorded above is
+        // ready for that path.
+    } else {
         let window = app.get_window("main").ok_or("Main window not found")?;
-        let builder = WebviewBuilder::new(&webview_label, tauri::WebviewUrl::External(parsed_url))
+        let mut builder = WebviewBuilder::new(&webview_label, tauri::WebviewUrl::External(parsed_url))
             .auto_resize();
+
+        // Install the localized context menu as initialization_script so it
+        // runs on *every* navigation in this webview, BEFORE page JS. A
+        // post-add_child eval only installs once on the about:blank pre-nav
+        // document and gets wiped when the real page document replaces it,
+        // leaving non-first tabs falling back to wry's English-only default.
+        // (Frontend has already cached labels via browser_inject_context_menu
+        // by the time the user opens a second tab.)
+        if let Ok(stored) = state.context_menu_labels.lock() {
+            if let Some(labels) = stored.as_ref() {
+                let js = build_context_menu_js(labels);
+                builder = builder.initialization_script(js);
+            }
+        }
+
         window
             .add_child(
                 builder,

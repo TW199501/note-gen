@@ -14,7 +14,7 @@ import type { Page } from '@playwright/test'
  */
 export async function installTauriMock(page: Page) {
   await page.addInitScript(() => {
-    /* eslint-disable @typescript-eslint/no-explicit-any */
+     
     const w = window as any
 
     // Track invoke calls so tests can inspect what was called.
@@ -180,6 +180,6 @@ export async function installTauriMock(page: Page) {
       transformCallback,
       invoke,
     }
-    /* eslint-enable @typescript-eslint/no-explicit-any */
+     
   })
 }

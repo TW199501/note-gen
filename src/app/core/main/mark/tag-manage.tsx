@@ -380,7 +380,7 @@ export function TagManage() {
       setVisibleMarkIds(visibleMarkIds)
     }
     return () => setVisibleMarkIds([])
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [visibleMarkIds])
 
   const renderTagRecords = React.useCallback((tagId: number) => {

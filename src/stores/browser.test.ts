@@ -108,6 +108,46 @@ describe('useBrowserStore tabs (R1)', () => {
     expect(s.tabs).toEqual([])
     expect(s.activeTabId).toBeNull()
   })
+
+  it('mirrors active tab metadata into browserUrl/Title/Favicon', () => {
+    useBrowserStore.getState().applyTabsChanged(
+      [
+        { id: 'a', url: 'https://a.example', title: 'A page', favicon: 'fa.ico' },
+        { id: 'b', url: 'https://b.example', title: 'B page', favicon: 'fb.ico' },
+      ],
+      'b',
+    )
+    const s = useBrowserStore.getState()
+    expect(s.browserUrl).toBe('https://b.example')
+    expect(s.browserTitle).toBe('B page')
+    expect(s.browserFavicon).toBe('fb.ico')
+  })
+
+  it('switching active tab moves browserUrl to the new active', () => {
+    const tabs = [
+      { id: 'a', url: 'https://a.example', title: 'A', favicon: '' },
+      { id: 'b', url: 'https://b.example', title: 'B', favicon: '' },
+    ]
+    useBrowserStore.getState().applyTabsChanged(tabs, 'a')
+    expect(useBrowserStore.getState().browserUrl).toBe('https://a.example')
+    useBrowserStore.getState().applyTabsChanged(tabs, 'b')
+    expect(useBrowserStore.getState().browserUrl).toBe('https://b.example')
+  })
+
+  it('closing the last tab clears browserUrl so URL bar doesn’t cling to old data', () => {
+    useBrowserStore.getState().applyTabsChanged(
+      [{ id: 'a', url: 'https://leftover.example', title: 'Leftover', favicon: 'x.ico' }],
+      'a',
+    )
+    expect(useBrowserStore.getState().browserUrl).toBe('https://leftover.example')
+    // Simulate Rust emitting browser-tabs-changed after user closes the
+    // last remaining tab.
+    useBrowserStore.getState().applyTabsChanged([], null)
+    const s = useBrowserStore.getState()
+    expect(s.browserUrl).toBe('')
+    expect(s.browserTitle).toBe('')
+    expect(s.browserFavicon).toBe('')
+  })
 })
 
 describe('useBrowserStore downloads', () => {

@@ -3037,5 +3037,13 @@
     "closeAll": "Close All",
     "closeLeft": "Close Left",
     "closeRight": "Close Right"
+  },
+  "appContextMenu": {
+    "cut": "Cut",
+    "copy": "Copy",
+    "paste": "Paste",
+    "print": "Print",
+    "devTools": "Developer Tools",
+    "screenshotRegion": "Screenshot Region"
   }
 }

@@ -2911,5 +2911,13 @@
     "closeAll": "关闭全部",
     "closeLeft": "关闭左侧",
     "closeRight": "关闭右侧"
+  },
+  "appContextMenu": {
+    "cut": "剪切",
+    "copy": "复制",
+    "paste": "粘贴",
+    "print": "打印",
+    "devTools": "开发者工具",
+    "screenshotRegion": "自定义截图范围"
   }
 }
