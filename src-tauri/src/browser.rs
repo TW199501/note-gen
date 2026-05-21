@@ -784,18 +784,33 @@ pub async fn browser_toggle_devtools(app: AppHandle) -> Result<bool, String> {
 }
 
 #[tauri::command]
-pub async fn browser_show(app: AppHandle) -> Result<(), String> {
-    if let Some(webview) = app.get_webview(BROWSER_LABEL) {
+pub async fn browser_show(app: AppHandle, state: tauri::State<'_, BrowserState>) -> Result<(), String> {
+    // R1 phase-2b: show the ACTIVE tab's webview, not the hardcoded
+    // BROWSER_LABEL. When the user has multiple tabs and the active tab is
+    // a `browser-tab-{uuid}` webview, this used to silently noop on the
+    // visible one and only un-hide BROWSER_LABEL (which is parked offscreen
+    // by browser_tabs_switch). Position is restored by the subsequent
+    // frontend syncSize() → browser_resize call (which also uses
+    // active_webview_label).
+    let label = active_webview_label(&state);
+    if let Some(webview) = app.get_webview(&label) {
         webview.show().map_err(|e| e.to_string())?;
-        // Position will be restored by frontend syncSize() call
     }
     Ok(())
 }
 
 #[tauri::command]
-pub async fn browser_hide(app: AppHandle) -> Result<(), String> {
-    let webview = app.get_webview(BROWSER_LABEL).ok_or("Browser not created")?;
-    // hide() + move offscreen for reliability — some platforms don't fully hide child webviews
+pub async fn browser_hide(app: AppHandle, state: tauri::State<'_, BrowserState>) -> Result<(), String> {
+    // R1 phase-2b: hide the ACTIVE tab's webview. Previously hardcoded to
+    // BROWSER_LABEL, which left non-first active tabs visible on top of the
+    // notes UI when the user switched workspaceMode → 'notes' — webviews
+    // are native NSViews/HWNDs that float above HTML content, so an
+    // un-moved webview just sits on top of whatever React renders.
+    //
+    // hide() + move offscreen for reliability — some platforms don't fully
+    // hide child webviews via .hide() alone.
+    let label = active_webview_label(&state);
+    let webview = app.get_webview(&label).ok_or("Browser not created")?;
     webview.hide().map_err(|e| e.to_string())?;
     webview.set_position(LogicalPosition::new(-10000.0, -10000.0)).map_err(|e| e.to_string())?;
     webview.set_size(LogicalSize::new(0.0, 0.0)).map_err(|e| e.to_string())?;
