@@ -345,7 +345,6 @@ export function createChatStore(opts: ChatStoreOptions): ChatStore {
     },
 
     chats: [],
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     init: async (_tagId: number) => {
       await initChatsDb()
       // 防呆：確保 conversations 表存在再查。React effect 順序是 child→parent，

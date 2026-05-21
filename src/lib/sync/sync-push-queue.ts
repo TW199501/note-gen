@@ -51,13 +51,13 @@ interface PushTask {
 
 // 使用模块级变量来跟踪初始化状态，避免 HMR 重复注册
 let initialized = false
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 let articleSavedListener: any = null
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 let editorInputListener: any = null
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 let syncPulledListener: any = null
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 let articleOpenedListener: any = null
 
 class SyncPushQueue {

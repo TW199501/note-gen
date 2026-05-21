@@ -147,7 +147,35 @@ const useBrowserStore = create<BrowserStore>((set) => ({
 
   tabs: [],
   activeTabId: null,
-  applyTabsChanged: (tabs, activeTabId) => set({ tabs, activeTabId }),
+  applyTabsChanged: (tabs, activeTabId) => set(() => {
+    // Mirror the active tab's metadata into the shared browserUrl / browserTitle /
+    // browserFavicon so the URL bar, bookmark-star, history entries, and any
+    // other surface that reads those three fields stay in sync with whichever
+    // tab is currently visible. Without this, switching tabs (or having Rust
+    // change the active tab via browser_tabs_switch / browser_tabs_close /
+    // target=_blank → new tab) leaves the nav bar stuck on the previously-
+    // active tab's URL until the next browser-url-changed event fires.
+    const active = activeTabId ? tabs.find((t) => t.id === activeTabId) : null
+    if (active) {
+      return {
+        tabs,
+        activeTabId,
+        browserUrl: active.url,
+        browserTitle: active.title,
+        browserFavicon: active.favicon,
+      }
+    }
+    // No active tab (e.g. user closed the last tab). Clear shared metadata
+    // so the URL bar, page title, favicon, and any consumer of these fields
+    // reflect the empty state instead of the previously-active tab.
+    return {
+      tabs,
+      activeTabId,
+      browserUrl: '',
+      browserTitle: '',
+      browserFavicon: '',
+    }
+  }),
 }))
 
 export default useBrowserStore

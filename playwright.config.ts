@@ -18,19 +18,25 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: process.env.CI ? 'github' : 'list',
+  reporter: process.env.CI
+    ? 'github'
+    : [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],
   use: {
     baseURL: 'http://localhost:31415',
     trace: 'on',
     // Always record video so failures + visual review can be replayed.
     video: 'on',
-    // Save screenshots on every test (overwritten each run).
-    screenshot: 'only-on-failure',
+    // Always screenshot (overwritten each run) so HTML report attaches a still
+    // per test, not only on failure.
+    screenshot: 'on',
     // Headed mode by default so you can see what the test is doing.
     // Override via PLAYWRIGHT_HEADLESS=1 for CI or background runs.
     headless: process.env.PLAYWRIGHT_HEADLESS === '1',
+    // slowMo applies in both headed and headless. Headless still benefits
+    // because the recorded video plays back at action speed — without slowMo
+    // automated clicks/types are too fast to read on the recording.
     launchOptions: {
-      slowMo: process.env.PLAYWRIGHT_HEADLESS === '1' ? 0 : 250,
+      slowMo: Number(process.env.PLAYWRIGHT_SLOWMO ?? 500),
     },
     viewport: { width: 1360, height: 800 },
   },

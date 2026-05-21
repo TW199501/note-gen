@@ -72,13 +72,16 @@ export function TabStrip() {
     }
   }
 
-  // Hide the strip entirely until the first tab exists — keeps the chrome
-  // minimal for users who never use multi-tab.
-  if (tabs.length === 0) return null
-
+  // Inline within the title bar's flex row. The wrapper claims the available
+  // space between the left toolbar buttons and the right-side common buttons;
+  // tabs overflow-scroll horizontally when they exceed it. When there are no
+  // tabs yet, the wrapper still renders so the slot stays draggable.
   return (
     <TooltipProvider>
-      <div className="flex items-center gap-0.5 px-1 py-1 border-b bg-background overflow-x-auto scrollbar-none">
+      <div
+        className="flex-1 min-w-0 self-stretch flex items-center gap-0.5 px-1 overflow-x-auto scrollbar-none"
+        data-tauri-drag-region
+      >
         {tabs.map((tab) => {
           const isActive = tab.id === activeTabId
           return (
@@ -87,6 +90,7 @@ export function TabStrip() {
               role="tab"
               aria-selected={isActive}
               onClick={() => handleSwitch(tab.id)}
+              data-tauri-drag-region="false"
               className={cn(
                 'group flex items-center gap-1 px-2 h-7 rounded cursor-pointer text-xs shrink-0 max-w-[180px]',
                 isActive
@@ -117,20 +121,23 @@ export function TabStrip() {
             </div>
           )
         })}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 shrink-0"
-              onClick={handleNewTab}
-              aria-label={t('newTab')}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent><p>{t('newTab')}</p></TooltipContent>
-        </Tooltip>
+        {tabs.length > 0 && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0"
+                onClick={handleNewTab}
+                aria-label={t('newTab')}
+                data-tauri-drag-region="false"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>{t('newTab')}</p></TooltipContent>
+          </Tooltip>
+        )}
       </div>
     </TooltipProvider>
   )

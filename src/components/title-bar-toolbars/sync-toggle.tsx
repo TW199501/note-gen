@@ -1,6 +1,6 @@
 "use client"
 
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import * as React from "react"
 import { DownloadCloud, Loader2, UploadCloud, CloudSync, Download, Upload } from "lucide-react"

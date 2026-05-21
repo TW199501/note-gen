@@ -5,6 +5,7 @@ mod backup;
 mod skills;
 mod ai;
 mod browser;
+mod app_menu;
 
 use mcp::{start_mcp_stdio_server, stop_mcp_server, send_mcp_message, McpServerManager};
 use mcp_runtime::{cancel_mcp_runtime_install, inspect_mcp_runtime, install_mcp_runtime, RuntimeInstallManager};
@@ -25,6 +26,7 @@ use browser::{
     __browser_context_action, __browser_title_result, __browser_selected_text,
     BrowserState,
 };
+use app_menu::{app_toggle_devtools, app_region_screenshot};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -92,6 +94,8 @@ pub fn run() {
             __browser_context_action,
             __browser_title_result,
             __browser_selected_text,
+            app_toggle_devtools,
+            app_region_screenshot,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

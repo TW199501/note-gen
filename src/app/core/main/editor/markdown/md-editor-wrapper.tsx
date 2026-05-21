@@ -1,7 +1,7 @@
 'use client'
 
 import useArticleStore from '@/stores/article'
-import { useEffect, useState, useCallback, useRef, RefObject, useMemo } from 'react'
+import { useEffect, useState, useCallback, useRef, RefObject } from 'react'
 import { TipTapEditor } from './tiptap-editor'
 import { Outline } from './outline'
 import { Loader2, Download } from 'lucide-react'

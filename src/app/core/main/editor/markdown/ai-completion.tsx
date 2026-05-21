@@ -95,7 +95,7 @@ export function AICompletionPopup({ items, onSelect, onDismiss }: {
 
 export function useAIAutocomplete({ editor, isEnabled, onComplete }: AICompletionProps) {
   const popupRef = useRef<any>(null)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   const [_suggestions, setSuggestions] = useState<SuggestionItem[]>([])
 
   const showPopup = useCallback((items: SuggestionItem[], clientRect: DOMRect) => {
@@ -107,7 +107,7 @@ export function useAIAutocomplete({ editor, isEnabled, onComplete }: AICompletio
     document.body.appendChild(popup)
 
     // ReactRenderer references the component by name for Tippy.js integration
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const reactRenderer: any = new ReactRenderer(AICompletionPopup, {
       props: {
         items,
@@ -151,9 +151,9 @@ export function useAIAutocomplete({ editor, isEnabled, onComplete }: AICompletio
     if (!isEnabled) return
 
     const { from } = editor.state.selection
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const textBefore = (editor.state.doc as any).textBefore(from, 50)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const lineBefore = (editor.state.doc as any).textAfter(from, '\n')
 
     // Show loading state
@@ -163,7 +163,7 @@ export function useAIAutocomplete({ editor, isEnabled, onComplete }: AICompletio
     ], rect)
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const result = await onComplete((textBefore || '') + (lineBefore || ''))
 
       // Parse suggestions from result

@@ -1530,15 +1530,42 @@
                 "command": "命令"
               },
               "tools": {
-                "create_file": { "title": "建立檔案", "description": "將在工作區中新建一個檔案。" },
-                "create_files_batch": { "title": "批次建立檔案", "description": "將在工作區中一次建立多個檔案。" },
-                "rename_file": { "title": "重新命名檔案", "description": "將修改所選檔案的名稱。" },
-                "move_file": { "title": "移動檔案", "description": "將把檔案移動到新的位置。" },
-                "copy_file": { "title": "複製檔案", "description": "將在目標位置建立該檔案的副本。" },
-                "replace_editor_content": { "title": "替換編輯器內容", "description": "將用新內容替換目前編輯器內容。" },
-                "insert_at_cursor": { "title": "在遊標處插入內容", "description": "會把內容插入到目前遊標位置。" },
-                "delete_markdown_file": { "title": "刪除檔案", "description": "將永久刪除所選檔案。" },
-                "execute_skill_script": { "title": "執行指令碼", "description": "將執行由 skill 提供的指令碼或命令。" }
+                "create_file": {
+                  "title": "建立檔案",
+                  "description": "將在工作區中新建一個檔案。"
+                },
+                "create_files_batch": {
+                  "title": "批次建立檔案",
+                  "description": "將在工作區中一次建立多個檔案。"
+                },
+                "rename_file": {
+                  "title": "重新命名檔案",
+                  "description": "將修改所選檔案的名稱。"
+                },
+                "move_file": {
+                  "title": "移動檔案",
+                  "description": "將把檔案移動到新的位置。"
+                },
+                "copy_file": {
+                  "title": "複製檔案",
+                  "description": "將在目標位置建立該檔案的副本。"
+                },
+                "replace_editor_content": {
+                  "title": "替換編輯器內容",
+                  "description": "將用新內容替換目前編輯器內容。"
+                },
+                "insert_at_cursor": {
+                  "title": "在遊標處插入內容",
+                  "description": "會把內容插入到目前遊標位置。"
+                },
+                "delete_markdown_file": {
+                  "title": "刪除檔案",
+                  "description": "將永久刪除所選檔案。"
+                },
+                "execute_skill_script": {
+                  "title": "執行指令碼",
+                  "description": "將執行由 skill 提供的指令碼或命令。"
+                }
               }
             }
           },
@@ -1906,15 +1933,42 @@
               "command": "命令"
             },
             "tools": {
-              "create_file": { "title": "建立檔案", "description": "將在工作區中新建一個檔案。" },
-              "create_files_batch": { "title": "批次建立檔案", "description": "將在工作區中一次建立多個檔案。" },
-              "rename_file": { "title": "重新命名檔案", "description": "將修改所選檔案的名稱。" },
-              "move_file": { "title": "移動檔案", "description": "將把檔案移動到新的位置。" },
-              "copy_file": { "title": "複製檔案", "description": "將在目標位置建立該檔案的副本。" },
-              "replace_editor_content": { "title": "替換編輯器內容", "description": "將用新內容替換目前編輯器內容。" },
-              "insert_at_cursor": { "title": "在遊標處插入內容", "description": "會把內容插入到目前遊標位置。" },
-              "delete_markdown_file": { "title": "刪除檔案", "description": "將永久刪除所選檔案。" },
-              "execute_skill_script": { "title": "執行指令碼", "description": "將執行由 skill 提供的指令碼或命令。" }
+              "create_file": {
+                "title": "建立檔案",
+                "description": "將在工作區中新建一個檔案。"
+              },
+              "create_files_batch": {
+                "title": "批次建立檔案",
+                "description": "將在工作區中一次建立多個檔案。"
+              },
+              "rename_file": {
+                "title": "重新命名檔案",
+                "description": "將修改所選檔案的名稱。"
+              },
+              "move_file": {
+                "title": "移動檔案",
+                "description": "將把檔案移動到新的位置。"
+              },
+              "copy_file": {
+                "title": "複製檔案",
+                "description": "將在目標位置建立該檔案的副本。"
+              },
+              "replace_editor_content": {
+                "title": "替換編輯器內容",
+                "description": "將用新內容替換目前編輯器內容。"
+              },
+              "insert_at_cursor": {
+                "title": "在遊標處插入內容",
+                "description": "會把內容插入到目前遊標位置。"
+              },
+              "delete_markdown_file": {
+                "title": "刪除檔案",
+                "description": "將永久刪除所選檔案。"
+              },
+              "execute_skill_script": {
+                "title": "執行指令碼",
+                "description": "將執行由 skill 提供的指令碼或命令。"
+              }
             }
           }
         },
@@ -2959,5 +3013,13 @@
     "closeAll": "關閉全部",
     "closeLeft": "關閉左側",
     "closeRight": "關閉右側"
+  },
+  "appContextMenu": {
+    "cut": "剪下",
+    "copy": "複製",
+    "paste": "貼上",
+    "print": "列印",
+    "devTools": "開發者工具",
+    "screenshotRegion": "自訂截圖範圍"
   }
 }

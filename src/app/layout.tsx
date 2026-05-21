@@ -7,6 +7,21 @@ import { NextIntlProvider } from "@/components/providers/NextIntlProvider";
 import Script from "next/script";
 import { getSyncPushQueue } from "@/lib/sync/sync-push-queue";
 import { ConsoleFilter } from "@/components/console-filter";
+import { AppContextMenu } from "@/components/app-context-menu";
+
+// Wrapper that mounts the global app-level context menu alongside the page.
+// React 19's stricter key-warning treats `{children}` mixed with a static
+// element as a key-less list, so we return an explicitly-keyed array — each
+// element gets a stable string key and React stops complaining about
+// IntlProvider/RootLayout children. The Fragment around `{children}` keeps
+// the original page tree intact.
+import { Fragment } from "react";
+function PageWithAppContextMenu({ children }: { children: React.ReactNode }) {
+  return [
+    <Fragment key="page">{children}</Fragment>,
+    <AppContextMenu key="app-context-menu" />,
+  ];
+}
 
 export default function RootLayout({
   children,
@@ -46,7 +61,7 @@ export default function RootLayout({
           <ConsoleFilter />
           <Suspense>
             <NextIntlProvider>
-              {children}
+              <PageWithAppContextMenu>{children}</PageWithAppContextMenu>
             </NextIntlProvider>
           </Suspense>
           <Toaster />
