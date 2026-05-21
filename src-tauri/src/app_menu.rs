@@ -93,7 +93,10 @@ pub async fn app_region_screenshot(app: AppHandle) -> Result<Option<String>, Str
     #[cfg(target_os = "windows")]
     {
         // Snipping Tool's clip mode. Result goes to the clipboard — frontend
-        // is responsible for hinting the user to paste.
+        // is responsible for hinting the user to paste. out_path is computed
+        // above but unused on Windows; swallow it so rustc doesn't warn (and
+        // so future "save to file" mode can drop the `let _` without churn).
+        let _ = out_path;
         std::process::Command::new("cmd")
             .args(["/c", "start", "", "ms-screenclip:"])
             .status()
