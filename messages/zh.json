@@ -2021,9 +2021,19 @@
     "screenshot": "截图给 AI",
     "loading": "加载中...",
     "vlmRequired": "需要配置视觉模型才能使用截图功能",
+    "zoomIn": "放大 (Ctrl/Cmd +)",
+    "zoomOut": "缩小 (Ctrl/Cmd -)",
+    "zoomReset": "重置缩放 (Ctrl/Cmd 0)",
     "settings": "设置",
     "clearData": "清除浏览器数据",
     "clearDataConfirm": "这将清除所有浏览器缓存、Cookie 和历史记录。确定继续吗？",
+    "find": {
+      "placeholder": "在页面中查找 (Ctrl/Cmd+F)",
+      "noMatch": "0/0",
+      "previous": "上一个 (Shift+Enter)",
+      "next": "下一个 (Enter)",
+      "close": "关闭 (Esc)"
+    },
     "bookmark": {
       "add": "添加书签",
       "remove": "移除书签",
@@ -2042,7 +2052,8 @@
       "addBookmark": "添加到书签",
       "translate": "翻译选中文字",
       "print": "打印",
-      "devTools": "开发者工具"
+      "devTools": "开发者工具",
+      "devToolsClose": "关闭开发者工具"
     },
     "history": {
       "title": "历史记录",
@@ -2053,7 +2064,18 @@
       "today": "今天",
       "yesterday": "昨天",
       "earlier": "更早"
-    }
+    },
+    "downloads": {
+      "title": "下载",
+      "empty": "暂无下载记录",
+      "clearAll": "清空全部",
+      "failed": "失败",
+      "open": "打开文件",
+      "revealInFolder": "在文件夹中显示",
+      "remove": "从列表移除"
+    },
+    "newTab": "新分页",
+    "closeTab": "关闭分页"
   },
   "navigation": {
     "chat": "对话",

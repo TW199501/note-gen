@@ -5,13 +5,20 @@ import { BrowserNavBar } from './browser-nav-bar'
 import { BrowserWebView } from './browser-webview'
 import { BrowserDrawer, type BrowserDrawerTab } from './browser-drawer'
 import { BookmarkBar } from './bookmark-bar'
+import { FindBar } from './find-bar'
+import { DownloadsDrawer } from './downloads-drawer'
+import { TabStrip } from './tab-strip'
 import { addBookmark, isBookmarked } from '@/db/bookmarks'
+import useBrowserStore from '@/stores/browser'
 import emitter from '@/lib/emitter'
 
 export function BrowserPanel() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [drawerTab, setDrawerTab] = useState<BrowserDrawerTab>('history')
   const [bookmarkRefresh, setBookmarkRefresh] = useState(0)
+  const [downloadsOpen, setDownloadsOpen] = useState(false)
+  // Bumped whenever a download event fires so an already-open drawer refreshes.
+  const downloadInProgressCount = useBrowserStore((s) => s.downloadInProgressCount)
 
   function openDrawer(tab: BrowserDrawerTab) {
     setDrawerTab(tab)
@@ -37,18 +44,26 @@ export function BrowserPanel() {
 
   return (
     <div className="flex flex-col h-full">
+      <TabStrip />
       <BrowserNavBar
         onBookmarkToggle={() => setBookmarkRefresh((n) => n + 1)}
         onMenuClick={() => openDrawer('bookmarks')}
         onHistoryClick={() => openDrawer('history')}
+        onDownloadsClick={() => setDownloadsOpen(true)}
       />
       <BookmarkBar refreshTrigger={bookmarkRefresh} />
+      <FindBar />
       <BrowserWebView />
       <BrowserDrawer
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
         defaultTab={drawerTab}
         bookmarkRefreshTrigger={bookmarkRefresh}
+      />
+      <DownloadsDrawer
+        open={downloadsOpen}
+        onOpenChange={setDownloadsOpen}
+        refreshTrigger={downloadInProgressCount}
       />
     </div>
   )

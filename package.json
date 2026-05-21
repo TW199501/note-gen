@@ -6,7 +6,11 @@
     "dev": "next dev --turbopack -p 31415 -H 0.0.0.0",
     "build": "next build --turbopack",
     "start": "next start --turbopack -p 31415",
-    "lint": "next lint",
+    "lint": "eslint .",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
     "tauri": "tauri",
     "docs:build": "npm --prefix ./docs run build",
     "sync-version": "./scripts/sync-version.sh",
@@ -135,9 +139,13 @@
     "zustand": "^5.0.1"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4.1.18",
     "@tailwindcss/vite": "^4.1.18",
     "@tauri-apps/cli": ">=2.0.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@tw199501/specsnap-inspector-react": "^0.0.9",
     "@types/crypto-js": "^4.2.2",
     "@types/diff": "^6.0.0",
@@ -146,10 +154,14 @@
     "@types/node": "^20",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^9.39.4",
     "eslint-config-next": "15.5.14",
+    "jsdom": "^29.1.1",
     "tailwindcss": "^4.1.18",
     "tw-animate-css": "^1.4.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite": "^8.0.11",
+    "vitest": "^4.1.5"
   }
 }

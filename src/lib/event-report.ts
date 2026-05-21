@@ -117,7 +117,7 @@ async function getVersionCode(): Promise<number> {
     // 转换为数字: major * 1000000 + minor * 1000 + patch
     return major * 1000000 + minor * 1000 + patch
   } catch (error) {
-    console.error('Failed to get version code:', error)
+    console.debug('[telemetry] Failed to get version code:', error)
     return 1
   }
 }
@@ -132,7 +132,7 @@ async function getDeviceId(): Promise<string | undefined> {
     const deviceId = await invoke<string>('get_device_id')
     return deviceId
   } catch (error) {
-    console.error('Failed to get device ID:', error)
+    console.debug('[telemetry] Failed to get device ID:', error)
     return undefined
   }
 }
@@ -152,7 +152,7 @@ async function getDeviceInfo() {
       devKey: deviceId,
     }
   } catch (error) {
-    console.error('Failed to get device info:', error)
+    console.debug('[telemetry] Failed to get device info:', error)
     return {
       target: undefined,
       arch: undefined,
@@ -206,11 +206,16 @@ export async function reportEvent(
     if (response.ok && result.code === 0) {
       return true
     } else {
-      console.error('Failed to report event:', result)
+      // Telemetry: don't pollute the Next.js error overlay / console when
+      // the analytics server returns non-zero. Demote to debug.
+      console.debug('[telemetry] Failed to report event:', result)
       return false
     }
   } catch (error) {
-    console.error('Error reporting event:', error)
+    // Same here — network errors, JSON parse failures, missing runtime
+    // are all expected in dev / offline / test environments. Telemetry
+    // must never look like a bug to the user.
+    console.debug('[telemetry] Error reporting event:', error)
     return false
   }
 }
@@ -234,7 +239,7 @@ export async function reportAppStart(): Promise<boolean> {
     
     return await reportEvent(EventType.APP_START, eventData)
   } catch (error) {
-    console.error('Failed to report app start:', error)
+    console.debug('[telemetry] Failed to report app start:', error)
     return false
   }
 }
@@ -261,7 +266,7 @@ export async function reportAppUpgradeDownload(
     
     return await reportEvent(EventType.APP_UPGRADE_DOWNLOAD, eventData)
   } catch (error) {
-    console.error('Failed to report app upgrade download:', error)
+    console.debug('[telemetry] Failed to report app upgrade download:', error)
     return false
   }
 }
@@ -288,7 +293,7 @@ export async function reportAppUpgradeUpgrade(
     
     return await reportEvent(EventType.APP_UPGRADE_UPGRADE, eventData)
   } catch (error) {
-    console.error('Failed to report app upgrade:', error)
+    console.debug('[telemetry] Failed to report app upgrade:', error)
     return false
   }
 }

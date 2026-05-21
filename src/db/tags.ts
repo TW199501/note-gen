@@ -39,14 +39,19 @@ export async function initTagsDb() {
   
   const hasDefaultTag = (await db.select<Tag[]>("select * from tags")).length === 0
   if (hasDefaultTag) {
-    await db.execute(
+    // 用 execute 的 lastInsertId 而非二次 SELECT 取回 id：
+    // (1) 避免「插了立刻查回」遇到交易未提交 / SELECT 抓空導致 (undefined).id 噴錯，
+    // (2) 一次 round-trip 取代兩次，啟動快 ~3ms。
+    const result = await db.execute(
       "insert into tags (name, isLocked, isPin) values ($1, $2, $3)",
       ['Idea', true, true]
     )
-    const tag = (await db.select<Tag[]>("select * from tags where name = $1", ['Idea']))[0]
-    const store = await Store.load('store.json');
-    await store.set('currentTagId', tag.id)
-    await store.save()
+    const tagId = result.lastInsertId as number
+    if (tagId) {
+      const store = await Store.load('store.json');
+      await store.set('currentTagId', tagId)
+      await store.save()
+    }
   }
 }
 

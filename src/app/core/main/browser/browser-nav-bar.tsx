@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { useTranslations } from 'next-intl'
-import { ArrowLeft, ArrowRight, RotateCw, Home, Star, Settings2, Lock, History, Trash2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, RotateCw, Home, Star, Settings2, Lock, History, Trash2, Wrench, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -17,12 +17,13 @@ interface BrowserNavBarProps {
   onBookmarkToggle?: () => void
   onMenuClick?: () => void
   onHistoryClick?: () => void
+  onDownloadsClick?: () => void
 }
 
-export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick }: BrowserNavBarProps) {
+export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick, onDownloadsClick }: BrowserNavBarProps) {
   const t = useTranslations('browser')
   const tCommon = useTranslations('common')
-  const { browserUrl, browserTitle, browserLoading, browserFavicon, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserFavicon } = useBrowserStore()
+  const { browserUrl, browserTitle, browserLoading, browserFavicon, browserReady, canGoBack, canGoForward, devtoolsOpen, downloadInProgressCount, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserFavicon, setBrowserAutoOpen, resetNavState, setDevtoolsOpen, setZoomLevel, setFindOpen, setFindQuery, setFindState } = useBrowserStore()
   const { browserHomepage } = useSettingStore()
   const [inputUrl, setInputUrl] = useState(browserUrl)
   const [bookmarked, setBookmarked] = useState(false)
@@ -36,10 +37,28 @@ export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick }:
       setBrowserUrl(browserHomepage)
       setBrowserTitle('')
       setBrowserFavicon('')
+      resetNavState()
+      setDevtoolsOpen(false)
+      setZoomLevel(1.0)
+      setFindOpen(false)
+      setFindQuery('')
+      setFindState(0, -1)
       setConfirmClear(false)
       setSettingsOpen(false)
     } catch (error) {
       console.error('[Browser] Failed to clear data:', error)
+    }
+  }
+
+  async function handleToggleDevtools() {
+    if (!browserReady) return
+    try {
+      // Rust 端 toggle 後會回傳新狀態並 emit browser-devtools-state event；
+      // listener 會更新 store。這裡也直接設一次，避免 event 抵達前 UI 落後。
+      const newState = await invoke<boolean>('browser_toggle_devtools')
+      setDevtoolsOpen(newState)
+    } catch (e) {
+      console.error('[Browser] DevTools toggle failed:', e)
     }
   }
 
@@ -67,7 +86,18 @@ export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick }:
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = 'https://' + url
     }
-    await invoke('browser_navigate', { url })
+    // 若使用者在 browser 還沒被 create 之前就在 URL 列按 Enter，
+    // 自動 lazy-mount：BrowserWebView 會在下個 tick 觀察到 browserAutoOpen=true 後 spawn webview。
+    // 但 browser_navigate 必須在 webview 存在後才呼叫，否則 Rust 端噴 "Browser not created"。
+    if (!browserReady) {
+      setBrowserAutoOpen(true)
+      return
+    }
+    try {
+      await invoke('browser_navigate', { url })
+    } catch (e) {
+      console.error('[Browser] navigate failed:', e)
+    }
   }
 
   async function handleToggleBookmark() {
@@ -88,7 +118,14 @@ export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick }:
       <div className="flex items-center gap-1 px-2 py-1.5 border-b bg-background">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => invoke('browser_go_back')}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              disabled={!canGoBack}
+              aria-label={t('back')}
+              onClick={() => { void invoke('browser_go_back').catch((e) => console.error('[Browser] go_back failed:', e)) }}
+            >
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
@@ -97,7 +134,14 @@ export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick }:
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => invoke('browser_go_forward')}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              disabled={!canGoForward}
+              aria-label={t('forward')}
+              onClick={() => { void invoke('browser_go_forward').catch((e) => console.error('[Browser] go_forward failed:', e)) }}
+            >
               <ArrowRight className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
@@ -106,7 +150,14 @@ export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick }:
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => invoke('browser_reload')}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              disabled={!browserReady}
+              aria-label={t('reload')}
+              onClick={() => { void invoke('browser_reload').catch((e) => console.error('[Browser] reload failed:', e)) }}
+            >
               <RotateCw className={`h-4 w-4 ${browserLoading ? 'animate-spin' : ''}`} />
             </Button>
           </TooltipTrigger>
@@ -115,7 +166,20 @@ export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick }:
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => invoke('browser_navigate', { url: browserHomepage })}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              aria-label={t('home')}
+              onClick={() => {
+                if (!browserReady) {
+                  setBrowserAutoOpen(true)
+                  return
+                }
+                void invoke('browser_navigate', { url: browserHomepage })
+                  .catch((e) => console.error('[Browser] home navigate failed:', e))
+              }}
+            >
               <Home className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
@@ -151,6 +215,29 @@ export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick }:
           <TooltipContent><p>{t('history.title')}</p></TooltipContent>
         </Tooltip>
 
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 relative"
+              onClick={onDownloadsClick}
+              aria-label={t('downloads.title')}
+            >
+              <Download className="h-4 w-4" />
+              {downloadInProgressCount > 0 && (
+                <span
+                  className="absolute -top-0.5 -right-0.5 inline-flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-medium text-white"
+                  aria-label={`${downloadInProgressCount} in progress`}
+                >
+                  {downloadInProgressCount}
+                </span>
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent><p>{t('downloads.title')}</p></TooltipContent>
+        </Tooltip>
+
         <Popover open={settingsOpen} onOpenChange={(open) => { setSettingsOpen(open); if (!open) setConfirmClear(false) }}>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -167,6 +254,18 @@ export function BrowserNavBar({ onBookmarkToggle, onMenuClick, onHistoryClick }:
               <Button variant="ghost" size="sm" className="w-full justify-start text-xs gap-2" onClick={onMenuClick}>
                 <Star className="h-3.5 w-3.5" />
                 {t('bookmark.title')}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start text-xs gap-2"
+                onClick={handleToggleDevtools}
+                disabled={!browserReady}
+              >
+                <Wrench className={`h-3.5 w-3.5 ${devtoolsOpen ? 'text-primary' : ''}`} />
+                <span className={devtoolsOpen ? 'text-primary' : ''}>
+                  {t(devtoolsOpen ? 'contextMenu.devToolsClose' : 'contextMenu.devTools')}
+                </span>
               </Button>
               {confirmClear ? (
                 <div className="flex items-center gap-1 px-2 py-1">

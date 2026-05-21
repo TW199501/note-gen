@@ -1,0 +1,47 @@
+{
+  "skills": [
+    {
+      "source": "anthropics/skills",
+      "skills": [
+        "frontend-design"
+      ]
+    },
+    {
+      "source": "dchuk/claude-code-tauri-skills",
+      "skills": [
+        "integrating-tauri-js-frontends"
+      ]
+    },
+    {
+      "source": "eva813/vue3-skills",
+      "skills": [
+        "vue-vite-testing"
+      ]
+    },
+    {
+      "source": "github/awesome-copilot",
+      "skills": [
+        "unit-test-vue-pinia"
+      ]
+    },
+    {
+      "source": "hyf0/vue-skills",
+      "skills": [
+        "vue-best-practices",
+        "vue-debug-guides"
+      ]
+    },
+    {
+      "source": "nodnarbnitram/claude-code-extensions",
+      "skills": [
+        "tauri-v2"
+      ]
+    },
+    {
+      "source": "ruvnet/ruflo",
+      "skills": [
+        "security-audit"
+      ]
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import { getAllBookmarks, type Bookmark } from '@/db/bookmarks'
 import { Globe } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import useBrowserStore from '@/stores/browser'
 
 interface BookmarkBarProps {
   refreshTrigger?: number
@@ -13,6 +14,7 @@ interface BookmarkBarProps {
 
 export function BookmarkBar({ refreshTrigger }: BookmarkBarProps) {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([])
+  const { browserReady, setBrowserAutoOpen } = useBrowserStore()
 
   useEffect(() => {
     loadBookmarks()
@@ -28,7 +30,17 @@ export function BookmarkBar({ refreshTrigger }: BookmarkBarProps) {
   }
 
   async function handleNavigate(url: string) {
-    await invoke('browser_navigate', { url })
+    if (!browserReady) {
+      // Lazy-mount browser, queue navigation by storing intent in homepage? Simpler:
+      // just open browser, user clicks bookmark again. Or set browserUrl + auto-open.
+      setBrowserAutoOpen(true)
+      return
+    }
+    try {
+      await invoke('browser_navigate', { url })
+    } catch (e) {
+      console.error('[Browser] bookmark navigate failed:', e)
+    }
   }
 
   if (bookmarks.length === 0) return null

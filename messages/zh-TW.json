@@ -2060,6 +2060,9 @@
     "screenshot": "截圖給 AI",
     "loading": "載入中...",
     "vlmRequired": "需要設定視覺模型才能使用截圖功能",
+    "zoomIn": "放大 (Ctrl/Cmd +)",
+    "zoomOut": "縮小 (Ctrl/Cmd -)",
+    "zoomReset": "重設縮放 (Ctrl/Cmd 0)",
     "settings": "設定",
     "clearData": "清除瀏覽器資料",
     "clearDataConfirm": "這將清除所有瀏覽器快取、Cookie 和歷史紀錄。確定繼續嗎？",
@@ -2068,6 +2071,13 @@
       "remove": "移除書籤",
       "title": "書籤",
       "empty": "尚無書籤"
+    },
+    "find": {
+      "placeholder": "在頁面中尋找 (Ctrl/Cmd+F)",
+      "noMatch": "0/0",
+      "previous": "上一個 (Shift+Enter)",
+      "next": "下一個 (Enter)",
+      "close": "關閉 (Esc)"
     },
     "contextMenu": {
       "back": "上一頁",
@@ -2081,7 +2091,8 @@
       "addBookmark": "加入書籤",
       "translate": "翻譯選取文字",
       "print": "列印",
-      "devTools": "開發者工具"
+      "devTools": "開發者工具",
+      "devToolsClose": "關閉開發者工具"
     },
     "history": {
       "title": "歷史紀錄",
@@ -2092,7 +2103,18 @@
       "today": "今天",
       "yesterday": "昨天",
       "earlier": "更早"
-    }
+    },
+    "downloads": {
+      "title": "下載",
+      "empty": "尚無下載紀錄",
+      "clearAll": "全部清除",
+      "failed": "失敗",
+      "open": "開啟檔案",
+      "revealInFolder": "在資料夾中顯示",
+      "remove": "從清單移除"
+    },
+    "newTab": "新分頁",
+    "closeTab": "關閉分頁"
   },
   "navigation": {
     "chat": "對話",

@@ -11,7 +11,7 @@ import emitter from '@/lib/emitter'
 
 export function BrowserWebView() {
   const containerRef = useRef<HTMLDivElement>(null)
-  const { browserReady, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserLoading, setBrowserFavicon, workspaceMode, overlayCount, browserAutoOpen } = useBrowserStore()
+  const { browserReady, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserLoading, setBrowserFavicon, workspaceMode, overlayCount, browserAutoOpen, applyNavEvent, setDevtoolsOpen, setZoomLevel, incrementDownloadCount, decrementDownloadCount } = useBrowserStore()
   const { browserHomepage } = useSettingStore()
   const t = useTranslations('browser.contextMenu')
   // M1: 區分 auto-extract（page load 觸發，寫進 currentPageContext）和 manual extract
@@ -75,6 +75,13 @@ export function BrowserWebView() {
         setBrowserReady(true)
         // Inject context menu after WebView is created
         await injectContextMenu()
+        // R1: seed the first tab if there are none yet so the strip shows.
+        const tabsNow = useBrowserStore.getState().tabs
+        if (tabsNow.length === 0) {
+          invoke('browser_tabs_new', { url: browserHomepage }).catch((e) =>
+            console.error('[Tabs] seed initial tab failed:', e),
+          )
+        }
       } catch (error) {
         console.error('[Browser] Failed to create WebView:', error)
       }
@@ -89,15 +96,32 @@ export function BrowserWebView() {
         setBrowserUrl(event.payload.url)
         // M1: URL 變了，舊頁的 extracted context 不再 valid — 立刻清，等 loading=false 後重新 extract
         useBrowserChatStore.getState().setCurrentPageContext(null)
+        // R1: 把新 URL 鏡像到當前 active tab 的 metadata。
+        const activeId = useBrowserStore.getState().activeTabId
+        if (activeId) {
+          invoke('browser_tabs_update_meta', { tabId: activeId, url: event.payload.url }).catch(() => {})
+        }
       }),
       window.listen<{ title: string }>('browser-title-changed', (event) => {
         setBrowserTitle(event.payload.title)
+        const activeId = useBrowserStore.getState().activeTabId
+        if (activeId) {
+          invoke('browser_tabs_update_meta', { tabId: activeId, title: event.payload.title }).catch(() => {})
+        }
       }),
       window.listen<{ loading: boolean }>('browser-loading', (event) => {
         console.debug('[Browser] browser-loading event', event.payload)
         setBrowserLoading(event.payload.loading)
         // M1: 頁面載入完成後 1.5s（讓 SPA 後續渲染穩定）→ 自動抽 text 寫進 currentPageContext
         if (!event.payload.loading) {
+          // R6: 新頁面的 window state 是空的，zoomLevel 會被重設為瀏覽器預設。
+          // 立刻把使用者之前選的 zoom 套回去（若非預設 1.0）。
+          const currentZoom = useBrowserStore.getState().zoomLevel
+          if (currentZoom !== 1.0) {
+            invoke('browser_set_zoom', { level: currentZoom }).catch((err) => {
+              console.warn('[Browser] zoom re-apply failed:', err)
+            })
+          }
           if (autoExtractTimerRef.current) clearTimeout(autoExtractTimerRef.current)
           autoExtractTimerRef.current = setTimeout(() => {
             console.debug('[Browser] auto-extract: invoking browser_extract_text')
@@ -111,6 +135,44 @@ export function BrowserWebView() {
       }),
       window.listen<{ favicon: string }>('browser-favicon-changed', (event) => {
         setBrowserFavicon(event.payload.favicon)
+        const activeId = useBrowserStore.getState().activeTabId
+        if (activeId) {
+          invoke('browser_tabs_update_meta', { tabId: activeId, favicon: event.payload.favicon }).catch(() => {})
+        }
+      }),
+      // R5: 上下頁狀態。每個 page-load Finished Rust 端會 emit 此 event。
+      window.listen<{ kind: 'navigate' | 'back' | 'forward' | 'reload' }>('browser-nav-event', (event) => {
+        applyNavEvent(event.payload.kind)
+      }),
+      // R8: DevTools 開關狀態。Rust toggle 後 emit。
+      window.listen<{ open: boolean }>('browser-devtools-state', (event) => {
+        setDevtoolsOpen(event.payload.open)
+      }),
+      // R6: zoom 層級。WebView 內 keyboard handler 或 host browser_set_zoom 都會回報。
+      window.listen<{ level: number }>('browser-zoom-changed', (event) => {
+        setZoomLevel(event.payload.level)
+      }),
+      // R2: 下載事件。WebView 在 native HTTP 層觸發下載時 Rust 端 emit；
+      // 我們鏡像到 SQLite 並更新 in-progress 計數。
+      window.listen<{ url: string; filename: string; destination: string }>('browser-download-started', async (event) => {
+        const { url, filename, destination } = event.payload
+        try {
+          const { insertDownloadStarted } = await import('@/db/downloads')
+          await insertDownloadStarted(url, filename, destination)
+          incrementDownloadCount()
+        } catch (e) {
+          console.error('[Browser] download started insert failed:', e)
+        }
+      }),
+      window.listen<{ url: string; path: string | null; success: boolean }>('browser-download-finished', async (event) => {
+        const { url, path, success } = event.payload
+        try {
+          const { markDownloadFinished } = await import('@/db/downloads')
+          await markDownloadFinished(url, path, success)
+          decrementDownloadCount()
+        } catch (e) {
+          console.error('[Browser] download finished update failed:', e)
+        }
       }),
       // Handle extracted text from browser_extract_text command
       window.listen<{ text: string; title: string; url: string }>('browser-content-extracted', (event) => {
@@ -154,7 +216,7 @@ export function BrowserWebView() {
             emitter.emit('browser-translate-text' as any, { text })
             break
           case 'devtools':
-            invoke('browser_open_devtools').catch((err: unknown) => console.error('[Browser] DevTools failed:', err))
+            invoke('browser_toggle_devtools').catch((err: unknown) => console.error('[Browser] DevTools toggle failed:', err))
             break
         }
       }),

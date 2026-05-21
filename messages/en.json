@@ -2078,6 +2078,9 @@
     "screenshot": "Screenshot to AI",
     "loading": "Loading...",
     "vlmRequired": "Vision model required for screenshots",
+    "zoomIn": "Zoom In (Ctrl/Cmd +)",
+    "zoomOut": "Zoom Out (Ctrl/Cmd -)",
+    "zoomReset": "Reset Zoom (Ctrl/Cmd 0)",
     "settings": "Settings",
     "clearData": "Clear browser data",
     "clearDataConfirm": "This will clear all browser cache, cookies and history. Continue?",
@@ -2086,6 +2089,13 @@
       "remove": "Remove Bookmark",
       "title": "Bookmarks",
       "empty": "No bookmarks yet"
+    },
+    "find": {
+      "placeholder": "Find in page (Ctrl/Cmd+F)",
+      "noMatch": "0/0",
+      "previous": "Previous (Shift+Enter)",
+      "next": "Next (Enter)",
+      "close": "Close (Esc)"
     },
     "contextMenu": {
       "back": "Back",
@@ -2099,7 +2109,8 @@
       "addBookmark": "Add to Bookmarks",
       "translate": "Translate Selection",
       "print": "Print",
-      "devTools": "Developer Tools"
+      "devTools": "Developer Tools",
+      "devToolsClose": "Close Developer Tools"
     },
     "history": {
       "title": "History",
@@ -2110,7 +2121,18 @@
       "today": "Today",
       "yesterday": "Yesterday",
       "earlier": "Earlier"
-    }
+    },
+    "downloads": {
+      "title": "Downloads",
+      "empty": "No downloads yet",
+      "clearAll": "Clear all",
+      "failed": "Failed",
+      "open": "Open file",
+      "revealInFolder": "Show in folder",
+      "remove": "Remove from list"
+    },
+    "newTab": "New tab",
+    "closeTab": "Close tab"
   },
   "navigation": {
     "chat": "Chat",

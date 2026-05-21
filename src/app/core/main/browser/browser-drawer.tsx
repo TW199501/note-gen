@@ -58,7 +58,7 @@ export function BrowserDrawer({ open, onOpenChange, defaultTab = 'history', book
   const tHistory = useTranslations('browser.history')
   const tBookmark = useTranslations('browser.bookmark')
   const tCommon = useTranslations('common')
-  const { pushOverlay, popOverlay } = useBrowserStore()
+  const { pushOverlay, popOverlay, browserReady, setBrowserAutoOpen } = useBrowserStore()
 
   const [activeTab, setActiveTab] = useState<BrowserDrawerTab>(defaultTab)
 
@@ -121,7 +121,16 @@ export function BrowserDrawer({ open, onOpenChange, defaultTab = 'history', book
   }
 
   async function handleNavigate(url: string) {
-    await invoke('browser_navigate', { url })
+    if (!browserReady) {
+      setBrowserAutoOpen(true)
+      onOpenChange(false)
+      return
+    }
+    try {
+      await invoke('browser_navigate', { url })
+    } catch (e) {
+      console.error('[Browser] drawer navigate failed:', e)
+    }
     onOpenChange(false)
   }
 

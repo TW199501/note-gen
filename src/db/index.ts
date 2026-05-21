@@ -22,6 +22,7 @@ export async function initAllDatabases() {
   const { initActivityDb } = await import('./activity');
   const { initBookmarksDb } = await import('./bookmarks');
   const { initBrowserHistoryDb } = await import('./browser-history');
+  const { initDownloadsDb } = await import('./downloads');
 
   // 执行初始化：先确保基础表存在，再做 conversations 对 chats 的迁移/补列。
   await initChatsDb();
@@ -34,4 +35,5 @@ export async function initAllDatabases() {
   await initActivityDb();
   await initBookmarksDb();
   await initBrowserHistoryDb();
+  await initDownloadsDb();
 }

@@ -2074,6 +2074,9 @@
     "screenshot": "スクリーンショットをAIへ",
     "loading": "読み込み中...",
     "vlmRequired": "スクリーンショットにはビジョンモデルの設定が必要です",
+    "zoomIn": "拡大 (Ctrl/Cmd +)",
+    "zoomOut": "縮小 (Ctrl/Cmd -)",
+    "zoomReset": "ズームをリセット (Ctrl/Cmd 0)",
     "settings": "設定",
     "clearData": "ブラウザデータを消去",
     "clearDataConfirm": "ブラウザのキャッシュ、Cookie、履歴がすべて消去されます。続行しますか？",
@@ -2082,6 +2085,13 @@
       "remove": "ブックマーク削除",
       "title": "ブックマーク",
       "empty": "ブックマークがありません"
+    },
+    "find": {
+      "placeholder": "ページ内検索 (Ctrl/Cmd+F)",
+      "noMatch": "0/0",
+      "previous": "前へ (Shift+Enter)",
+      "next": "次へ (Enter)",
+      "close": "閉じる (Esc)"
     },
     "contextMenu": {
       "back": "戻る",
@@ -2095,7 +2105,8 @@
       "addBookmark": "ブックマークに追加",
       "translate": "選択テキストを翻訳",
       "print": "印刷",
-      "devTools": "開発者ツール"
+      "devTools": "開発者ツール",
+      "devToolsClose": "開発者ツールを閉じる"
     },
     "history": {
       "title": "履歴",
@@ -2106,7 +2117,18 @@
       "today": "今日",
       "yesterday": "昨日",
       "earlier": "それ以前"
-    }
+    },
+    "downloads": {
+      "title": "ダウンロード",
+      "empty": "ダウンロード履歴はありません",
+      "clearAll": "すべてクリア",
+      "failed": "失敗",
+      "open": "ファイルを開く",
+      "revealInFolder": "フォルダで表示",
+      "remove": "リストから削除"
+    },
+    "newTab": "新規タブ",
+    "closeTab": "タブを閉じる"
   },
   "navigation": {
     "chat": "チャット",

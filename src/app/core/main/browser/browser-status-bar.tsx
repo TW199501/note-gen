@@ -3,17 +3,18 @@
 import { useState } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { useTranslations } from 'next-intl'
-import { FileText, Camera, Loader2, Trash2 } from 'lucide-react'
+import { FileText, Camera, Loader2, Trash2, Minus, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import useBrowserStore from '@/stores/browser'
 import useSettingStore from '@/stores/setting'
 import emitter from '@/lib/emitter'
+import { zoomIn, zoomOut, zoomReset, formatZoomPercent } from '@/lib/browser/zoom'
 
 export function BrowserStatusBar() {
   const t = useTranslations('browser')
   const tCommon = useTranslations('common')
-  const { browserLoading, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserFavicon } = useBrowserStore()
+  const { browserLoading, browserReady, zoomLevel, setBrowserReady, setBrowserUrl, setBrowserTitle, setBrowserFavicon, setZoomLevel } = useBrowserStore()
   const { imageMethodModel, browserHomepage } = useSettingStore()
   const hasVlm = !!imageMethodModel
   const [confirmClear, setConfirmClear] = useState(false)
@@ -34,6 +35,16 @@ export function BrowserStatusBar() {
       emitter.emit('browser-screenshot' as any, { path })
     } catch (error) {
       console.error('[Browser] Failed to capture screenshot:', error)
+    }
+  }
+
+  async function applyZoom(level: number) {
+    if (!browserReady) return
+    try {
+      const actual = await invoke<number>('browser_set_zoom', { level })
+      setZoomLevel(actual)
+    } catch (e) {
+      console.error('[Browser] zoom failed:', e)
     }
   }
 
@@ -110,6 +121,54 @@ export function BrowserStatusBar() {
               <span>{t('loading')}</span>
             </>
           )}
+          {/* R6 zoom controls */}
+          <div className="flex items-center gap-0.5 ml-2 border-l pl-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5"
+                  onClick={() => applyZoom(zoomOut(zoomLevel))}
+                  disabled={!browserReady}
+                  aria-label={t('zoomOut')}
+                >
+                  <Minus className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent><p>{t('zoomOut')}</p></TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-5 px-1.5 text-xs font-mono min-w-[3.5rem]"
+                  onClick={() => applyZoom(zoomReset())}
+                  disabled={!browserReady}
+                  aria-label={t('zoomReset')}
+                >
+                  {formatZoomPercent(zoomLevel)}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent><p>{t('zoomReset')}</p></TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5"
+                  onClick={() => applyZoom(zoomIn(zoomLevel))}
+                  disabled={!browserReady}
+                  aria-label={t('zoomIn')}
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent><p>{t('zoomIn')}</p></TooltipContent>
+            </Tooltip>
+          </div>
         </div>
       </div>
     </TooltipProvider>

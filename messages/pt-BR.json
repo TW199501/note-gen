@@ -2133,6 +2133,9 @@
     "screenshot": "Captura para IA",
     "loading": "Carregando...",
     "vlmRequired": "Modelo de visão necessário para capturas de tela",
+    "zoomIn": "Aumentar Zoom (Ctrl/Cmd +)",
+    "zoomOut": "Diminuir Zoom (Ctrl/Cmd -)",
+    "zoomReset": "Redefinir Zoom (Ctrl/Cmd 0)",
     "settings": "Configurações",
     "clearData": "Limpar dados do navegador",
     "clearDataConfirm": "Isso limpará todo o cache, cookies e histórico do navegador. Continuar?",
@@ -2141,6 +2144,13 @@
       "remove": "Remover Favorito",
       "title": "Favoritos",
       "empty": "Nenhum favorito ainda"
+    },
+    "find": {
+      "placeholder": "Localizar na página (Ctrl/Cmd+F)",
+      "noMatch": "0/0",
+      "previous": "Anterior (Shift+Enter)",
+      "next": "Próximo (Enter)",
+      "close": "Fechar (Esc)"
     },
     "contextMenu": {
       "back": "Voltar",
@@ -2154,7 +2164,8 @@
       "addBookmark": "Adicionar aos Favoritos",
       "translate": "Traduzir Seleção",
       "print": "Imprimir",
-      "devTools": "Ferramentas do Desenvolvedor"
+      "devTools": "Ferramentas do Desenvolvedor",
+      "devToolsClose": "Fechar Ferramentas do Desenvolvedor"
     },
     "history": {
       "title": "Histórico",
@@ -2165,7 +2176,18 @@
       "today": "Hoje",
       "yesterday": "Ontem",
       "earlier": "Anterior"
-    }
+    },
+    "downloads": {
+      "title": "Downloads",
+      "empty": "Nenhum download ainda",
+      "clearAll": "Limpar tudo",
+      "failed": "Falhou",
+      "open": "Abrir arquivo",
+      "revealInFolder": "Mostrar na pasta",
+      "remove": "Remover da lista"
+    },
+    "newTab": "Nova aba",
+    "closeTab": "Fechar aba"
   },
   "navigation": {
     "chat": "Conversa",
