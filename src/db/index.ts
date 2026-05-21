@@ -9,9 +9,9 @@ export async function getDb(): Promise<Database> {
   return _db;
 }
 
-// 初始化所有数据库
+// 初始化所有資料庫
 export async function initAllDatabases() {
-  // 引入各数据库初始化函数
+  // 引入各資料庫初始化函式
   const { initChatsDb } = await import('./chats');
   const { initMarksDb } = await import('./marks');
   const { initNotesDb } = await import('./notes');
@@ -24,7 +24,7 @@ export async function initAllDatabases() {
   const { initBrowserHistoryDb } = await import('./browser-history');
   const { initDownloadsDb } = await import('./downloads');
 
-  // 执行初始化：先确保基础表存在，再做 conversations 对 chats 的迁移/补列。
+  // 執行初始化：先確保基礎表存在，再做 conversations 對 chats 的遷移/補列。
   await initChatsDb();
   await initConversationsDb();
   await initMarksDb();

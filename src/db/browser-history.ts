@@ -8,7 +8,7 @@ export interface BrowserHistoryEntry {
   visitedAt: number
 }
 
-// 创建 browser_history 表
+// 建立 browser_history 表
 export async function initBrowserHistoryDb() {
   const db = await getDb()
   await db.execute(`
@@ -21,7 +21,7 @@ export async function initBrowserHistoryDb() {
     )
   `)
 
-  // 性能索引
+  // 效能索引
   await db.execute(`
     create index if not exists idx_browser_history_visited
     on browser_history(visitedAt desc)

@@ -8,7 +8,7 @@ export interface Bookmark {
   createdAt: number
 }
 
-// 创建 bookmarks 表
+// 建立 bookmarks 表
 export async function initBookmarksDb() {
   const db = await getDb()
   await db.execute(`
@@ -21,7 +21,7 @@ export async function initBookmarksDb() {
     )
   `)
 
-  // 性能索引
+  // 效能索引
   await db.execute(`
     create index if not exists idx_bookmarks_created
     on bookmarks(createdAt desc)

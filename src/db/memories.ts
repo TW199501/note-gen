@@ -15,14 +15,14 @@ export interface Memory {
   updatedAt: number
 }
 
-// 偏好类记忆的关键词
+// 偏好類記憶的關鍵詞
 const PREFERENCE_KEYWORDS = [
-  '中文', '英文', '清单体', '段落', '简洁', '详细', 'TL;DR',
-  '格式', '风格', '语言', '回答', '输出', '回复'
+  '中文', '英文', '清單體', '段落', '簡潔', '詳細', 'TL;DR',
+  '格式', '風格', '語言', '回答', '輸出', '回覆'
 ]
 
 /**
- * 自动分类记忆
+ * 自動分類記憶
  */
 function categorizeMemory(content: string): MemoryCategory {
   const lowerContent = content.toLowerCase()
@@ -33,7 +33,7 @@ function categorizeMemory(content: string): MemoryCategory {
 }
 
 /**
- * 计算余弦相似度
+ * 計算餘弦相似度
  */
 function cosineSimilarity(vecA: number[], vecB: number[]): number {
   if (vecA.length !== vecB.length) {
@@ -66,7 +66,7 @@ function generateUUID(): string {
   })
 }
 
-// 记忆向量缓存（避免每次操作都读全表 + JSON.parse）
+// 記憶向量快取（避免每次操作都讀全表 + JSON.parse）
 interface CachedMemoryVector {
   id: string
   category: MemoryCategory
@@ -117,7 +117,7 @@ class MemoryVectorCache {
 const memoryVectorCache = new MemoryVectorCache()
 
 /**
- * 初始化记忆表
+ * 初始化記憶表
  */
 export async function initMemoriesDb() {
   const db = await getDb()
@@ -135,7 +135,7 @@ export async function initMemoriesDb() {
     )
   `)
 
-  // 创建索引
+  // 建立索引
   await db.execute(`
     create index if not exists idx_memories_category on memories(category)
   `)
@@ -146,23 +146,23 @@ export async function initMemoriesDb() {
 }
 
 /**
- * 插入或更新记忆（带去重功能）
+ * 插入或更新記憶（帶去重功能）
  */
 export async function upsertMemory(
   memory: Omit<Memory, 'id' | 'createdAt' | 'updatedAt' | 'accessCount' | 'lastAccessedAt' | 'category'> & { category?: MemoryCategory }
 ): Promise<{ id: string; replaced: boolean; replacedId?: string }> {
   const db = await getDb()
 
-  // 自动分类（如果未指定）
+  // 自動分類（如果未指定）
   const category = memory.category || categorizeMemory(memory.content)
 
-  // 计算向量嵌入
+  // 計算向量嵌入
   let embedding: number[] | null = null
   if (memory.embedding) {
     try {
       embedding = JSON.parse(memory.embedding) as number[]
     } catch {
-      // 如果解析失败，重新计算
+      // 如果解析失敗，重新計算
     }
   }
 
@@ -171,12 +171,12 @@ export async function upsertMemory(
   }
 
   if (!embedding) {
-    throw new Error('无法计算向量嵌入，请检查嵌入模型配置')
+    throw new Error('無法計算向量嵌入，請檢查嵌入模型配置')
   }
 
   const embeddingStr = JSON.stringify(embedding)
 
-  // 检查是否存在相似记忆（去重）— 使用缓存避免全表读取 + 重复 JSON.parse
+  // 檢查是否存在相似記憶（去重）— 使用快取避免全表讀取 + 重複 JSON.parse
   await memoryVectorCache.ensureLoaded()
   const cachedVectors = memoryVectorCache.getAll()
   const SIMILARITY_THRESHOLD = 0.85
@@ -220,14 +220,14 @@ export async function upsertMemory(
     )
   }
 
-  // 同步更新缓存
+  // 同步更新快取
   memoryVectorCache.set(newId, category, embedding)
 
   return { id: newId, replaced, replacedId }
 }
 
 /**
- * 获取所有记忆
+ * 獲取所有記憶
  */
 export async function getAllMemories(): Promise<Memory[]> {
   const db = await getDb()
@@ -241,7 +241,7 @@ export async function getAllMemories(): Promise<Memory[]> {
 }
 
 /**
- * 根据类别获取记忆
+ * 根據類別獲取記憶
  */
 export async function getMemoriesByCategory(category: MemoryCategory): Promise<Memory[]> {
   const db = await getDb()
@@ -256,7 +256,7 @@ export async function getMemoriesByCategory(category: MemoryCategory): Promise<M
 }
 
 /**
- * 获取相似记忆（用于去重）— 使用缓存做向量匹配，仅对命中的 ID 读取完整记录
+ * 獲取相似記憶（用於去重）— 使用快取做向量匹配，僅對命中的 ID 讀取完整記錄
  */
 export async function getSimilarMemories(
   embedding: number[],
@@ -298,7 +298,7 @@ export async function getSimilarMemories(
 }
 
 /**
- * 根据 ID 获取记忆
+ * 根據 ID 獲取記憶
  */
 export async function getMemoryById(id: string): Promise<Memory | null> {
   const db = await getDb()
@@ -313,7 +313,7 @@ export async function getMemoryById(id: string): Promise<Memory | null> {
 }
 
 /**
- * 更新记忆访问统计
+ * 更新記憶訪問統計
  */
 export async function updateMemoryAccess(id: string): Promise<void> {
   const db = await getDb()
@@ -324,7 +324,7 @@ export async function updateMemoryAccess(id: string): Promise<void> {
 }
 
 /**
- * 更新记忆内容
+ * 更新記憶內容
  */
 export async function updateMemory(
   id: string,
@@ -332,7 +332,7 @@ export async function updateMemory(
 ): Promise<void> {
   const db = await getDb()
 
-  // 如果更新内容，需要重新计算嵌入和分类
+  // 如果更新內容，需要重新計算嵌入和分類
   let newEmbedding = updates.embedding
   let newCategory = updates.category
 
@@ -356,7 +356,7 @@ export async function updateMemory(
 }
 
 /**
- * 删除记忆
+ * 刪除記憶
  */
 export async function deleteMemory(id: string): Promise<void> {
   const db = await getDb()
@@ -368,7 +368,7 @@ export async function deleteMemory(id: string): Promise<void> {
 }
 
 /**
- * 清空所有记忆
+ * 清空所有記憶
  */
 export async function clearAllMemories(): Promise<void> {
   const db = await getDb()
@@ -379,7 +379,7 @@ export async function clearAllMemories(): Promise<void> {
 }
 
 /**
- * 获取记忆统计信息 — 直接用 SQL 聚合，不读全表
+ * 獲取記憶統計資訊 — 直接用 SQL 聚合，不讀全表
  */
 export async function getMemoryStats(): Promise<{
   total: number

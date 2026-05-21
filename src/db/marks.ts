@@ -79,7 +79,7 @@ async function deleteMarkLocalAssets(marks: Pick<Mark, 'type' | 'url'>[]) {
 }
 
 
-// 创建 marks 表
+// 建立 marks 表
 export async function initMarksDb() {
   const isExist = await exists('screenshot', { baseDir: BaseDirectory.AppData})
   if (!isExist) {
@@ -111,7 +111,7 @@ export async function initMarksDb() {
     )
   `)
 
-  // 性能索引：覆盖 getMarks(tagId) 和 getTags 的 COUNT 查询
+  // 效能索引：覆蓋 getMarks(tagId) 和 getTags 的 COUNT 查詢
   await db.execute(`
     create index if not exists idx_marks_tag_deleted_created
     on marks(tagId, deleted, createdAt desc)
@@ -120,7 +120,7 @@ export async function initMarksDb() {
 
 export async function getMarks(id: number) {
   const db = await getDb();
-  // 根据 tagId 获取 marks，根据 createdAt 倒序
+  // 根據 tagId 獲取 marks，根據 createdAt 倒序
   return await db.select<Mark[]>("select * from marks where tagId = $1 order by createdAt desc", [id])
 }
 
@@ -157,7 +157,7 @@ export async function updateMark(mark: Mark) {
     "update marks set tagId = $1, url = $2, desc = $3, content = $4, createdAt = $5 where id = $6",
     [mark.tagId, mark.url, mark.desc, mark.content, mark.createdAt, mark.id]
   )
-  return res 
+  return res
 }
 
 export async function restoreMark(id: number) {
@@ -171,7 +171,7 @@ export async function restoreMark(id: number) {
 
 export async function delMark(id: number) {
   const db = await getDb();
-  // 判断有没有 deleted 列，没有就添加
+  // 判斷有沒有 deleted 列，沒有就新增
   const res = await db.select<Mark[]>("select * from marks where id = $1", [id])
   if (res[0].deleted === undefined) {
     await db.execute("alter table marks add column deleted integer default 0")

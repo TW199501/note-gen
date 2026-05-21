@@ -10,7 +10,7 @@ export interface Tag {
   total?: number
 }
 
-// 创建 tags 表
+// 建立 tags 表
 export async function initTagsDb() {
   const db = await getDb()
   await db.execute(`
@@ -22,21 +22,21 @@ export async function initTagsDb() {
       sortOrder integer DEFAULT 0
     )
   `)
-  
-  // 检查 sortOrder 列是否存在，如果不存在则添加
+
+  // 檢查 sortOrder 列是否存在，如果不存在則新增
   try {
     await db.execute("select sortOrder from tags limit 1")
   } catch {
-    // sortOrder 列不存在，添加该列
+    // sortOrder 列不存在，新增該列
     await db.execute("alter table tags add column sortOrder integer DEFAULT 0")
-    
-    // 为现有标签设置初始排序值
+
+    // 為現有標籤設定初始排序值
     const existingTags = await db.select<Tag[]>("select id from tags order by id asc")
     for (let i = 0; i < existingTags.length; i++) {
       await db.execute("update tags set sortOrder = $1 where id = $2", [i, existingTags[i].id])
     }
   }
-  
+
   const hasDefaultTag = (await db.select<Tag[]>("select * from tags")).length === 0
   if (hasDefaultTag) {
     // 用 execute 的 lastInsertId 而非二次 SELECT 取回 id：
@@ -59,7 +59,7 @@ export async function getTags() {
   const db = await getDb();
   const tags = await db.select<Tag[]>("select * from tags order by sortOrder asc, id asc")
 
-  // 一次查询获取所有 tag 的 marks 数量，避免 N+1
+  // 一次查詢獲取所有 tag 的 marks 數量，避免 N+1
   const counts = await db.select<{ tagId: number; total: number }[]>(
     "select tagId, count(*) as total from marks where deleted = 0 group by tagId"
   )
