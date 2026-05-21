@@ -172,6 +172,13 @@ const builtinProviderTemplates: AiConfig[] = [
     icon: 'https://s2.loli.net/2025/06/25/legkEpHACDBQ5Xz.png',
   },
   {
+    key: 'ollama-cloud',
+    title: 'Ollama Cloud',
+    baseURL: 'https://ollama.com/v1',
+    icon: '/provider-icons/ollama.svg',
+    apiKeyUrl: 'https://ollama.com/settings/keys',
+  },
+  {
     key: 'lmstudio',
     title: 'LM Studio',
     baseURL: 'http://localhost:1234/v1',
@@ -225,6 +232,20 @@ const builtinProviderTemplates: AiConfig[] = [
     baseURL: 'https://ai.gitee.com/v1',
     icon: 'https://s2.loli.net/2025/09/15/ih7aTnGPvELFsVc.png',
     apiKeyUrl: 'https://ai.gitee.com/'
+  },
+  {
+    key: 'nvidia',
+    title: 'NVIDIA',
+    baseURL: 'https://integrate.api.nvidia.com/v1',
+    icon: '/provider-icons/nvidia-color.svg',
+    apiKeyUrl: 'https://build.nvidia.com/',
+  },
+  {
+    key: 'huggingface',
+    title: 'HuggingFace',
+    baseURL: 'https://router.huggingface.co/v1',
+    icon: '/provider-icons/huggingface-color.svg',
+    apiKeyUrl: 'https://huggingface.co/settings/tokens',
   },
 ]
 
