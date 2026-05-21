@@ -1,0 +1,21 @@
+# EditorConfig — https://editorconfig.org/
+# Cross-editor enforcement of code-style basics. Pairs with .gitattributes
+# (which guarantees LF on commit) and Claude Code memory rule
+# `feedback_global_lf_line_endings.md` (which guards agent-side edits).
+#
+# To take effect in VSCode/Codium: install the `EditorConfig.EditorConfig`
+# extension. JetBrains IDEs and most modern editors honor this natively.
+
+root = true
+
+[*]
+end_of_line = lf
+insert_final_newline = true
+charset = utf-8
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# Markdown: two trailing spaces means a hard line break — keep them.
+[*.md]
+trim_trailing_whitespace = false
