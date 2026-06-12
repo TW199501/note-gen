@@ -13,6 +13,7 @@ target/*
 .superpowers/*
 .agents/*
 /docs/*/*
+!/docs/superpowers/**
 skills-lock.json
 
 /.pnp
