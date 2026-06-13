@@ -109,4 +109,29 @@ describe('BrowserPanel', () => {
     const rectCalls = invokeMock.mock.calls.filter((c) => c[0] === 'chromium_set_panel_rect')
     expect(rectCalls.length).toBeGreaterThanOrEqual(2)
   })
+
+  it('non-windows platform: no IPC calls at all', async () => {
+    platformMock.mockReturnValue('macos')
+    render(<BrowserPanel />)
+    await flush()
+    expect(invokeMock).toHaveBeenCalledTimes(0)
+  })
+
+  it('chromium-status exited triggers exactly one auto-retry', async () => {
+    render(<BrowserPanel />)
+    await flush()
+    // 此時應有 1 次 chromium_show(初始 mount → first rect)
+    const showsAfterInit = invokeMock.mock.calls.filter((c) => c[0] === 'chromium_show').length
+    expect(showsAfterInit).toBe(1)
+    // emit exited 三次,觀察只有一次自動重啟
+    await act(async () => {
+      statusListener?.({ payload: { state: 'exited', message: '' } })
+      statusListener?.({ payload: { state: 'exited', message: '' } })
+      statusListener?.({ payload: { state: 'exited', message: '' } })
+      await Promise.resolve()
+    })
+    const showsAfterExits = invokeMock.mock.calls.filter((c) => c[0] === 'chromium_show').length
+    // 預期 = 1(init) + 1(auto-retry once) = 2
+    expect(showsAfterExits).toBe(2)
+  })
 })
