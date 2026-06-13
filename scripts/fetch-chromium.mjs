@@ -35,8 +35,18 @@ if (!res.ok) {
 await pipeline(Readable.fromWeb(res.body), createWriteStream(zipPath))
 
 console.log('extracting ...')
-// Windows 10 1803+ 內建 bsdtar(tar.exe),原生支援 zip。
-execFileSync('tar', ['-xf', zipPath, '-C', destDir], { stdio: 'inherit' })
+// Windows 10 1803+(build 17134)內建 bsdtar(tar.exe),原生支援 zip。
+try {
+  execFileSync('tar', ['-xf', zipPath, '-C', destDir], { stdio: 'inherit' })
+} catch (err) {
+  if (err.code === 'ENOENT') {
+    console.error('Error: `tar` not found in PATH.')
+    console.error('Requires Windows 10 1803+ (build 17134) for built-in bsdtar,')
+    console.error('or install one manually (e.g., Git for Windows ships one).')
+    process.exit(1)
+  }
+  throw err
+}
 rmSync(zipPath)
 
 // zip 內容包在單一頂層資料夾 — 攤平,讓 chrome.exe 位於 src-tauri/chromium/chrome.exe。

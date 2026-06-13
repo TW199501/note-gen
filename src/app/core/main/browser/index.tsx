@@ -18,6 +18,9 @@ import { Button } from '@/components/ui/button'
 //
 // show 由本元件 mount 後第一個有效 rect 觸發;hide 由 page.tsx 依
 // workspaceMode 觸發(放在本元件 unmount cleanup 會跟 React 卸載競態)。
+//
+// TODO(i18n): 狀態字串目前硬編碼 zh-TW(spec 明確延後);後續接入 next-intl 時
+// 把 "Chromium 啟動中…" / "啟動失敗" / "已結束" / "重試" 換成 useTranslations 鍵。
 
 type ChromiumStatus = {
   state: 'launching' | 'ready' | 'exited' | 'error'
@@ -66,6 +69,10 @@ export function BrowserPanel() {
       win.listen('tauri://resize', schedule),
       win.listen('tauri://scale-change', schedule),
       listen<ChromiumStatus>('chromium-status', (e) => {
+        // unlisten 是非同步(unlistenPromise.then 延遲清理),unmount 後 listener
+        // 還可能短暫被觸發;cancelled 旗標讓 setStatus 不在 unmount 後執行
+        // (React 18 此情況已 benign,但避免 dev 環境警告)。
+        if (cancelled) return
         setStatus(e.payload)
         // 意外結束 → 自動重啟一次;再失敗就交給重試 UI。
         if (e.payload.state === 'exited' && !autoRetriedRef.current) {

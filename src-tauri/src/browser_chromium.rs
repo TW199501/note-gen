@@ -93,6 +93,10 @@ fn chrome_exe_path(app: &AppHandle) -> Option<PathBuf> {
 }
 
 // ---- EnumWindows 探測(以子程序 PID 精準匹配,比 CEF 時代的同進程大海撈針可靠)----
+//
+// SEARCH_PID / FOUND_HWND 是模組級靜態,find_chrome_window 不可重入。
+// 安全性依賴 LAUNCHING.swap 守衛:同一時間只有一個 launch_and_promote thread
+// 跑 polling loop,所以 find_chrome_window 不會被並發呼叫。
 static SEARCH_PID: AtomicU32 = AtomicU32::new(0);
 static FOUND_HWND: AtomicIsize = AtomicIsize::new(0);
 
@@ -281,8 +285,15 @@ pub fn chromium_show(app: AppHandle, window: tauri::WebviewWindow) {
         return;
     }
     CHROME_HWND.store(0, Ordering::SeqCst);
-    let Ok(parent) = window.hwnd() else { return };
-    ensure_launched(app, parent.0 as isize);
+    let parent = match window.hwnd() {
+        Ok(h) => h.0 as isize,
+        Err(e) => {
+            // 取不到 NoteGen 主視窗 HWND(實務上 Windows 下不會發生,但防靜默卡死)
+            emit_status(&app, "error", &format!("window.hwnd() failed: {e}"));
+            return;
+        }
+    };
+    ensure_launched(app, parent);
 }
 
 /// 離開瀏覽器模式:停放畫面外。子程序與頁面狀態保留。
