@@ -205,21 +205,25 @@ describe('BrowserPanel', () => {
   })
 
   it('unmount calls all unlisten functions (no leaks)', async () => {
-    const unlistens = [vi.fn(), vi.fn(), vi.fn(), vi.fn()]
+    const unlistens = [vi.fn(), vi.fn(), vi.fn()]
     let i = 0
-    // 重置 win listen 把 unlisten 設成可偵測
+    // 重置 win listen 把 3 個 tauri://*+ 的 unlisten 設成可偵測 spy
     winListenStub.mockImplementation(async (evt: string, cb: () => void) => {
       winEventListeners.set(evt, cb)
       return unlistens[i++ % unlistens.length]
     })
     const { unmount } = render(<BrowserPanel />)
     await flush()
+    // sanity: statusListener 在 mount 後應已被 event.listen 寫入
+    expect(statusListener).not.toBeNull()
     unmount()
-    // BrowserPanel 註冊 3 個 tauri:// 視窗事件,unlisten 都該被呼叫至少一次
-    // (event listen 還有一個 chromium-status,計 4 個 unlistens)
     await act(async () => { await Promise.resolve() })
+    // win.listen 3 個 unlisten spy 都跑過(tauri://move/resize/scale-change)
     const calledCount = unlistens.filter((fn) => fn.mock.calls.length > 0).length
-    expect(calledCount).toBeGreaterThanOrEqual(3)
+    expect(calledCount).toBe(3)
+    // event.listen('chromium-status') 的 unlisten 不在 spy 陣列裡,但其 side effect
+    // 是把 statusListener 設回 null;斷言此值來真正驗證第 4 個 unlisten 跑過
+    expect(statusListener).toBeNull()
   })
 
   it('after auto-retry latched, further exited shows manual retry UI', async () => {

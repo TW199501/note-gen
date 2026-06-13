@@ -227,7 +227,7 @@ if (w < 50 || h < 50) return
 if (w < 5 || h < 5) return
 ```
 
-Run test. Expected case 2 FAILS (`expected 0, got 1` — 49×600 now passes the 5×5 gate).
+Run test. Expected case 2 FAILS (`expected 0, got 1` — 24 CSS px × scale(2) = 48 physical px, which still passes the relaxed 5×5 gate so the rect IS pushed instead of being skipped).
 
 Revert to `< 50`. Re-run: 2 passed.
 
