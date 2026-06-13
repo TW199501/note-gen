@@ -28,42 +28,11 @@ export async function installTauriMock(page: Page) {
 
     // Canned return values per command. Keep this minimal — extend as tests demand.
     const cannedResponses: Record<string, (args: any) => any> = {
-      browser_tabs_list: () => ({
-        // Pre-seed two tabs so the TabStrip renders. Real flow seeds the
-        // first tab after browser_create succeeds; in a mocked env the
-        // create path no-ops so we have to fake the list here.
-        tabs: [
-          { id: 'mock-tab-1', url: 'https://example.com', title: 'Example', favicon: '' },
-          { id: 'mock-tab-2', url: 'https://github.com', title: 'GitHub', favicon: '' },
-        ],
-        active_tab_id: 'mock-tab-1',
-      }),
-      browser_tabs_new: () => 'mock-tab-id-' + Math.random().toString(36).slice(2, 8),
-      browser_tabs_switch: () => undefined,
-      browser_tabs_close: () => undefined,
-      browser_tabs_update_meta: () => undefined,
-      browser_show: () => undefined,
-      browser_hide: () => undefined,
-      browser_resize: () => undefined,
-      browser_extract_text: () => undefined,
-      browser_capture: () => '/tmp/screenshot.png',
-      browser_set_zoom: (args: any) => args?.level ?? 1.0,
-      browser_find_start: () => undefined,
-      browser_find_next: () => undefined,
-      browser_find_prev: () => undefined,
-      browser_find_close: () => undefined,
-      browser_toggle_devtools: () => false,
-      browser_clear_data: () => undefined,
-      browser_open_devtools: () => undefined,
-      browser_inject_context_menu: () => undefined,
-      browser_navigate: () => undefined,
-      browser_go_back: () => undefined,
-      browser_go_forward: () => undefined,
-      browser_reload: () => undefined,
-      browser_create: () => undefined,
-      browser_get_url: () => 'https://example.com',
-      browser_get_title: () => 'Example',
-      browser_get_selected_text: () => '',
+      // Bundled-Chromium overlay (Windows-only at runtime; mock unconditionally
+      // so platform stubs that report 'windows' don't blow up BrowserPanel).
+      chromium_show: () => undefined,
+      chromium_hide: () => undefined,
+      chromium_set_panel_rect: () => undefined,
       // SQL plugin commands map to no-ops returning sensible defaults.
       plugin: () => undefined,
     }
