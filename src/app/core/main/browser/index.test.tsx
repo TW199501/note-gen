@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, act, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, act, fireEvent, cleanup } from '@testing-library/react'
 import { BrowserPanel } from './index'
 
 const invokeMock = vi.fn(async () => undefined)
@@ -73,6 +73,10 @@ beforeEach(() => {
   mockRect({ left: 10, top: 20, width: 800, height: 600 })
 })
 
+afterEach(() => {
+  cleanup()
+})
+
 describe('BrowserPanel', () => {
   it('pushes rect with screen-space physical px math', async () => {
     render(<BrowserPanel />)
@@ -133,5 +137,52 @@ describe('BrowserPanel', () => {
     const showsAfterExits = invokeMock.mock.calls.filter((c) => c[0] === 'chromium_show').length
     // 預期 = 1(init) + 1(auto-retry once) = 2
     expect(showsAfterExits).toBe(2)
+  })
+
+  it('ready event resets auto-retry counter so subsequent exited retries again', async () => {
+    render(<BrowserPanel />)
+    await flush()
+    await act(async () => {
+      statusListener?.({ payload: { state: 'exited', message: '' } })
+      await Promise.resolve()
+    })
+    // 1 init + 1 auto-retry
+    expect(invokeMock.mock.calls.filter((c) => c[0] === 'chromium_show')).toHaveLength(2)
+    await act(async () => {
+      statusListener?.({ payload: { state: 'ready', message: '' } })
+      statusListener?.({ payload: { state: 'exited', message: '' } })
+      await Promise.resolve()
+    })
+    // ready 後又 exited → 應再自動重啟一次
+    expect(invokeMock.mock.calls.filter((c) => c[0] === 'chromium_show')).toHaveLength(3)
+  })
+
+  it('error state shows failure message and retry button', async () => {
+    render(<BrowserPanel />)
+    await flush()
+    await act(async () => {
+      statusListener?.({ payload: { state: 'error', message: 'chrome.exe not found' } })
+      await Promise.resolve()
+    })
+    expect(screen.getByText(/chrome\.exe not found/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '重試' })).toBeInTheDocument()
+  })
+
+  it('manual retry button click invokes chromium_show + clears failure UI', async () => {
+    render(<BrowserPanel />)
+    await flush()
+    await act(async () => {
+      statusListener?.({ payload: { state: 'error', message: 'spawn failed' } })
+      await Promise.resolve()
+    })
+    const before = invokeMock.mock.calls.filter((c) => c[0] === 'chromium_show').length
+    const btn = screen.getByRole('button', { name: '重試' })
+    await act(async () => {
+      fireEvent.click(btn)
+      await Promise.resolve()
+    })
+    const after = invokeMock.mock.calls.filter((c) => c[0] === 'chromium_show').length
+    expect(after).toBe(before + 1)
+    expect(screen.queryByRole('button', { name: '重試' })).not.toBeInTheDocument()
   })
 })
