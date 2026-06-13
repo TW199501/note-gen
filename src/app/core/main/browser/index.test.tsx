@@ -55,12 +55,14 @@ function mockRect(rect: { left: number; top: number; width: number; height: numb
   })) as unknown as Element['getBoundingClientRect']
 }
 
-// 推進 requestAnimationFrame 與 microtasks 讓 push() 完成
+// 推進 requestAnimationFrame 與 microtasks 讓 push() 整條 await 鏈完成。
+// push() 內 await 深度 = Promise.all(outerPos+scale) → invoke(set_rect)
+// → invoke(show),需至少 3 ticks;為防 invokeMock 將來改成多層 async,
+// 保留安全餘裕排乾 5 次 microtask。
 async function flush() {
   await act(async () => {
     await new Promise((r) => requestAnimationFrame(() => r(null)))
-    await Promise.resolve()
-    await Promise.resolve()
+    for (let i = 0; i < 5; i++) await Promise.resolve()
   })
 }
 
@@ -184,5 +186,58 @@ describe('BrowserPanel', () => {
     const after = invokeMock.mock.calls.filter((c) => c[0] === 'chromium_show').length
     expect(after).toBe(before + 1)
     expect(screen.queryByRole('button', { name: '重試' })).not.toBeInTheDocument()
+  })
+
+  it('status events after unmount do not trigger setState (cancelled guard)', async () => {
+    const { unmount } = render(<BrowserPanel />)
+    await flush()
+    const showCallsBeforeUnmount = invokeMock.mock.calls.filter((c) => c[0] === 'chromium_show').length
+    // 抓到 listener 後 unmount。listener 仍可被觸發(unlisten 是 async 微任務延遲)
+    unmount()
+    await act(async () => {
+      // 在 cleanup 微任務還沒 settle 前就丟個 exited 進來
+      statusListener?.({ payload: { state: 'exited', message: '' } })
+      await Promise.resolve()
+    })
+    // cancelled guard 應該擋掉 setStatus 與 auto-retry
+    const showCallsAfter = invokeMock.mock.calls.filter((c) => c[0] === 'chromium_show').length
+    expect(showCallsAfter).toBe(showCallsBeforeUnmount)
+  })
+
+  it('unmount calls all unlisten functions (no leaks)', async () => {
+    const unlistens = [vi.fn(), vi.fn(), vi.fn(), vi.fn()]
+    let i = 0
+    // 重置 win listen 把 unlisten 設成可偵測
+    winListenStub.mockImplementation(async (evt: string, cb: () => void) => {
+      winEventListeners.set(evt, cb)
+      return unlistens[i++ % unlistens.length]
+    })
+    const { unmount } = render(<BrowserPanel />)
+    await flush()
+    unmount()
+    // BrowserPanel 註冊 3 個 tauri:// 視窗事件,unlisten 都該被呼叫至少一次
+    // (event listen 還有一個 chromium-status,計 4 個 unlistens)
+    await act(async () => { await Promise.resolve() })
+    const calledCount = unlistens.filter((fn) => fn.mock.calls.length > 0).length
+    expect(calledCount).toBeGreaterThanOrEqual(3)
+  })
+
+  it('after auto-retry latched, further exited shows manual retry UI', async () => {
+    render(<BrowserPanel />)
+    await flush()
+    await act(async () => {
+      statusListener?.({ payload: { state: 'exited', message: '' } })
+      await Promise.resolve()
+    })
+    // 此時 autoRetried=true。再來一次 exited 不該再 invoke,而是顯示 UI
+    const showsBeforeSecondExit = invokeMock.mock.calls.filter((c) => c[0] === 'chromium_show').length
+    await act(async () => {
+      statusListener?.({ payload: { state: 'exited', message: '' } })
+      await Promise.resolve()
+    })
+    const showsAfterSecondExit = invokeMock.mock.calls.filter((c) => c[0] === 'chromium_show').length
+    expect(showsAfterSecondExit).toBe(showsBeforeSecondExit)
+    expect(screen.getByRole('button', { name: '重試' })).toBeInTheDocument()
+    expect(screen.getByText(/Chromium 已結束/)).toBeInTheDocument()
   })
 })

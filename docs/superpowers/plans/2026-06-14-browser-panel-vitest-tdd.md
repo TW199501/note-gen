@@ -199,8 +199,9 @@ Expected: 1 pass again.
 Inside the same describe block, after case 1:
 
 ```tsx
-  it('skips rect smaller than 50x50', async () => {
-    mockRect({ left: 0, top: 0, width: 49, height: 600 })
+  it('skips rect smaller than 50x50 in physical px (after DPI scaling)', async () => {
+    // 物理 px = CSS px * scale(2);要 < 50 物理 px 需 CSS px < 25
+    mockRect({ left: 0, top: 0, width: 24, height: 600 })
     render(<BrowserPanel />)
     await flush()
     const setRectCalls = invokeMock.mock.calls.filter((c) => c[0] === 'chromium_set_panel_rect')
@@ -236,10 +237,16 @@ Revert to `< 50`. Re-run: 2 passed.
   it('fires chromium_show on first valid rect, not subsequent', async () => {
     render(<BrowserPanel />)
     await flush()
-    // 模擬第二次 schedule(例如 ResizeObserver 又觸發一次)
+    // 模擬使用者拉動視窗:tauri://resize 觸發第二次 schedule + push
+    await act(async () => {
+      winEventListeners.get('tauri://resize')?.()
+    })
     await flush()
     const showCalls = invokeMock.mock.calls.filter((c) => c[0] === 'chromium_show')
     expect(showCalls).toHaveLength(1)
+    // 額外驗證第二次 rect push 確實發生(否則測試強度不足)
+    const rectCalls = invokeMock.mock.calls.filter((c) => c[0] === 'chromium_set_panel_rect')
+    expect(rectCalls.length).toBeGreaterThanOrEqual(2)
   })
 ```
 
