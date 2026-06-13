@@ -13,6 +13,8 @@ mod device;
 mod skills;
 mod tray;
 mod ai;
+#[cfg(target_os = "windows")]
+mod browser_chromium;
 
 use screenshot::{cleanup_temp_screenshot_dir, screenshot};
 use fuzzy_search::{fuzzy_search, fuzzy_search_parallel};
@@ -75,6 +77,9 @@ fn main() {
             ai_multipart_request,
             ai_chat_completion_stream,
             cancel_ai_request,
+            #[cfg(target_os = "windows")] browser_chromium::chromium_show,
+            #[cfg(target_os = "windows")] browser_chromium::chromium_hide,
+            #[cfg(target_os = "windows")] browser_chromium::chromium_set_panel_rect,
         ])
 
         // 应用设置 - 在所有插件和命令注册后
@@ -89,6 +94,8 @@ fn main() {
             }
             tauri::RunEvent::Exit => {
                 cleanup_temp_screenshot_dir(&app_handle);
+                #[cfg(target_os = "windows")]
+                browser_chromium::shutdown();
             }
             _ => {}
         });
