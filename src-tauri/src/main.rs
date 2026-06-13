@@ -13,7 +13,8 @@ mod device;
 mod skills;
 mod tray;
 mod ai;
-mod browser;
+#[cfg(target_os = "windows")]
+mod browser_chromium;
 
 use screenshot::{cleanup_temp_screenshot_dir, screenshot};
 use fuzzy_search::{fuzzy_search, fuzzy_search_parallel};
@@ -24,19 +25,6 @@ use mcp::{start_mcp_stdio_server, stop_mcp_server, send_mcp_message, McpServerMa
 use mcp_runtime::{cancel_mcp_runtime_install, inspect_mcp_runtime, install_mcp_runtime, RuntimeInstallManager};
 use device::get_device_id;
 use ai::{ai_binary_request, ai_chat_completion_stream, ai_json_request, ai_multipart_request, cancel_ai_request, AiRequestManager};
-use browser::{
-    browser_create, browser_navigate, browser_go_back, browser_go_forward,
-    browser_reload, browser_show, browser_hide, browser_resize,
-    browser_extract_text, browser_capture, browser_get_url, browser_get_title,
-    browser_get_selected_text, browser_clear_data, browser_inject_context_menu, browser_toggle_devtools,
-    browser_set_zoom, __browser_zoom_changed,
-    browser_find_start, browser_find_next, browser_find_prev, browser_find_close,
-    __browser_find_state, __browser_find_requested,
-    browser_tabs_list, browser_tabs_new, browser_tabs_switch, browser_tabs_close, browser_tabs_update_meta,
-    __browser_content_extracted, __browser_title_changed, __browser_favicon_changed,
-    __browser_context_action, __browser_title_result, __browser_selected_text,
-    BrowserState,
-};
 
 fn main() {
     tauri::Builder::default()
@@ -50,7 +38,6 @@ fn main() {
         .manage(McpServerManager::new())
         .manage(RuntimeInstallManager::new())
         .manage(AiRequestManager::new())
-        .manage(BrowserState::new())
 
         // 系统级插件
         .plugin(tauri_plugin_process::init())
@@ -90,41 +77,9 @@ fn main() {
             ai_multipart_request,
             ai_chat_completion_stream,
             cancel_ai_request,
-            browser_create,
-            browser_navigate,
-            browser_go_back,
-            browser_go_forward,
-            browser_reload,
-            browser_show,
-            browser_hide,
-            browser_resize,
-            browser_extract_text,
-            browser_capture,
-            browser_get_url,
-            browser_get_title,
-            browser_get_selected_text,
-            browser_clear_data,
-            browser_inject_context_menu,
-            browser_toggle_devtools,
-            browser_set_zoom,
-            __browser_zoom_changed,
-            browser_find_start,
-            browser_find_next,
-            browser_find_prev,
-            browser_find_close,
-            __browser_find_state,
-            __browser_find_requested,
-            browser_tabs_list,
-            browser_tabs_new,
-            browser_tabs_switch,
-            browser_tabs_close,
-            browser_tabs_update_meta,
-            __browser_content_extracted,
-            __browser_title_changed,
-            __browser_favicon_changed,
-            __browser_context_action,
-            __browser_title_result,
-            __browser_selected_text,
+            #[cfg(target_os = "windows")] browser_chromium::chromium_show,
+            #[cfg(target_os = "windows")] browser_chromium::chromium_hide,
+            #[cfg(target_os = "windows")] browser_chromium::chromium_set_panel_rect,
         ])
 
         // 应用设置 - 在所有插件和命令注册后
@@ -139,6 +94,8 @@ fn main() {
             }
             tauri::RunEvent::Exit => {
                 cleanup_temp_screenshot_dir(&app_handle);
+                #[cfg(target_os = "windows")]
+                browser_chromium::shutdown();
             }
             _ => {}
         });

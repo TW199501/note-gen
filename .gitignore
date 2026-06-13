@@ -13,6 +13,8 @@ target/*
 .superpowers/*
 .agents/*
 /docs/*/*
+!/docs/superpowers/**
+/src-tauri/chromium/
 skills-lock.json
 
 /.pnp

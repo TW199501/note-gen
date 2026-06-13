@@ -4,7 +4,6 @@ mod device;
 mod backup;
 mod skills;
 mod ai;
-mod browser;
 mod app_menu;
 
 use mcp::{start_mcp_stdio_server, stop_mcp_server, send_mcp_message, McpServerManager};
@@ -13,19 +12,6 @@ use device::get_device_id;
 use backup::{export_app_data, import_app_data, import_app_data_from_file};
 use skills::import_skill_zip;
 use ai::{ai_binary_request, ai_chat_completion_stream, ai_json_request, ai_multipart_request, cancel_ai_request, AiRequestManager};
-use browser::{
-    browser_create, browser_navigate, browser_go_back, browser_go_forward,
-    browser_reload, browser_show, browser_hide, browser_resize,
-    browser_extract_text, browser_capture, browser_get_url, browser_get_title,
-    browser_get_selected_text, browser_inject_context_menu, browser_clear_data, browser_toggle_devtools,
-    browser_set_zoom, __browser_zoom_changed,
-    browser_find_start, browser_find_next, browser_find_prev, browser_find_close,
-    __browser_find_state, __browser_find_requested,
-    browser_tabs_list, browser_tabs_new, browser_tabs_switch, browser_tabs_close, browser_tabs_update_meta,
-    __browser_content_extracted, __browser_title_changed, __browser_favicon_changed,
-    __browser_context_action, __browser_title_result, __browser_selected_text,
-    BrowserState,
-};
 use app_menu::{app_toggle_devtools, app_region_screenshot};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -41,7 +27,6 @@ pub fn run() {
         .manage(McpServerManager::new())
         .manage(RuntimeInstallManager::new())
         .manage(AiRequestManager::new())
-        .manage(BrowserState::new())
         .invoke_handler(tauri::generate_handler![
             start_mcp_stdio_server,
             stop_mcp_server,
@@ -59,41 +44,6 @@ pub fn run() {
             ai_multipart_request,
             ai_chat_completion_stream,
             cancel_ai_request,
-            browser_create,
-            browser_navigate,
-            browser_go_back,
-            browser_go_forward,
-            browser_reload,
-            browser_show,
-            browser_hide,
-            browser_resize,
-            browser_extract_text,
-            browser_capture,
-            browser_get_url,
-            browser_get_title,
-            browser_get_selected_text,
-            browser_inject_context_menu,
-            browser_clear_data,
-            browser_toggle_devtools,
-            browser_set_zoom,
-            __browser_zoom_changed,
-            browser_find_start,
-            browser_find_next,
-            browser_find_prev,
-            browser_find_close,
-            __browser_find_state,
-            __browser_find_requested,
-            browser_tabs_list,
-            browser_tabs_new,
-            browser_tabs_switch,
-            browser_tabs_close,
-            browser_tabs_update_meta,
-            __browser_content_extracted,
-            __browser_title_changed,
-            __browser_favicon_changed,
-            __browser_context_action,
-            __browser_title_result,
-            __browser_selected_text,
             app_toggle_devtools,
             app_region_screenshot,
         ])

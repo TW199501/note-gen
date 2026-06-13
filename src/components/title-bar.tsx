@@ -16,7 +16,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { NotesToolbar } from './title-bar-notes'
-import { BrowserToolbar } from './title-bar-browser'
 import { SpecSnapToggleButton } from './specsnap/specsnap-toggle-button'
 
 type Platform = 'macos' | 'windows' | 'linux' | 'unknown'
@@ -83,19 +82,27 @@ export function TitleBar({ onSearchClick, onActivityClick, activityOpen = false 
   if (currentPlatform === 'unknown') return null
 
   const isMacOS = currentPlatform === 'macos'
+  // Browser mode on the main page: the embedded browser reaches the top, so the
+  // bar shrinks to a right-hand control island instead of a full-width bar.
+  const isBrowserWorkspace = workspaceMode === 'browser' && pathname === '/core/main'
 
   return (
     <TooltipProvider>
       <div
-        className="h-[36px] w-full flex flex-nowrap items-center select-none shrink-0 fixed top-0 left-0 right-0 z-[9999] border-b bg-background"
-        style={{ paddingLeft: isMacOS ? '70px' : '0' }}
+        className={cn(
+          'h-[36px] flex flex-nowrap items-center select-none shrink-0 fixed top-0 right-0 z-[9999] bg-background',
+          // Browser mode: shrink to a right-hand control island so the embedded
+          // browser can reach the very top on the left (頂天). Otherwise full width.
+          isBrowserWorkspace ? 'w-auto border-b border-l rounded-bl-md' : 'w-full left-0 border-b'
+        )}
+        style={{ paddingLeft: isMacOS && !isBrowserWorkspace ? '70px' : '0' }}
         data-tauri-drag-region
       >
-        {/* 左側+中間：根據模式切換不同工具列 */}
+        {/* 左側+中間:notes 顯示工具列;browser 模式只留右側控制島(無左側) */}
         {workspaceMode === 'notes' ? (
           <NotesToolbar onSearchClick={onSearchClick} />
-        ) : (
-          <BrowserToolbar />
+        ) : isBrowserWorkspace ? null : (
+          <div className="flex-1" />
         )}
 
         {/* 右側共用按鈕 */}
