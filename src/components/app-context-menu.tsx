@@ -98,17 +98,17 @@ export function AppContextMenu() {
       style={{ left: menu.x, top: menu.y }}
     >
       {showCut && (
-        <MenuItem icon={<Scissors className="size-3.5" />} onClick={() => run(() => document.execCommand('cut'))}>
+        <MenuItem icon={<Scissors className="size-3.5" />} onClick={() => run(() => { document.execCommand('cut') })}>
           {t('cut')}
         </MenuItem>
       )}
       {showCopy && (
-        <MenuItem icon={<Copy className="size-3.5" />} onClick={() => run(() => document.execCommand('copy'))}>
+        <MenuItem icon={<Copy className="size-3.5" />} onClick={() => run(() => { document.execCommand('copy') })}>
           {t('copy')}
         </MenuItem>
       )}
       {showPaste && (
-        <MenuItem icon={<ClipboardPaste className="size-3.5" />} onClick={() => run(() => document.execCommand('paste'))}>
+        <MenuItem icon={<ClipboardPaste className="size-3.5" />} onClick={() => run(() => { document.execCommand('paste') })}>
           {t('paste')}
         </MenuItem>
       )}

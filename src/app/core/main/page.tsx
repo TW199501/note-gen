@@ -16,6 +16,7 @@ import { Store } from '@tauri-apps/plugin-store'
 import { ImperativePanelGroupHandle, ImperativePanelHandle } from 'react-resizable-panels'
 import { invoke } from "@tauri-apps/api/core"
 import { getCurrentWindow } from "@tauri-apps/api/window"
+import { platform } from '@tauri-apps/plugin-os'
 import emitter from '@/lib/emitter'
 import { useRouter } from 'next/navigation'
 
@@ -119,19 +120,22 @@ function ResizableWrapper() {
   } = useSidebarStore()
   const { workspaceMode } = useBrowserStore()
 
-  // 切换模式时控制 WebView 显示/隐藏，并在进入浏览器模式时开启新对话。
-  // ResizableWrapper 不会随 mode 切换 unmount，所以这个 useEffect 真的会
-  // 在 mode 改变时触发（不像 Chat 元件本身——它在 mode 切换时整个 unmount
-  // /remount，元件内的 ref-based transition 检测会失效）。
-  // startNewConversation 内会设 skipAutoRestore=true，避免 Chat remount 后
-  // 的 init() 自动把 currentConversationId 又 restore 回最近的对话。
+  // 進入瀏覽器模式時開啟新對話 + 把 Chromium overlay 從畫面外搬回 panel 區。
+  // Chromium 是原生 top-level 視窗(不在 React 樹內),所以切回 notes mode 必須明確
+  // 呼叫 chromium_hide 把它搬到 -32000,-32000;否則 Chromium 視窗會殘留蓋住
+  // notes 工作區。show 不在這裡呼叫——BrowserPanel mount 時自己上報 rect + show,
+  // 避免 page.tsx effect 先跑而 panel rect 還沒量到的競態。
+  // ResizableWrapper 不會隨 mode 切換 unmount,所以這個 useEffect 真的會在 mode
+  // 改變時觸發(不像 Chat 元件本身——它在 mode 切換時整個 unmount/remount,元件內
+  // 的 ref-based transition 檢測會失效)。startNewConversation 內會設
+  // skipAutoRestore=true,避免 Chat remount 後的 init() 又把 currentConversationId
+  // restore 回最近的對話。
   useEffect(() => {
-    if (workspaceMode === 'notes') {
-      invoke('browser_hide').catch(() => {})
-    } else {
-      invoke('browser_show').catch(() => {})
+    if (workspaceMode === 'browser') {
       useBrowserChatStore.getState().startNewConversation()
       emitter.emit('chat-input-reset', undefined)
+    } else if (platform() === 'windows') {
+      invoke('chromium_hide').catch(() => { /* chromium not launched yet / non-windows */ })
     }
   }, [workspaceMode])
 
@@ -362,9 +366,13 @@ function ResizableWrapper() {
         </ResizablePanel>
         <ResizableHandle />
         <ResizablePanel id="browser-chat" order={2} defaultSize={30} minSize={20}>
-          <ChatStoreProvider store={useBrowserChatStore}>
-            <Chat />
-          </ChatStoreProvider>
+          {/* pt-9: clear the title-bar control island that floats top-right over
+              this panel (the browser panel on the left reaches the top instead). */}
+          <div className="h-full pt-9">
+            <ChatStoreProvider store={useBrowserChatStore}>
+              <Chat />
+            </ChatStoreProvider>
+          </div>
         </ResizablePanel>
       </ResizablePanelGroup>
     )
