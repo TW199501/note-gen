@@ -64,9 +64,10 @@ docs/.vitepress/cache
 
 .idea
 
-# Exclude all markdown files in root directory except README.md
+# Exclude all markdown files in root directory except README.md and CLAUDE.md
 /*.md
 !README.md
+!CLAUDE.md
 
 # backup files
 *.backup
