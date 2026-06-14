@@ -18,6 +18,9 @@ target/*
 /src-tauri/chromium/
 skills-lock.json
 
+# zread wiki: ship published versions, skip in-progress drafts
+.zread/wiki/drafts/
+
 /.pnp
 .pnp.*
 .yarn/*
