@@ -10,6 +10,7 @@ src-tauri/gen/*
 *.local
 target/*
 .claude/*
+!.claude/skills/
 .superpowers/*
 .agents/*
 /docs/*/*
