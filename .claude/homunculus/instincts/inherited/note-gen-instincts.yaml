@@ -1,0 +1,669 @@
+# Instincts generated from https://github.com/TW199501/note-gen
+# Generated: 2026-06-13T20:01:13.655Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: note-gen-commit-conventional
+trigger: "when writing a commit message"
+confidence: 0.85
+domain: git
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Commit Conventional
+
+## Action
+
+Use conventional commit format with prefixes: docs, test, fix, build, feat
+
+## Evidence
+
+- 17 commits analyzed
+- Detected conventional commit pattern
+- Examples: docs(browser): spec for bundled-Chromium real browser (4th approach), refactor(browser): remove legacy WebView browser stack
+
+---
+id: note-gen-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Commit Length
+
+## Action
+
+Write moderate-length commit messages (~62 characters)
+
+## Evidence
+
+- Average commit message length: 62 chars
+- Based on 17 commits
+
+---
+id: note-gen-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Naming Files
+
+## Action
+
+Use kebab-case naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: kebab-case
+
+---
+id: note-gen-import-alias
+trigger: "when importing modules"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Import Alias
+
+## Action
+
+Use path aliases (@/, ~/) instead of relative imports
+
+## Evidence
+
+- Import analysis shows alias pattern
+- Example: import { x } from '@/lib/x'
+
+---
+id: note-gen-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Export Style
+
+## Action
+
+Prefer mixed exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: mixed
+
+---
+id: note-gen-arch-type-based
+trigger: "when adding new code"
+confidence: 0.8
+domain: architecture
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Arch Type Based
+
+## Action
+
+Place code in the appropriate type folder (components/, services/, utils/, etc.)
+
+## Evidence
+
+- Type-based module organization detected
+- Folders: app, components
+
+---
+id: note-gen-test-colocate
+trigger: "when writing tests"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Test Colocate
+
+## Action
+
+Place test file next to the source file (e.g., Button.test.tsx next to Button.tsx)
+
+## Evidence
+
+- Colocated test pattern detected
+- Tests live alongside source files
+
+---
+id: note-gen-test-framework
+trigger: "when writing tests"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Test Framework
+
+## Action
+
+Use vitest as the test framework
+
+## Evidence
+
+- Test framework detected: vitest
+- File pattern: *.spec.ts
+
+---
+id: note-gen-test-naming
+trigger: "when creating a test file"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Test Naming
+
+## Action
+
+Name test files using the pattern: *.spec.ts
+
+## Evidence
+
+- File pattern: *.spec.ts
+- Consistent across test files
+
+---
+id: note-gen-test-mocking
+trigger: "when mocking dependencies in tests"
+confidence: 0.75
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Test Mocking
+
+## Action
+
+Use vi.mock for mocking
+
+## Evidence
+
+- Mocking pattern detected: vi.mock
+- Consistent across test files
+
+---
+id: note-gen-test-types
+trigger: "when planning tests for a feature"
+confidence: 0.7
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Test Types
+
+## Action
+
+Write unit, integration, e2e tests to match project standards
+
+## Evidence
+
+- Test types detected: unit, integration, e2e
+- Coverage config: no
+
+---
+id: note-gen-workflow-refactoring
+trigger: "when refactoring code"
+confidence: 0.85
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Workflow Refactoring
+
+## Action
+
+Follow the refactoring workflow:
+1. Ensure tests pass before refactor
+2. Refactor code structure
+3. Verify tests still pass
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~7x per month
+- Files: src/**/*
+
+---
+id: note-gen-workflow-spec-plan-implementation-workflow
+trigger: "when doing spec plan implementation workflow"
+confidence: 0.55
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Workflow Spec Plan Implementation Workflow
+
+## Action
+
+Follow the spec-plan-implementation-workflow workflow:
+1. Write a design spec in docs/superpowers/specs/ (or specs/archive/ for historical context).
+2. Write an implementation plan in docs/superpowers/plans/ (or plans/archive/ for historical context).
+3. Implement code changes across src-tauri/, src/app/core/main/browser/, scripts/, etc.
+4. Update .gitignore or package.json if new scripts or resources are added.
+5. Bundle new resources/configs as needed (e.g., tauri.windows.conf.json).
+6. Archive superseded specs/plans in docs/superpowers/{specs,plans}/archive/.
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~1x per month
+- Files: docs/superpowers/specs/*.md, docs/superpowers/plans/*.md, docs/superpowers/specs/archive/*.md
+
+---
+id: note-gen-workflow-test-driven-development-with-plan-docs
+trigger: "when doing test driven development with plan docs"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Workflow Test Driven Development With Plan Docs
+
+## Action
+
+Follow the test-driven-development-with-plan-docs workflow:
+1. Write a test plan in docs/superpowers/plans/ describing test cases and mutation checks.
+2. Implement or expand tests in the relevant *.test.tsx file.
+3. Mutation-verify each test by temporarily breaking production code and confirming test failure.
+4. Address code review feedback by adding new test cases or tightening existing ones.
+5. Update the plan doc to reflect any changes or corrections in test coverage.
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: docs/superpowers/plans/*.md, src/app/core/main/browser/*.test.tsx
+
+---
+id: note-gen-workflow-code-review-driven-fix-workflow
+trigger: "when doing code review driven fix workflow"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/TW199501/note-gen
+---
+
+# Note Gen Workflow Code Review Driven Fix Workflow
+
+## Action
+
+Follow the code-review-driven-fix-workflow workflow:
+1. Review feedback and identify actionable items.
+2. Apply fixes or improvements to code (e.g., error handling, comments, guards).
+3. Update or add tests to cover new or revised behavior.
+4. Update documentation or plan docs if test coverage or implementation details change.
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: src/app/core/main/browser/*.tsx, src/app/core/main/browser/*.test.tsx, scripts/*.mjs
+
+---
+id: note-gen-coding-naming-files
+trigger: "When creating or renaming a file in the codebase"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Coding Naming Files
+
+## Action
+
+Use kebab-case for file names
+
+## Evidence
+
+- Pattern in namingConventions.files
+- Seen in src/app/core/main/browser/*.tsx
+
+---
+id: note-gen-coding-naming-functions
+trigger: "When defining a function"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Coding Naming Functions
+
+## Action
+
+Use camelCase for function names
+
+## Evidence
+
+- Pattern in namingConventions.functions
+- Seen in src/app/core/main/browser/*.tsx
+
+---
+id: note-gen-coding-naming-classes
+trigger: "When defining a class"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Coding Naming Classes
+
+## Action
+
+Use PascalCase for class names
+
+## Evidence
+
+- Pattern in namingConventions.classes
+- Seen in src/app/core/main/browser/*.tsx
+
+---
+id: note-gen-coding-naming-constants
+trigger: "When declaring a constant"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Coding Naming Constants
+
+## Action
+
+Use SCREAMING_SNAKE_CASE for constant names
+
+## Evidence
+
+- Pattern in namingConventions.constants
+- Seen in src/app/core/main/browser/*.tsx
+
+---
+id: note-gen-coding-import-style
+trigger: "When importing modules"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Coding Import Style
+
+## Action
+
+Use alias-based imports
+
+## Evidence
+
+- Pattern in importStyle
+- Seen in src/app/core/main/browser/*.tsx
+
+---
+id: note-gen-coding-export-style
+trigger: "When exporting modules or symbols"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Coding Export Style
+
+## Action
+
+Use both named and default exports as appropriate
+
+## Evidence
+
+- Pattern in exportStyle
+- Seen in src/app/core/main/browser/*.tsx
+
+---
+id: note-gen-testing-file-pattern
+trigger: "When creating a test file"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Testing File Pattern
+
+## Action
+
+Name the file with a .spec.ts extension
+
+## Evidence
+
+- Pattern in testing.filePattern
+- Seen in e2e/browser-ui.spec.ts
+
+---
+id: note-gen-testing-framework
+trigger: "When writing tests"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Testing Framework
+
+## Action
+
+Use the Vitest testing framework
+
+## Evidence
+
+- Pattern in testing.framework
+- Seen in src/app/core/main/browser/*.test.tsx
+
+---
+id: note-gen-testing-mocking
+trigger: "When mocking modules in tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Testing Mocking
+
+## Action
+
+Use vi.mock for mocking
+
+## Evidence
+
+- Pattern in testing.mockingStyle
+- Seen in src/app/core/main/browser/*.test.tsx
+
+---
+id: note-gen-testing-tdd-plan
+trigger: "When adding or expanding test coverage for a component"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Testing Tdd Plan
+
+## Action
+
+Write a test plan in docs/superpowers/plans/ describing test cases and mutation checks before implementing tests
+
+## Evidence
+
+- Workflow: test-driven-development-with-plan-docs
+- Seen in docs/superpowers/plans/*.md
+
+---
+id: note-gen-testing-mutation-verification
+trigger: "When adding new tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Testing Mutation Verification
+
+## Action
+
+Mutation-verify each test by temporarily breaking production code and confirming test failure
+
+## Evidence
+
+- Workflow: test-driven-development-with-plan-docs
+- Pattern in commitSequence
+
+---
+id: note-gen-git-commit-format
+trigger: "When writing a git commit message"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Git Commit Format
+
+## Action
+
+Use conventional commit format: <type>(<scope>): <description>
+
+## Evidence
+
+- Pattern in commits.type and prefixes
+- Seen in commit 'fix(browser): restore pnpm-lock.yaml accidentally modified in Task 1'
+
+---
+id: note-gen-git-commit-length
+trigger: "When writing a git commit message"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Git Commit Length
+
+## Action
+
+Keep commit message length around 62 characters on average
+
+## Evidence
+
+- Pattern in commits.averageLength
+- Seen in commit examples
+
+---
+id: note-gen-workflow-spec-plan-implementation
+trigger: "When introducing a major new feature or architectural change"
+confidence: 0.95
+domain: workflow
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Workflow Spec Plan Implementation
+
+## Action
+
+Follow the spec-plan-implementation workflow: write a design spec, implementation plan, implement code, update configs, archive prior specs/plans
+
+## Evidence
+
+- Workflow: spec-plan-implementation-workflow
+- Seen in docs/superpowers/specs/*.md, docs/superpowers/plans/*.md, src-tauri/src/*.rs, etc.
+
+---
+id: note-gen-workflow-tdd-with-plan-docs
+trigger: "When adding or improving test coverage for a component"
+confidence: 0.95
+domain: workflow
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Workflow Tdd With Plan Docs
+
+## Action
+
+Follow the TDD workflow: write a test plan, implement/expand tests, mutation-verify, address review, update plan doc
+
+## Evidence
+
+- Workflow: test-driven-development-with-plan-docs
+- Seen in docs/superpowers/plans/*.md, src/app/core/main/browser/*.test.tsx
+
+---
+id: note-gen-workflow-code-review-fix
+trigger: "When receiving code review feedback on a recent feature or test addition"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Workflow Code Review Fix
+
+## Action
+
+Apply fixes or improvements to code and tests, and update documentation or plan docs as needed
+
+## Evidence
+
+- Workflow: code-review-driven-fix-workflow
+- Seen in src/app/core/main/browser/*.tsx, *.test.tsx, docs/superpowers/plans/*.md
+
+---
+id: note-gen-error-handling-try-catch
+trigger: "When handling errors in code"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: TW199501/note-gen
+---
+
+# Note Gen Error Handling Try Catch
+
+## Action
+
+Use try-catch blocks for error handling
+
+## Evidence
+
+- Pattern in errorHandling.style
+- Seen in src/app/core/main/browser/*.tsx
+
